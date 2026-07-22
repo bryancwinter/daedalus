@@ -58,7 +58,7 @@ export function readTools( chain: GuardChain ): ( ToolDefinition & { spec?: Test
 			spec: [
 				{ label: 'resolves links for a lens', input: { path: 'lenses/parser/parser.html' }, assertions: [] },
 			],
-			description: 'Get outbound links declared by an artifact and inbound links pointing to it from the rest of the vault.',
+			description: 'Get outbound links and addresses declared by an artifact, plus inbound links pointing to it from the rest of the vault.',
 			doc:
 				'Resolve the link graph around one artifact. Returns `{ outbound, inbound }`: outbound = the ' +
 				'links the artifact itself declares (resolved to their targets); inbound = every other file ' +
@@ -80,6 +80,17 @@ export function readTools( chain: GuardChain ): ( ToolDefinition & { spec?: Test
 					const artifact = KCDPrimitive.fromHtml( vault.read( filePath ), abs );
 					const outbound = artifact.getLinks();
 
+					// Addresses ride their OWN list, never mixed into outbound. A link asserts occupancy;
+					// an address does not — collapsing them would hand the caller back the exact ambiguity
+					// the primitive exists to remove. `occupied` is reported as a FACT, not a verdict.
+					const names     = new Set( vault.scan()
+						.map( f => typeof f.frontmatter[ 'name' ] === 'string' ? f.frontmatter[ 'name' ] as string : '' )
+						.filter( n => n !== '' ) );
+					const addresses = ( artifact.serialize().addresses ?? [] ).map( a => ( {
+						...a,
+						occupied: names.has( a.value ) || vault.exists( a.value ),
+					} ) );
+
 					// Inbound: scan vault, resolve each raw link, match against target
 					const inbound  = vault.scan()
 						.filter( f => f.rawLinks.some( l => vault.resolveHref( l.href ) === abs ) )
@@ -88,7 +99,7 @@ export function readTools( chain: GuardChain ): ( ToolDefinition & { spec?: Test
 							relativePath: f.relativePath,
 						} ) );
 
-					return MCPUtils.result( { outbound, inbound } );
+					return MCPUtils.result( { outbound, addresses, inbound } );
 				} catch ( e ) {
 					return MCPUtils.error( e instanceof Error ? e.message : String( e ) );
 				}
@@ -146,7 +157,16 @@ export function readTools( chain: GuardChain ): ( ToolDefinition & { spec?: Test
 					if ( inputPath ) {
 						checkFile( inputPath );
 					} else {
-						for ( const f of vault.scan() ) checkFile( f.path );
+						// The registry decides what is graded. Directories marked `indexed: false` are
+						// scratch and output space — never library artifacts — so a whole-vault sweep
+						// passes them through untouched rather than reporting them as malformed.
+						// ...and only DOCUMENTS are validated as documents. A `.js` utility in the library is
+						// declarative code, not a KCD artifact — the protocol says so outright ( "utility is
+						// not a document type" ) — so grading it against the document schema reports a
+						// category error, not a defect. This is the file-kind gate.
+						for ( const f of vault.scan() )
+							if ( vault.isLibraryPath( f.relativePath ) && /\.html?$/i.test( f.relativePath ) )
+								checkFile( f.path );
 					}
 
 					// Reference integrity ( cross-file, advisory ) — the hygiene half, alongside the
