@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "starmind_kcd": {
+      "command": "node",
+      "args": ["C:/starmind_root/daedalus/run.js"]
+    }
+  }
+}
