@@ -2,7 +2,7 @@ import { KCDPrimitive } from 'kcd_sdk';
 import type { ToolDefinition, TestSpec } from '../mcp';
 import { GuardChain } from '../guards';
 import { MCPUtils } from '../MCPUtils';
-import type { HealthIssue, HealthReport } from '../types';
+import { validateVault } from '../validate';
 
 export function readTools( chain: GuardChain ): ( ToolDefinition & { spec?: TestSpec[] } )[] {
 	return [
@@ -130,61 +130,9 @@ export function readTools( chain: GuardChain ): ( ToolDefinition & { spec?: Test
 			handler: async ( args ) => {
 				try {
 					chain.run( { tool: 'kcd_health', params: args } );
-
-					const issues: HealthIssue[] = [];
-					const inputPath = typeof args[ 'path' ] === 'string' ? args[ 'path' ] as string : '';
-
-					const vault = MCPUtils.vault;
-
-					const checkFile = ( filePath: string ) => {
-						const rel = vault.toVaultRel( filePath );
-
-						try {
-							const artifact = KCDPrimitive.fromHtml( vault.read( filePath ), vault.toAbs( filePath ) );
-
-							for ( const issue of artifact.typeCheck() ) {
-								issues.push( { path: rel, ...issue } );
-							}
-						} catch ( e ) {
-							issues.push( {
-								path:     rel,
-								severity: 'error',
-								message:  e instanceof Error ? e.message : String( e ),
-							} );
-						}
-					};
-
-					if ( inputPath ) {
-						checkFile( inputPath );
-					} else {
-						// The registry decides what is graded. Directories marked `indexed: false` are
-						// scratch and output space — never library artifacts — so a whole-vault sweep
-						// passes them through untouched rather than reporting them as malformed.
-						// ...and only DOCUMENTS are validated as documents. A `.js` utility in the library is
-						// declarative code, not a KCD artifact — the protocol says so outright ( "utility is
-						// not a document type" ) — so grading it against the document schema reports a
-						// category error, not a defect. This is the file-kind gate.
-						for ( const f of vault.scan() )
-							if ( vault.isLibraryPath( f.relativePath ) && /\.html?$/i.test( f.relativePath ) )
-								checkFile( f.path );
-					}
-
-					// Reference integrity ( cross-file, advisory ) — the hygiene half, alongside the
-					// per-file structural checks above. Logic lives in the Vault; the handler only folds
-					// its findings into the same issue list.
-					for ( const ri of vault.referenceIssues( inputPath || undefined ) )
-						issues.push( { path: ri.path, severity: ri.severity, message: ri.message } );
-
-					const report: HealthReport = {
-						issues,
-						summary: {
-							total:    issues.length,
-							errors:   issues.filter( i => i.severity === 'error' ).length,
-							warnings: issues.filter( i => i.severity === 'warn' ).length,
-						},
-					};
-
-					return MCPUtils.result( report );
+					const raw  = args[ 'path' ];
+					const path = typeof raw === 'string' && raw.length > 0 ? raw : undefined;
+					return MCPUtils.result( validateVault( MCPUtils.vault, path ) );
 				} catch ( e ) {
 					return MCPUtils.error( e instanceof Error ? e.message : String( e ) );
 				}

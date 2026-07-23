@@ -12,13 +12,16 @@
  */
 const esbuild = require( 'esbuild' );
 
+// Two entry points, one bundle each: the MCP server ( dist/index.js, what a host spawns ) and the
+// CLI ( dist/cli.js, what `daedalus <command>` runs ). Both inline kcd_sdk, so each dist file is
+// self-contained. esbuild preserves the CLI's leading shebang, so dist/cli.js is directly runnable.
 esbuild.buildSync({
-	entryPoints: [ 'src/index.ts' ],
+	entryPoints: [ 'src/index.ts', 'src/cli.ts' ],
 	bundle:      true,
 	platform:    'node',
 	target:      'node20',
-	outfile:     'dist/index.js',
+	outdir:      'dist',
 	sourcemap:   true,
 });
 
-console.log( 'build complete → dist/index.js (self-contained)' );
+console.log( 'build complete → dist/index.js + dist/cli.js (self-contained)' );
