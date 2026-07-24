@@ -2,8 +2,12 @@
   "name": "daedalus",
   "version": "0.1.0",
   "description": "Daedalus — a context compiler. An MCP server and CLI over a KCD artifact vault.",
+  "bin": {
+    "daedalus": "dist/cli/index.js"
+  },
   "scripts": {
     "start": "tsx src/index.ts",
+    "cli": "tsx src/cli/index.ts",
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && node build.js",
     "dev": "tsx watch src/index.ts",
@@ -16,6 +20,7 @@
   "devDependencies": {
     "typescript": "^5.4.0",
     "tsx": "^4.0.0",
-    "@types/node": "^20.0.0"
+    "@types/node": "^20.0.0",
+    "esbuild": "^0.24.0"
   }
 }

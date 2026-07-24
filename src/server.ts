@@ -36,19 +36,17 @@ export class DaedalusServer {
 	 * The lifecycle fields ( installed / exposed / entryPoint ) are Starmind interop and
 	 * are deliberately kept — see `./mcp/manifest.ts`'s header.
 	 *
-	 * NOTE: `id` is DELIBERATELY still `starmind_kcd`, and is the last piece of pre-Daedalus
-	 * branding left in the project ( 2026-07-22 ). It is not a rename that was missed — it is
-	 * one that is not Daedalus's to make yet. The id is simultaneously a key in Starmind's
-	 * package registry ( `MasterRegistry.starmind_kcd`, sibling to `starmind_models` ), the
-	 * partition name of a live user-data slice on disk ( `pkg.starmind_kcd.json` ), the target
-	 * of a dashboard widget and a test, and the identity of the promoted plugin. Changing it
-	 * here without changing those re-keys a running system from underneath itself; changing it
-	 * WITH them is Starmind work, and it would be done twice, because Phase 4 makes Starmind a
-	 * CONSUMER of an installed Daedalus rather than a host of a promoted one — at which point
-	 * the whole cluster is re-keyed once, correctly. So it moves then, not now.
+	 * The id was re-keyed `starmind_kcd` → `daedalus` on 2026-07-24 — the full cluster rename an
+	 * earlier note deferred to Phase 4. It was pulled forward and done in ONE pass across every
+	 * coupled site, because a half-migrated id is where this project keeps drawing blood. The id is
+	 * simultaneously the MCP server identity ( here + the plugin manifest ), a key in Starmind's
+	 * package registry ( `MasterRegistry.daedalus` ), the partition name of the on-disk config slice
+	 * ( `pkg.daedalus.json` — the old `pkg.starmind_kcd.json` is orphaned userData that simply
+	 * regenerates ), and the target of the tool-monitor widget and a subscription test. All moved
+	 * together; the coupling holds because nothing was left behind.
 	 */
 	static manifest: ServerManifest = {
-		id:          'starmind_kcd',
+		id:          'daedalus',
 		name:        'Daedalus',
 		version:     '0.1.0',
 		entryPoint:  'dist/index.js',

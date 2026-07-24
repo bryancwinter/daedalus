@@ -31,11 +31,11 @@ import { inferProjectRoot } from 'kcd_sdk';
  * consumer of an installed Daedalus rather than the host of a promoted plugin, tier 2 can be deleted
  * without touching tiers 1, 3, or 4.
  *
- * WHY STARMIND_PACKAGE_STORE IS NOT RENAMED ( 2026-07-23 ). It is the HOST's variable, not this
- * server's: MCPService._packageEnv() sets it for every package-backed child Starmind spawns, and the
- * name describes the host's own mechanism. This is the same reasoning that keeps `manifest.id` as
- * `starmind_kcd` for now — the `starmind_` prefix there is the host's namespace, not Daedalus
- * branding. Reading it is interop. Renaming it here would only break it.
+ * WHY STARMIND_PACKAGE_STORE IS NOT RENAMED. It is the HOST's variable, not this server's:
+ * MCPService._packageEnv() sets it for every package-backed child Starmind spawns, and the name
+ * describes the host's own mechanism, not this server's identity. Reading it is interop; renaming it
+ * here would only break the handoff. ( This is unrelated to the server's own `manifest.id`, which WAS
+ * re-keyed `starmind_kcd` → `daedalus` on 2026-07-24 — the env var is the HOST's, the id is OURS. )
  *
  * The resolved value carries WHERE EACH FIELD CAME FROM. `doctor` ( plan 1.g ) and `mcp status`
  * ( 1.f ) print it, which turns "it is looking at the wrong vault" from a guess into a line of output.

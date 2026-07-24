@@ -1,8 +1,7 @@
-import { KCDPrimitive } from 'kcd_sdk';
+import { KCDPrimitive, VaultUtilities } from 'kcd_sdk';
 import type { ToolDefinition, TestSpec } from '../mcp';
 import { GuardChain } from '../guards';
 import { MCPUtils } from '../MCPUtils';
-import type { HealthIssue, HealthReport } from '../types';
 
 export function readTools( chain: GuardChain ): ( ToolDefinition & { spec?: TestSpec[] } )[] {
 	return [
@@ -131,60 +130,55 @@ export function readTools( chain: GuardChain ): ( ToolDefinition & { spec?: Test
 				try {
 					chain.run( { tool: 'kcd_health', params: args } );
 
-					const issues: HealthIssue[] = [];
 					const inputPath = typeof args[ 'path' ] === 'string' ? args[ 'path' ] as string : '';
 
-					const vault = MCPUtils.vault;
-
-					const checkFile = ( filePath: string ) => {
-						const rel = vault.toVaultRel( filePath );
-
-						try {
-							const artifact = KCDPrimitive.fromHtml( vault.read( filePath ), vault.toAbs( filePath ) );
-
-							for ( const issue of artifact.typeCheck() ) {
-								issues.push( { path: rel, ...issue } );
-							}
-						} catch ( e ) {
-							issues.push( {
-								path:     rel,
-								severity: 'error',
-								message:  e instanceof Error ? e.message : String( e ),
-							} );
-						}
-					};
-
-					if ( inputPath ) {
-						checkFile( inputPath );
-					} else {
-						// The registry decides what is graded. Directories marked `indexed: false` are
-						// scratch and output space — never library artifacts — so a whole-vault sweep
-						// passes them through untouched rather than reporting them as malformed.
-						// ...and only DOCUMENTS are validated as documents. A `.js` utility in the library is
-						// declarative code, not a KCD artifact — the protocol says so outright ( "utility is
-						// not a document type" ) — so grading it against the document schema reports a
-						// category error, not a defect. This is the file-kind gate.
-						for ( const f of vault.scan() )
-							if ( vault.isLibraryPath( f.relativePath ) && /\.html?$/i.test( f.relativePath ) )
-								checkFile( f.path );
-					}
-
-					// Reference integrity ( cross-file, advisory ) — the hygiene half, alongside the
-					// per-file structural checks above. Logic lives in the Vault; the handler only folds
-					// its findings into the same issue list.
-					for ( const ri of vault.referenceIssues( inputPath || undefined ) )
-						issues.push( { path: ri.path, severity: ri.severity, message: ri.message } );
-
-					const report: HealthReport = {
-						issues,
-						summary: {
-							total:    issues.length,
-							errors:   issues.filter( i => i.severity === 'error' ).length,
-							warnings: issues.filter( i => i.severity === 'warn' ).length,
-						},
-					};
+					// One engine, two faces: this same call backs the CLI `validate` command.
+					const report = VaultUtilities.health( MCPUtils.vault, inputPath || undefined );
 
 					return MCPUtils.result( report );
+				} catch ( e ) {
+					return MCPUtils.error( e instanceof Error ? e.message : String( e ) );
+				}
+			},
+		},
+		{
+			name:        'kcd_compile',
+			annotations: { readOnlyHint: true },
+			spec: [
+				{ label: 'compiles a single lens', input: { lenses: [ 'lens_crafter' ] }, assertions: [] },
+			],
+			description: 'Compile one or more lenses into a single context string — the composed Know/Care/manifest a lens contributes. Pass lens names (or vault paths); the first is primary. Returns the compiled text, the lenses compiled, and a token estimate.',
+			doc:
+				'The LENS compiler — Daedalus\'s basic context-compilation surface. Give it lens names ' +
+				'( a bare `parser` maps to `lenses/parser/parser.html`; a vault path is used as-is ) and it ' +
+				'dredges each lens to its OWN authored depth, folds their context blocks together, resolves ' +
+				'habit-class contention, and assembles one context string ( Care-first, manifest tables ). For a ' +
+				'single lens the output equals that lens\'s own compiled context; multiple lenses compose into one, ' +
+				'first = primary. Returns `{ lenses, text, tokens }`. This is lens composition only — the live ' +
+				'runtime layers ( model root context, active MCP tool schemas, session memory ) are Starmind\'s ' +
+				'job, not the vault\'s. Read-only.',
+			inputSchema: {
+				type:       'object',
+				properties: {
+					lenses: {
+						type:        'array',
+						items:       { type: 'string' },
+						description: 'Lens names or vault-relative paths to compile; the first is primary.',
+						minItems:    1,
+					},
+				},
+				required: [ 'lenses' ],
+			},
+			handler: async ( args ) => {
+				try {
+					chain.run( { tool: 'kcd_compile', params: args } );
+
+					const lenses = Array.isArray( args[ 'lenses' ] ) ? ( args[ 'lenses' ] as unknown[] ).map( String ) : [];
+
+					// One engine, two faces: this same call backs the CLI `compile` command.
+					const result = VaultUtilities.compile( MCPUtils.vault, lenses );
+
+					return MCPUtils.result( result );
 				} catch ( e ) {
 					return MCPUtils.error( e instanceof Error ? e.message : String( e ) );
 				}

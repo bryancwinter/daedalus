@@ -21,4 +21,16 @@ esbuild.buildSync({
 	sourcemap:   true,
 });
 
-console.log( 'build complete → dist/index.js (self-contained)' );
+// The CLI face — same engine, its own binary. The shebang banner makes the emitted file
+// directly executable as the npm-installed `bin` ( dist/cli/index.js ).
+esbuild.buildSync({
+	entryPoints: [ 'src/cli/index.ts' ],
+	bundle:      true,
+	platform:    'node',
+	target:      'node20',
+	outfile:     'dist/cli/index.js',
+	sourcemap:   true,
+	banner:      { js: '#!/usr/bin/env node' },
+});
+
+console.log( 'build complete → dist/index.js + dist/cli/index.js (self-contained)' );
