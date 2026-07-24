@@ -2,6 +2,10 @@ import { KCDPrimitive, VaultUtilities } from 'kcd_sdk';
 import type { ToolDefinition, TestSpec } from '../mcp';
 import { GuardChain } from '../guards';
 import { MCPUtils } from '../MCPUtils';
+<<<<<<< HEAD
+=======
+import { validateVault } from '../validate';
+>>>>>>> 8627d1b97c929924c52db38e3beedec1f3018018
 
 export function readTools( chain: GuardChain ): ( ToolDefinition & { spec?: TestSpec[] } )[] {
 	return [
@@ -129,6 +133,7 @@ export function readTools( chain: GuardChain ): ( ToolDefinition & { spec?: Test
 			handler: async ( args ) => {
 				try {
 					chain.run( { tool: 'kcd_health', params: args } );
+<<<<<<< HEAD
 
 					const inputPath = typeof args[ 'path' ] === 'string' ? args[ 'path' ] as string : '';
 
@@ -136,6 +141,11 @@ export function readTools( chain: GuardChain ): ( ToolDefinition & { spec?: Test
 					const report = VaultUtilities.health( MCPUtils.vault, inputPath || undefined );
 
 					return MCPUtils.result( report );
+=======
+					const raw  = args[ 'path' ];
+					const path = typeof raw === 'string' && raw.length > 0 ? raw : undefined;
+					return MCPUtils.result( validateVault( MCPUtils.vault, path ) );
+>>>>>>> 8627d1b97c929924c52db38e3beedec1f3018018
 				} catch ( e ) {
 					return MCPUtils.error( e instanceof Error ? e.message : String( e ) );
 				}

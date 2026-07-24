@@ -2,22 +2,28 @@
   "name": "daedalus",
   "version": "0.1.0",
   "description": "Daedalus — a context compiler. An MCP server and CLI over a KCD artifact vault.",
+<<<<<<< HEAD
   "bin": {
     "daedalus": "dist/cli/index.js"
   },
   "scripts": {
     "start": "tsx src/index.ts",
     "cli": "tsx src/cli/index.ts",
+=======
+  "bin": { "daedalus": "./dist/cli.js" },
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "cli": "tsx src/cli.ts",
+>>>>>>> 8627d1b97c929924c52db38e3beedec1f3018018
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && node build.js",
     "dev": "tsx watch src/index.ts",
     "verify": "tsx src/scripts/verify.ts",
     "snapshot": "tsx src/scripts/snapshot.ts"
   },
-  "dependencies": {
-    "kcd_sdk": "file:../kcd_sdk"
-  },
+  "dependencies": {},
   "devDependencies": {
+    "kcd_sdk": "file:../kcd_sdk",
     "typescript": "^5.4.0",
     "tsx": "^4.0.0",
     "@types/node": "^20.0.0",
