@@ -1,11 +1,8 @@
-import { KCDPrimitive, VaultUtilities } from 'kcd_sdk';
+import { KCDPrimitive, VaultUtilities, Survey } from 'kcd_sdk';
 import type { ToolDefinition, TestSpec } from '../mcp';
 import { GuardChain } from '../guards';
 import { MCPUtils } from '../MCPUtils';
-<<<<<<< HEAD
-=======
-import { validateVault } from '../validate';
->>>>>>> 8627d1b97c929924c52db38e3beedec1f3018018
+import { Config } from '../Config';
 
 export function readTools( chain: GuardChain ): ( ToolDefinition & { spec?: TestSpec[] } )[] {
 	return [
@@ -133,7 +130,6 @@ export function readTools( chain: GuardChain ): ( ToolDefinition & { spec?: Test
 			handler: async ( args ) => {
 				try {
 					chain.run( { tool: 'kcd_health', params: args } );
-<<<<<<< HEAD
 
 					const inputPath = typeof args[ 'path' ] === 'string' ? args[ 'path' ] as string : '';
 
@@ -141,11 +137,6 @@ export function readTools( chain: GuardChain ): ( ToolDefinition & { spec?: Test
 					const report = VaultUtilities.health( MCPUtils.vault, inputPath || undefined );
 
 					return MCPUtils.result( report );
-=======
-					const raw  = args[ 'path' ];
-					const path = typeof raw === 'string' && raw.length > 0 ? raw : undefined;
-					return MCPUtils.result( validateVault( MCPUtils.vault, path ) );
->>>>>>> 8627d1b97c929924c52db38e3beedec1f3018018
 				} catch ( e ) {
 					return MCPUtils.error( e instanceof Error ? e.message : String( e ) );
 				}
@@ -189,6 +180,50 @@ export function readTools( chain: GuardChain ): ( ToolDefinition & { spec?: Test
 					const result = VaultUtilities.compile( MCPUtils.vault, lenses );
 
 					return MCPUtils.result( result );
+				} catch ( e ) {
+					return MCPUtils.error( e instanceof Error ? e.message : String( e ) );
+				}
+			},
+		},
+		{
+			name:        'kcd_survey',
+			annotations: { readOnlyHint: true },
+			spec: [
+				{ label: 'surveys the configured project', input: {}, assertions: [] },
+			],
+			description: 'Reconnoitre the PROJECT the vault sits beside — a deterministic, filename-level census of its components ( languages, manifests, entry points, test layout, nesting ), NOT a source parse. Returns a lean text projection by default, or the full structured report with `full: true`. Read this to orient in an unfamiliar codebase instead of exploring it.',
+			doc:
+				'Walk the configured project root and return a structured reconnaissance of it. This is a ' +
+				'CENSUS: it reads filenames and small manifests only — no source is parsed and no model runs — ' +
+				'so it produces a real answer on a Python, Go or C# project exactly as on TypeScript. The unit ' +
+				'is the COMPONENT ( the root, plus every directory carrying its own package manifest ); each ' +
+				'file is attributed to the deepest component containing it, so a monorepo reads as its real ' +
+				'parts. By default returns the LEAN TEXT PROJECTION — the orientation read, geometry-free, the ' +
+				'form a small model reasons over best. Pass `full: true` for the complete `SurveyReport` object ' +
+				'( components with languages, entryPoints, tests, contains, stats ). What a survey does NOT tell ' +
+				'you: what the code does, which component matters, or that an absent thing is truly absent — ' +
+				'treat it as orientation, not authority ( see the read-a-survey reference ). Read-only; surveys ' +
+				'the project, writes nothing. The CLI `survey` command writes the same data as a JSON tree.',
+			inputSchema: {
+				type:       'object',
+				properties: {
+					full: { type: 'boolean', default: false, description: 'Return the full structured SurveyReport instead of the lean text projection.' },
+				},
+				required: [],
+			},
+			handler: async ( args ) => {
+				try {
+					chain.run( { tool: 'kcd_survey', params: args } );
+
+					// The survey walks the PROJECT ROOT ( the code ), not the vault ( docRoot ) — the
+					// opposite scope from every other tool, which read the artifact store. One engine,
+					// two faces: this same call backs the CLI `survey` command.
+					const { projectRoot } = Config.resolve();
+					const report = Survey.run( projectRoot );
+
+					return args[ 'full' ] === true
+						? MCPUtils.result( report )
+						: MCPUtils.text( Survey.project( report ) );
 				} catch ( e ) {
 					return MCPUtils.error( e instanceof Error ? e.message : String( e ) );
 				}

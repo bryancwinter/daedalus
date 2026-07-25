@@ -1630,7 +1630,7 @@ var require_KCDPrimitive = __commonJS({
     function clampDepth(_depth) {
       return 2;
     }
-    var KCDPrimitive3 = class _KCDPrimitive {
+    var KCDPrimitive2 = class _KCDPrimitive {
       // ── Hydrator registry ─────────────────────────────────────────────────────
       static _hydrators = /* @__PURE__ */ new Map();
       /**
@@ -1878,7 +1878,7 @@ var require_KCDPrimitive = __commonJS({
         return this.isDirty;
       }
     };
-    exports2.KCDPrimitive = KCDPrimitive3;
+    exports2.KCDPrimitive = KCDPrimitive2;
     function classifyHref(href) {
       if (href.startsWith("#"))
         return "anchor";
@@ -9231,6 +9231,207 @@ var require_Vault = __commonJS({
   }
 });
 
+// ../kcd_sdk/dist/node/VaultUtilities.js
+var require_VaultUtilities = __commonJS({
+  "../kcd_sdk/dist/node/VaultUtilities.js"(exports2) {
+    "use strict";
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    }) : (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    }));
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    }) : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ (function() {
+      var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function(o2) {
+          var ar = [];
+          for (var k in o2) if (Object.prototype.hasOwnProperty.call(o2, k)) ar[ar.length] = k;
+          return ar;
+        };
+        return ownKeys(o);
+      };
+      return function(mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) {
+          for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        }
+        __setModuleDefault(result, mod);
+        return result;
+      };
+    })();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.VaultUtilities = void 0;
+    var fs = __importStar(require("fs"));
+    var primitives_1 = require_primitives();
+    var VaultUtilities2 = class {
+      /**
+       * Validate one artifact ( `onlyFile` given ) or the whole vault ( omitted ) on two axes:
+       *
+       *   STRUCTURAL ( per file ) — parse the artifact and run its type rules. A parse failure
+       *   becomes an `error` issue rather than aborting the sweep.
+       *
+       *   REFERENCE INTEGRITY ( cross-file, advisory ) — dangling links and unresolved base/lens
+       *   refs. The logic lives in `vault.referenceIssues`; this only folds it into one list.
+       *
+       * Returns `{ issues, summary }`. The pre-flight before a save/move sweep and the observable
+       * form of the "internal state always viable" invariant.
+       */
+      static health(vault, onlyFile) {
+        const issues = [];
+        const checkFile = (filePath) => {
+          const rel = vault.toVaultRel(filePath);
+          try {
+            const artifact = primitives_1.KCDPrimitive.fromHtml(vault.read(filePath), vault.toAbs(filePath));
+            for (const issue of artifact.typeCheck())
+              issues.push({ path: rel, ...issue });
+          } catch (e) {
+            issues.push({
+              path: rel,
+              severity: "error",
+              message: e instanceof Error ? e.message : String(e)
+            });
+          }
+        };
+        if (onlyFile) {
+          checkFile(onlyFile);
+        } else {
+          for (const f of vault.scan())
+            if (vault.isLibraryPath(f.relativePath) && /\.html?$/i.test(f.relativePath))
+              checkFile(f.path);
+        }
+        for (const ri of vault.referenceIssues(onlyFile || void 0))
+          issues.push({ path: ri.path, severity: ri.severity, message: ri.message });
+        return {
+          issues,
+          summary: {
+            total: issues.length,
+            errors: issues.filter((i) => i.severity === "error").length,
+            warnings: issues.filter((i) => i.severity === "warn").length
+          }
+        };
+      }
+      /**
+       * Compile one or more lenses to a context string — Daedalus's LENS-scoped compiler.
+       *
+       * Deliberately NOT the agent compiler: it reuses only the stable low-level primitives a lens
+       * already self-compiles through ( `LensObject.getContextBlocks` → `SlotResolver.compile`, exactly
+       * what `LensObject.serializeForContext` does ), and touches none of the agent's environment-folding
+       * ( root context, live MCP tool defs, DB memory ) — those are RUNTIME layers a standalone vault has
+       * no source for, and they belong to Starmind. For a single lens the output equals that lens's own
+       * `serializeForContext()`; multiple lenses fold into one context, cross-lens habit contention resolved
+       * together. The "basic compilation framework" — advanced composition ( full agents ) requires Starmind.
+       *
+       * Each name is a bare lens name ( mapped to the `lenses/{name}/{name}.html` convention ) OR a raw
+       * vault-relative path. `[0]` is primary. Throws on an empty list or a name that resolves to nothing.
+       */
+      static compile(vault, lensNames) {
+        if (lensNames.length === 0)
+          throw new Error("compile requires at least one lens");
+        const lenses = lensNames.map((name) => {
+          const rel = this.lensPath(name);
+          if (!fs.existsSync(vault.toAbs(rel)))
+            throw new Error(`no lens found for "${name}" ( looked for ${rel} )`);
+          return vault.loadLens(rel);
+        });
+        const blocks = lenses.flatMap((l) => l.getContextBlocks());
+        const text = primitives_1.SlotResolver.compile(blocks);
+        return { lenses: lensNames, text, tokens: primitives_1.KCDPrimitive._estimateTokens(text) };
+      }
+      /**
+       * A lens's compiled-context DETAIL — the structured breakdown behind the `show` chart. Reads the same
+       * lens-scoped composition `compile()` produces, but keeps it decomposed: `slots[0]` is the lens's OWN
+       * identity ( its Care/Know body + the routing tables it authors ), and each following row is one dredge
+       * SLOT off the lens's policy — its state ( off / on / suggested, or `empty` when the slot is a
+       * placeholder nothing fills ) and the tokens that component contributes. Single lens only ( a lens is
+       * what you inspect; a multi-lens compile is `compile()` ).
+       */
+      static lensView(vault, name) {
+        const rel = this.lensPath(name);
+        if (!fs.existsSync(vault.toAbs(rel)))
+          throw new Error(`no lens found for "${name}" ( looked for ${rel} )`);
+        const lens = vault.loadLens(rel);
+        const base = (p) => p.replace(/\\/g, "/").split("/").pop() ?? "";
+        const lensPath = lens.getPath() ?? rel;
+        const slots = [
+          // The lens's own identity — its Care/Know body, always fully in.
+          { what: "identity", kind: "lens", state: "suggested", tokens: lens.bodyTokens() }
+        ];
+        for (const entry of lens.getPolicy()) {
+          const href = entry.href?.trim() ?? "";
+          if (href === "" || /^\{.*\}$/.test(href)) {
+            slots.push({ what: entry.what || "( unnamed )", kind: "", state: "empty", tokens: 0 });
+            continue;
+          }
+          const target = this.tryLoad(vault, href);
+          slots.push({
+            what: entry.what || (target ? target.getName() : base(href)),
+            kind: target ? target.getType() : this.kindFromHref(href),
+            state: entry.mode,
+            // The cost the compile ACTUALLY pays at this slot's mode — `on` reduces to its routing row
+            // ( ~tens of tokens ), `suggested` rides the full body ( ~hundreds ), `off` contributes nothing.
+            // The same `modeTokens` split the Starmind composition UI reads, so the two never disagree.
+            tokens: target ? target.modeTokens(entry.mode, entry.why) : 0
+          });
+        }
+        return {
+          lens: lens.getName() || name,
+          path: lensPath,
+          slots,
+          tokens: slots.reduce((sum, s) => sum + s.tokens, 0)
+        };
+      }
+      /** Resolve a policy href to disk ( the resolver the dredge uses ) and load the full artifact — for the
+       *  `show` breakdown, which prices every slot regardless of mode. Null on an unresolvable or unreadable
+       *  target ( a dangling link ), so the caller falls back to an href-inferred kind and zero weight. */
+      static tryLoad(vault, href) {
+        try {
+          const abs = vault.resolveHref(href);
+          if (!fs.existsSync(abs))
+            return null;
+          return primitives_1.KCDPrimitive.fromHtml(fs.readFileSync(abs, "utf-8"), abs);
+        } catch {
+          return null;
+        }
+      }
+      /** Best-effort artifact kind from an href's path segment — the fallback when a slot's target can't be
+       *  loaded ( a dangling link ), so its real `getType()` is unavailable. */
+      static kindFromHref(href) {
+        const h = href.replace(/\\/g, "/");
+        if (/(^|\/)references?\//.test(h))
+          return "reference";
+        if (/(^|\/)habits?\//.test(h))
+          return "habit";
+        if (/(^|\/)plans?\//.test(h))
+          return "plan";
+        if (/(^|\/)contracts?\//.test(h))
+          return "contract";
+        return "";
+      }
+      /** A bare name → the lens-file convention; a value already carrying a slash or an `.html` tail is a
+       *  raw vault-relative path, used as-is. */
+      static lensPath(nameOrPath) {
+        if (nameOrPath.includes("/") || /\.html?$/i.test(nameOrPath))
+          return nameOrPath;
+        return `lenses/${nameOrPath}/${nameOrPath}.html`;
+      }
+    };
+    exports2.VaultUtilities = VaultUtilities2;
+  }
+});
+
 // ../kcd_sdk/dist/node/VaultDeploy.js
 var require_VaultDeploy = __commonJS({
   "../kcd_sdk/dist/node/VaultDeploy.js"(exports2) {
@@ -9451,6 +9652,521 @@ ${rows}
       }
     };
     exports2.VaultDeploy = VaultDeploy;
+  }
+});
+
+// ../kcd_sdk/dist/node/Survey.js
+var require_Survey = __commonJS({
+  "../kcd_sdk/dist/node/Survey.js"(exports2) {
+    "use strict";
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    }) : (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    }));
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    }) : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ (function() {
+      var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function(o2) {
+          var ar = [];
+          for (var k in o2) if (Object.prototype.hasOwnProperty.call(o2, k)) ar[ar.length] = k;
+          return ar;
+        };
+        return ownKeys(o);
+      };
+      return function(mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) {
+          for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        }
+        __setModuleDefault(result, mod);
+        return result;
+      };
+    })();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.Survey = void 0;
+    var fs = __importStar(require("fs"));
+    var path2 = __importStar(require("path"));
+    var SKIP_DIRS = /* @__PURE__ */ new Set([
+      "node_modules",
+      ".git",
+      ".svn",
+      ".hg",
+      "dist",
+      "build",
+      "out",
+      "target",
+      "bin",
+      "obj",
+      ".next",
+      ".nuxt",
+      ".venv",
+      "venv",
+      "__pycache__",
+      ".tox",
+      ".gradle",
+      ".idea",
+      ".vscode",
+      "vendor",
+      "coverage",
+      ".pytest_cache",
+      ".mypy_cache",
+      "Pods",
+      "DerivedData"
+    ]);
+    var LANGUAGES = {
+      ".ts": "TypeScript",
+      ".tsx": "TypeScript",
+      ".mts": "TypeScript",
+      ".cts": "TypeScript",
+      ".js": "JavaScript",
+      ".jsx": "JavaScript",
+      ".mjs": "JavaScript",
+      ".cjs": "JavaScript",
+      ".vue": "Vue",
+      ".svelte": "Svelte",
+      ".py": "Python",
+      ".pyi": "Python",
+      ".go": "Go",
+      ".rs": "Rust",
+      ".cs": "C#",
+      ".fs": "F#",
+      ".vb": "Visual Basic",
+      ".java": "Java",
+      ".kt": "Kotlin",
+      ".kts": "Kotlin",
+      ".scala": "Scala",
+      ".groovy": "Groovy",
+      ".rb": "Ruby",
+      ".php": "PHP",
+      ".pl": "Perl",
+      ".c": "C",
+      ".h": "C",
+      ".cpp": "C++",
+      ".cc": "C++",
+      ".cxx": "C++",
+      ".hpp": "C++",
+      ".m": "Objective-C",
+      ".mm": "Objective-C++",
+      ".swift": "Swift",
+      ".sh": "Shell",
+      ".bash": "Shell",
+      ".zsh": "Shell",
+      ".ps1": "PowerShell",
+      ".sql": "SQL",
+      ".r": "R",
+      ".lua": "Lua",
+      ".dart": "Dart",
+      ".ex": "Elixir",
+      ".exs": "Elixir",
+      ".html": "HTML",
+      ".css": "CSS",
+      ".scss": "Sass",
+      ".less": "Less",
+      ".md": "Markdown"
+    };
+    var MANIFESTS = {
+      "package.json": "npm",
+      "deno.json": "deno",
+      "requirements.txt": "python",
+      "pyproject.toml": "python",
+      "setup.py": "python",
+      "Pipfile": "python",
+      "go.mod": "go",
+      "Cargo.toml": "rust",
+      "pom.xml": "java",
+      "build.gradle": "java",
+      "build.gradle.kts": "java",
+      "Gemfile": "ruby",
+      "composer.json": "php",
+      "pubspec.yaml": "dart",
+      "mix.exs": "elixir",
+      "*.csproj": "dotnet"
+    };
+    var CONVENTIONAL_ENTRIES = [
+      "src/index.ts",
+      "src/index.js",
+      "src/main.ts",
+      "src/main.js",
+      "index.ts",
+      "index.js",
+      "src/main.py",
+      "main.py",
+      "__main__.py",
+      "app.py",
+      "manage.py",
+      "main.go",
+      "cmd/main.go",
+      "src/main.rs",
+      "src/lib.rs",
+      "Program.cs",
+      "src/Program.cs",
+      "main.swift"
+    ];
+    var APP_FRAMEWORKS = [
+      "electron",
+      "next",
+      "nuxt",
+      "@angular/core",
+      "react-scripts",
+      "express",
+      "fastify",
+      "@nestjs/core",
+      "django",
+      "flask"
+    ];
+    var TEST_DIRS = /* @__PURE__ */ new Set(["__tests__", "test", "tests", "spec", "specs", "testing", "e2e"]);
+    var TEST_PATTERNS = [
+      { pattern: "*.test.*", test: (f) => /\.test\.[a-z]+$/i.test(f) },
+      { pattern: "*.spec.*", test: (f) => /\.spec\.[a-z]+$/i.test(f) },
+      { pattern: "*_test.go", test: (f) => /_test\.go$/i.test(f) },
+      { pattern: "test_*.py", test: (f) => /^test_.+\.py$/i.test(f) },
+      { pattern: "*_test.py", test: (f) => /_test\.py$/i.test(f) },
+      { pattern: "*Test.java", test: (f) => /Test\.java$/.test(f) },
+      { pattern: "*Tests.cs", test: (f) => /Tests?\.cs$/.test(f) }
+    ];
+    var MAX_FILES = 6e4;
+    var MAX_COMPONENTS = 64;
+    var MAX_LANGUAGES = 10;
+    var MAX_ENTRY_POINTS = 8;
+    var MAX_TEST_DIRS = 8;
+    var INDEX_FILE = "index.json";
+    var Survey2 = class _Survey {
+      /** Walk `projectRoot` and produce the report. Never throws on odd trees. */
+      static run(projectRoot, opts) {
+        const root = path2.resolve(projectRoot);
+        const maxFiles = opts?.maxFiles ?? MAX_FILES;
+        const files = [];
+        const manifests = [];
+        let directories = 0, truncated = false;
+        const rel = (abs) => path2.relative(root, abs).split(path2.sep).join("/");
+        const walk = (dir, inTestDir) => {
+          let entries;
+          try {
+            entries = fs.readdirSync(dir, { withFileTypes: true });
+          } catch {
+            return;
+          }
+          for (const entry of entries) {
+            if (files.length >= maxFiles) {
+              truncated = true;
+              return;
+            }
+            const abs = path2.join(dir, entry.name);
+            if (entry.isDirectory()) {
+              if (SKIP_DIRS.has(entry.name) || entry.name.startsWith("."))
+                continue;
+              directories++;
+              const isTest = TEST_DIRS.has(entry.name.toLowerCase());
+              walk(abs, inTestDir || isTest);
+              continue;
+            }
+            if (!entry.isFile())
+              continue;
+            let size = 0;
+            try {
+              size = fs.statSync(abs).size;
+            } catch {
+            }
+            files.push({ rel: rel(abs), size, inTestDir, base: entry.name });
+            const eco = MANIFESTS[entry.name] ?? (entry.name.endsWith(".csproj") ? "dotnet" : void 0);
+            if (eco)
+              manifests.push({ dir: rel(path2.dirname(abs)), file: rel(abs), ecosystem: eco });
+          }
+        };
+        walk(root, false);
+        const components = _Survey._components(root, files, manifests);
+        return {
+          schema: "survey/1",
+          generated: (/* @__PURE__ */ new Date()).toISOString(),
+          root: root.split(path2.sep).join("/"),
+          components,
+          totals: {
+            components: components.length,
+            files: files.length,
+            bytes: files.reduce((n, f) => n + f.size, 0)
+          },
+          capabilities: { tsScan: fs.existsSync(path2.join(root, "tsconfig.json")) },
+          limits: { maxFiles, truncated }
+        };
+      }
+      /**
+       * Flush and fill `outDir` with the survey tree: a roster at `index.json` plus one file per
+       * component, FLAT beside it. Deliberately shallow — an agent should be able to list one directory
+       * and see every component, then open exactly the one it needs.
+       *
+       * Destructive by design. The survey is a derived, temporary artifact; a stale component file left
+       * behind after a rename would be worse than no file at all, so the directory is emptied first.
+       * Refuses to flush anything that does not look like a survey directory.
+       */
+      static write(report, outDir) {
+        const dir = path2.resolve(outDir);
+        if (fs.existsSync(dir)) {
+          const stray = fs.readdirSync(dir).filter((f) => !f.endsWith(".json"));
+          if (stray.length)
+            throw new Error(`refusing to flush ${dir}: it holds non-survey files ( ${stray.slice(0, 3).join(", ")} )`);
+          for (const f of fs.readdirSync(dir))
+            fs.rmSync(path2.join(dir, f), { force: true });
+        } else {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+        const written = [];
+        const emit = (name, data) => {
+          fs.writeFileSync(path2.join(dir, name), JSON.stringify(data, null, "	") + "\n");
+          written.push(name);
+        };
+        emit(INDEX_FILE, {
+          schema: report.schema,
+          generated: report.generated,
+          root: report.root,
+          totals: report.totals,
+          capabilities: report.capabilities,
+          limits: report.limits,
+          components: report.components.map((c) => ({
+            id: c.id,
+            kind: c.kind,
+            path: c.path,
+            file: `${c.id}.json`,
+            description: c.description
+          }))
+        });
+        for (const c of report.components)
+          emit(`${c.id}.json`, { schema: report.schema, ...c });
+        return written;
+      }
+      /**
+       * The lean text projection — what an agent actually READS.
+       *
+       * Raw JSON is the right thing to store and a poor thing to prompt with: repeated keys and
+       * punctuation cost roughly 1.5–2× the tokens of an equivalent outline, and small models score
+       * worse retrieving from it. So the stored tree stays JSON and this is served instead. `stats`
+       * drops whole — the same partition `layout` gets in an insight document.
+       */
+      static project(report) {
+        const out = [];
+        out.push(`# survey \xB7 ${report.root} \xB7 ${report.totals.components} components`);
+        if (report.limits.truncated)
+          out.push(`PARTIAL: walk stopped at ${report.limits.maxFiles} files \u2014 treat absences as unknown, not absent.`);
+        out.push("");
+        for (const c of report.components) {
+          out.push(`## ${c.id} \xB7 ${c.kind}${c.ecosystem ? ` \xB7 ${c.ecosystem}` : ""}`);
+          out.push(`path        ${c.path}`);
+          out.push(`about       ${c.description}`);
+          if (c.languages.length)
+            out.push(`languages   ${c.languages.map((l) => `${l.language}(${l.files})`).join(", ")}`);
+          if (c.entryPoints.length)
+            out.push(`entry       ${c.entryPoints.map((e) => e.path).join(", ")}`);
+          out.push(`tests       ${c.tests.present ? `${c.tests.files} files \xB7 ${c.tests.patterns.join(" ") || "by directory"}` : "none found"}`);
+          if (c.contains.length)
+            out.push(`contains    ${c.contains.join(", ")}`);
+          out.push("");
+        }
+        return out.join("\n");
+      }
+      // ── Internals ─────────────────────────────────────────────────────────────
+      /** Build the component set, attributing every file to the deepest component that contains it. */
+      static _components(root, files, manifests) {
+        const roots = /* @__PURE__ */ new Map();
+        for (const m of manifests) {
+          const key = m.dir === "" ? "." : m.dir;
+          if (!roots.has(key))
+            roots.set(key, { ecosystem: m.ecosystem, manifest: m.file });
+        }
+        if (!roots.has("."))
+          roots.set(".", { ecosystem: "", manifest: "" });
+        const ordered = [...roots.keys()].sort((a, b) => a.split("/").length - b.split("/").length || a.localeCompare(b)).slice(0, MAX_COMPONENTS);
+        const ids = _Survey._mintIds(ordered);
+        const byDepth = ordered.filter((r) => r !== ".").sort((a, b) => b.split("/").length - a.split("/").length);
+        const owner = (rel) => byDepth.find((r) => rel === r || rel.startsWith(r + "/")) ?? ".";
+        const buckets = new Map(ordered.map((r) => [r, []]));
+        for (const f of files)
+          buckets.get(owner(f.rel))?.push(f);
+        const parentOf = /* @__PURE__ */ new Map();
+        for (const r of ordered) {
+          if (r === ".")
+            continue;
+          parentOf.set(r, byDepth.find((o) => o !== r && r.startsWith(o + "/")) ?? ".");
+        }
+        return ordered.map((cRoot) => {
+          const meta = roots.get(cRoot);
+          const bucket = buckets.get(cRoot) ?? [];
+          const abs = path2.join(root, cRoot === "." ? "" : cRoot);
+          const langs = /* @__PURE__ */ new Map();
+          let bytes = 0, testFiles = 0;
+          const testDirs = /* @__PURE__ */ new Set(), patterns = /* @__PURE__ */ new Set();
+          for (const f of bucket) {
+            bytes += f.size;
+            const language = LANGUAGES[path2.extname(f.base).toLowerCase()];
+            if (language)
+              langs.set(language, (langs.get(language) ?? 0) + 1);
+            let matched = false;
+            for (const p of TEST_PATTERNS)
+              if (p.test(f.base)) {
+                patterns.add(p.pattern);
+                matched = true;
+              }
+            if (matched || f.inTestDir) {
+              testFiles++;
+              const d = f.rel.slice(0, f.rel.lastIndexOf("/"));
+              if (d)
+                testDirs.add(d);
+            }
+          }
+          const languages = [...langs.entries()].map(([language, n]) => ({ language, files: n })).sort((a, b) => b.files - a.files).slice(0, MAX_LANGUAGES);
+          const meta2 = meta.manifest ? _Survey._manifestMeta(path2.join(root, meta.manifest)) : {};
+          const entryPoints = _Survey._entryPoints(abs, meta.manifest ? path2.join(root, meta.manifest) : void 0);
+          const contains = ordered.filter((o) => parentOf.get(o) === cRoot).map((o) => ids.get(o));
+          const kind = _Survey._kind(cRoot, meta.ecosystem, meta2.name, languages, meta2.hasBin, meta2.isApp);
+          const stats = { files: bucket.length, bytes };
+          const c = {
+            id: ids.get(cRoot),
+            kind,
+            path: cRoot,
+            name: meta2.name,
+            version: meta2.version,
+            ecosystem: meta.ecosystem || void 0,
+            manifest: meta.manifest || void 0,
+            description: "",
+            languages,
+            entryPoints: entryPoints.slice(0, MAX_ENTRY_POINTS),
+            tests: {
+              present: testFiles > 0,
+              files: testFiles,
+              directories: [...testDirs].sort().slice(0, MAX_TEST_DIRS),
+              patterns: [...patterns].sort()
+            },
+            contains,
+            stats
+          };
+          c.description = _Survey._describe(c);
+          return c;
+        });
+      }
+      /** Short, stable, filename-safe, collision-free ids derived from the component's own directory. */
+      static _mintIds(roots) {
+        const ids = /* @__PURE__ */ new Map();
+        const seen = /* @__PURE__ */ new Set([INDEX_FILE.replace(/\.json$/, "")]);
+        const safe = (s) => s.replace(/[^A-Za-z0-9._-]/g, "-").replace(/^-+|-+$/g, "");
+        for (const r of roots) {
+          const segs = r === "." ? ["root"] : r.split("/");
+          let id = "component";
+          for (let take = 1; take <= segs.length; take++) {
+            id = segs.slice(segs.length - take).map(safe).filter(Boolean).join("-") || "component";
+            if (!seen.has(id))
+              break;
+          }
+          const base = id;
+          for (let n = 2; seen.has(id); n++)
+            id = `${base}-${n}`;
+          seen.add(id);
+          ids.set(r, id);
+        }
+        return ids;
+      }
+      /** The coarsest honest classification. `unknown` is a fine answer. */
+      static _kind(cRoot, ecosystem, name, languages, hasBin, isApp) {
+        if (/(^|\/)(plugins?|extensions?|addons?)(\/|$)/i.test(cRoot) || /-plugin$|^plugin-/i.test(name ?? ""))
+          return "plugin";
+        if (isApp)
+          return "application";
+        if (hasBin)
+          return "tool";
+        const top = languages[0]?.language;
+        if (!ecosystem && (top === "HTML" || top === "Markdown"))
+          return "docs";
+        if (!ecosystem)
+          return "unknown";
+        return cRoot === "." ? "application" : "library";
+      }
+      /** The mechanical sentence — a PROTOTYPE description, meant to be rewritten by whoever knows better. */
+      static _describe(c) {
+        const langs = c.languages.slice(0, 3).map((l) => l.language).join("/");
+        const bits = [];
+        bits.push(`${langs || "Non-code"} ${c.ecosystem ? `${c.ecosystem} ` : ""}${c.kind}`);
+        bits.push(`${c.stats.files} files`);
+        if (c.entryPoints.length)
+          bits.push(`entry ${c.entryPoints[0].path}`);
+        bits.push(c.tests.present ? `${c.tests.files} test files` : "no tests found");
+        if (c.contains.length)
+          bits.push(`${c.contains.length} sub-component${c.contains.length === 1 ? "" : "s"}`);
+        return bits.join(", ") + ".";
+      }
+      /**
+       * Name / version / bin off a manifest, best-effort. JSON is parsed; everything else is matched
+       * with a narrow regex rather than pulling TOML/YAML/XML parsers into the SDK for two fields. A
+       * miss returns nothing — a manifest's PRESENCE is the load-bearing signal, not its metadata.
+       */
+      static _manifestMeta(abs) {
+        let text;
+        try {
+          text = fs.readFileSync(abs, "utf8");
+        } catch {
+          return {};
+        }
+        if (text.length > 2e5)
+          return {};
+        if (abs.endsWith(".json")) {
+          try {
+            const j = JSON.parse(text);
+            const declared = { ...j.dependencies, ...j.devDependencies };
+            return {
+              name: typeof j.name === "string" ? j.name : void 0,
+              version: typeof j.version === "string" ? j.version : void 0,
+              hasBin: Boolean(j.bin),
+              isApp: APP_FRAMEWORKS.some((f) => f in declared)
+            };
+          } catch {
+            return {};
+          }
+        }
+        return {
+          name: text.match(/^\s*(?:name|module)\s*[=:]\s*["']?([^"'\n\r]+)/mi)?.[1]?.trim(),
+          version: text.match(/^\s*version\s*[=:]\s*["']?([^"'\n\r]+)/mi)?.[1]?.trim()
+        };
+      }
+      /** Declared entry points first ( a manifest saying so is evidence ), conventional ones second. */
+      static _entryPoints(componentAbs, manifestAbs) {
+        const found = /* @__PURE__ */ new Map();
+        if (manifestAbs?.endsWith(".json")) {
+          try {
+            const pkg = JSON.parse(fs.readFileSync(manifestAbs, "utf8"));
+            const put = (v, field) => {
+              if (typeof v === "string")
+                found.set(v, { path: v, source: "manifest", note: field });
+            };
+            put(pkg.main, "main");
+            put(pkg.module, "module");
+            if (typeof pkg.bin === "string")
+              put(pkg.bin, "bin");
+            else if (pkg.bin && typeof pkg.bin === "object")
+              for (const [k, v] of Object.entries(pkg.bin))
+                put(v, `bin.${k}`);
+          } catch {
+          }
+        }
+        for (const cand of CONVENTIONAL_ENTRIES) {
+          if (found.has(cand))
+            continue;
+          if (fs.existsSync(path2.join(componentAbs, cand)))
+            found.set(cand, { path: cand, source: "convention" });
+        }
+        return [...found.values()].sort((a, b) => a.source === b.source ? a.path.localeCompare(b.path) : a.source === "manifest" ? -1 : 1);
+      }
+    };
+    exports2.Survey = Survey2;
   }
 });
 
@@ -9886,7 +10602,7 @@ var require_node = __commonJS({
       for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p)) __createBinding(exports3, m, p);
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.SEARCH_ES_TIMEOUT_MS = exports2.SEARCH_YIELD_EVERY = exports2.SEARCH_WALK_CAP = exports2.SEARCH_MATCH_CAP = exports2.GLOB_WALK_CAP = exports2.GLOB_CAP = exports2.READ_CAP_BYTES = exports2.LIST_CAP = exports2.SdkFileAccess = exports2.VaultDeploy = exports2.Vault = exports2.loadLensFromDisk = exports2.inferProjectRoot = exports2.fsReader = void 0;
+    exports2.SEARCH_ES_TIMEOUT_MS = exports2.SEARCH_YIELD_EVERY = exports2.SEARCH_WALK_CAP = exports2.SEARCH_MATCH_CAP = exports2.GLOB_WALK_CAP = exports2.GLOB_CAP = exports2.READ_CAP_BYTES = exports2.LIST_CAP = exports2.SdkFileAccess = exports2.Survey = exports2.VaultDeploy = exports2.VaultUtilities = exports2.Vault = exports2.loadLensFromDisk = exports2.inferProjectRoot = exports2.fsReader = void 0;
     __exportStar(require_core(), exports2);
     __exportStar(require_scanner2(), exports2);
     __exportStar(require_server(), exports2);
@@ -9904,9 +10620,17 @@ var require_node = __commonJS({
     Object.defineProperty(exports2, "Vault", { enumerable: true, get: function() {
       return Vault_1.Vault;
     } });
+    var VaultUtilities_1 = require_VaultUtilities();
+    Object.defineProperty(exports2, "VaultUtilities", { enumerable: true, get: function() {
+      return VaultUtilities_1.VaultUtilities;
+    } });
     var VaultDeploy_1 = require_VaultDeploy();
     Object.defineProperty(exports2, "VaultDeploy", { enumerable: true, get: function() {
       return VaultDeploy_1.VaultDeploy;
+    } });
+    var Survey_1 = require_Survey();
+    Object.defineProperty(exports2, "Survey", { enumerable: true, get: function() {
+      return Survey_1.Survey;
     } });
     var SdkFileAccess_1 = require_SdkFileAccess();
     Object.defineProperty(exports2, "SdkFileAccess", { enumerable: true, get: function() {
@@ -10311,9 +11035,15 @@ var MCPUtils = class {
     }
     return this.cacheVault;
   }
-  /** Wrap any serialisable value in the MCP text-content envelope. */
+  /** Wrap any serialisable value in the MCP text-content envelope, as pretty JSON. */
   static result(data) {
     return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+  }
+  /** Return already-formatted prose AS-IS — no JSON wrapping. For payloads that are meant to be
+   *  read as text ( a lean projection, a rendered chart ), where JSON.stringify's quotes and
+   *  escaped newlines would defeat the whole point of the format. */
+  static text(body) {
+    return { content: [{ type: "text", text: body }] };
   }
   /** Error response the MCP client surfaces as a tool failure. */
   static error(message) {
@@ -10430,41 +11160,7 @@ function discoveryTools(chain) {
 }
 
 // src/tools/read.ts
-var import_kcd_sdk4 = __toESM(require_dist());
-
-// src/validate.ts
 var import_kcd_sdk3 = __toESM(require_dist());
-function validateVault(vault, path2) {
-  const issues = [];
-  const checkFile = (filePath) => {
-    const rel = vault.toVaultRel(filePath);
-    try {
-      const artifact = import_kcd_sdk3.KCDPrimitive.fromHtml(vault.read(filePath), vault.toAbs(filePath));
-      for (const issue of artifact.typeCheck()) issues.push({ path: rel, ...issue });
-    } catch (e) {
-      issues.push({ path: rel, severity: "error", message: e instanceof Error ? e.message : String(e) });
-    }
-  };
-  if (path2) {
-    checkFile(path2);
-  } else {
-    for (const f of vault.scan())
-      if (vault.isLibraryPath(f.relativePath) && /\.html?$/i.test(f.relativePath))
-        checkFile(f.path);
-  }
-  for (const ri of vault.referenceIssues(path2))
-    issues.push({ path: ri.path, severity: ri.severity, message: ri.message });
-  return {
-    issues,
-    summary: {
-      total: issues.length,
-      errors: issues.filter((i) => i.severity === "error").length,
-      warnings: issues.filter((i) => i.severity === "warn").length
-    }
-  };
-}
-
-// src/tools/read.ts
 function readTools(chain) {
   return [
     {
@@ -10495,7 +11191,7 @@ function readTools(chain) {
             const lens = vault.loadLens(filePath, { depth: depth ?? 1 });
             return MCPUtils.result(lens.serialize());
           }
-          const artifact = import_kcd_sdk4.KCDPrimitive.fromHtml(vault.read(filePath), vault.toAbs(filePath));
+          const artifact = import_kcd_sdk3.KCDPrimitive.fromHtml(vault.read(filePath), vault.toAbs(filePath));
           return MCPUtils.result(artifact.serialize());
         } catch (e) {
           return MCPUtils.error(e instanceof Error ? e.message : String(e));
@@ -10521,7 +11217,7 @@ function readTools(chain) {
           const vault = MCPUtils.vault;
           const filePath = String(args["path"] ?? "");
           const abs = vault.toAbs(filePath);
-          const artifact = import_kcd_sdk4.KCDPrimitive.fromHtml(vault.read(filePath), abs);
+          const artifact = import_kcd_sdk3.KCDPrimitive.fromHtml(vault.read(filePath), abs);
           const outbound = artifact.getLinks();
           const names = new Set(vault.scan().map((f) => typeof f.frontmatter["name"] === "string" ? f.frontmatter["name"] : "").filter((n) => n !== ""));
           const addresses = (artifact.serialize().addresses ?? []).map((a) => ({
@@ -10554,9 +11250,66 @@ function readTools(chain) {
       handler: async (args) => {
         try {
           chain.run({ tool: "kcd_health", params: args });
-          const raw = args["path"];
-          const path2 = typeof raw === "string" && raw.length > 0 ? raw : void 0;
-          return MCPUtils.result(validateVault(MCPUtils.vault, path2));
+          const inputPath = typeof args["path"] === "string" ? args["path"] : "";
+          const report = import_kcd_sdk3.VaultUtilities.health(MCPUtils.vault, inputPath || void 0);
+          return MCPUtils.result(report);
+        } catch (e) {
+          return MCPUtils.error(e instanceof Error ? e.message : String(e));
+        }
+      }
+    },
+    {
+      name: "kcd_compile",
+      annotations: { readOnlyHint: true },
+      spec: [
+        { label: "compiles a single lens", input: { lenses: ["lens_crafter"] }, assertions: [] }
+      ],
+      description: "Compile one or more lenses into a single context string \u2014 the composed Know/Care/manifest a lens contributes. Pass lens names (or vault paths); the first is primary. Returns the compiled text, the lenses compiled, and a token estimate.",
+      doc: "The LENS compiler \u2014 Daedalus's basic context-compilation surface. Give it lens names ( a bare `parser` maps to `lenses/parser/parser.html`; a vault path is used as-is ) and it dredges each lens to its OWN authored depth, folds their context blocks together, resolves habit-class contention, and assembles one context string ( Care-first, manifest tables ). For a single lens the output equals that lens's own compiled context; multiple lenses compose into one, first = primary. Returns `{ lenses, text, tokens }`. This is lens composition only \u2014 the live runtime layers ( model root context, active MCP tool schemas, session memory ) are Starmind's job, not the vault's. Read-only.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          lenses: {
+            type: "array",
+            items: { type: "string" },
+            description: "Lens names or vault-relative paths to compile; the first is primary.",
+            minItems: 1
+          }
+        },
+        required: ["lenses"]
+      },
+      handler: async (args) => {
+        try {
+          chain.run({ tool: "kcd_compile", params: args });
+          const lenses = Array.isArray(args["lenses"]) ? args["lenses"].map(String) : [];
+          const result = import_kcd_sdk3.VaultUtilities.compile(MCPUtils.vault, lenses);
+          return MCPUtils.result(result);
+        } catch (e) {
+          return MCPUtils.error(e instanceof Error ? e.message : String(e));
+        }
+      }
+    },
+    {
+      name: "kcd_survey",
+      annotations: { readOnlyHint: true },
+      spec: [
+        { label: "surveys the configured project", input: {}, assertions: [] }
+      ],
+      description: "Reconnoitre the PROJECT the vault sits beside \u2014 a deterministic, filename-level census of its components ( languages, manifests, entry points, test layout, nesting ), NOT a source parse. Returns a lean text projection by default, or the full structured report with `full: true`. Read this to orient in an unfamiliar codebase instead of exploring it.",
+      doc: "Walk the configured project root and return a structured reconnaissance of it. This is a CENSUS: it reads filenames and small manifests only \u2014 no source is parsed and no model runs \u2014 so it produces a real answer on a Python, Go or C# project exactly as on TypeScript. The unit is the COMPONENT ( the root, plus every directory carrying its own package manifest ); each file is attributed to the deepest component containing it, so a monorepo reads as its real parts. By default returns the LEAN TEXT PROJECTION \u2014 the orientation read, geometry-free, the form a small model reasons over best. Pass `full: true` for the complete `SurveyReport` object ( components with languages, entryPoints, tests, contains, stats ). What a survey does NOT tell you: what the code does, which component matters, or that an absent thing is truly absent \u2014 treat it as orientation, not authority ( see the read-a-survey reference ). Read-only; surveys the project, writes nothing. The CLI `survey` command writes the same data as a JSON tree.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          full: { type: "boolean", default: false, description: "Return the full structured SurveyReport instead of the lean text projection." }
+        },
+        required: []
+      },
+      handler: async (args) => {
+        try {
+          chain.run({ tool: "kcd_survey", params: args });
+          const { projectRoot } = Config.resolve();
+          const report = import_kcd_sdk3.Survey.run(projectRoot);
+          return args["full"] === true ? MCPUtils.result(report) : MCPUtils.text(import_kcd_sdk3.Survey.project(report));
         } catch (e) {
           return MCPUtils.error(e instanceof Error ? e.message : String(e));
         }
@@ -10566,7 +11319,7 @@ function readTools(chain) {
 }
 
 // src/tools/write.ts
-var import_kcd_sdk5 = __toESM(require_dist());
+var import_kcd_sdk4 = __toESM(require_dist());
 function writeTools(chain) {
   return [
     {
@@ -10609,8 +11362,8 @@ function writeTools(chain) {
           const filePath = String(args["path"] ?? "");
           const raw = args["artifact"] ?? {};
           const artifact = { ...raw, body: typeof raw["body"] === "string" ? raw["body"] : "" };
-          const html = import_kcd_sdk5.KcdEmit.emit(artifact);
-          const report = import_kcd_sdk5.KcdValidate.validate(html);
+          const html = import_kcd_sdk4.KcdEmit.emit(artifact);
+          const report = import_kcd_sdk4.KcdValidate.validate(html);
           if (!report.ok) {
             const detail = report.errors.map((e) => `${e.code} @ ${e.where}: ${e.msg}`).join("; ");
             return MCPUtils.error(`kcd_save refused "${filePath}": artifact failed validation \u2014 ${detail}`);
@@ -10748,19 +11501,17 @@ var DaedalusServer = class _DaedalusServer {
    * The lifecycle fields ( installed / exposed / entryPoint ) are Starmind interop and
    * are deliberately kept — see `./mcp/manifest.ts`'s header.
    *
-   * NOTE: `id` is DELIBERATELY still `starmind_kcd`, and is the last piece of pre-Daedalus
-   * branding left in the project ( 2026-07-22 ). It is not a rename that was missed — it is
-   * one that is not Daedalus's to make yet. The id is simultaneously a key in Starmind's
-   * package registry ( `MasterRegistry.starmind_kcd`, sibling to `starmind_models` ), the
-   * partition name of a live user-data slice on disk ( `pkg.starmind_kcd.json` ), the target
-   * of a dashboard widget and a test, and the identity of the promoted plugin. Changing it
-   * here without changing those re-keys a running system from underneath itself; changing it
-   * WITH them is Starmind work, and it would be done twice, because Phase 4 makes Starmind a
-   * CONSUMER of an installed Daedalus rather than a host of a promoted one — at which point
-   * the whole cluster is re-keyed once, correctly. So it moves then, not now.
+   * The id was re-keyed `starmind_kcd` → `daedalus` on 2026-07-24 — the full cluster rename an
+   * earlier note deferred to Phase 4. It was pulled forward and done in ONE pass across every
+   * coupled site, because a half-migrated id is where this project keeps drawing blood. The id is
+   * simultaneously the MCP server identity ( here + the plugin manifest ), a key in Starmind's
+   * package registry ( `MasterRegistry.daedalus` ), the partition name of the on-disk config slice
+   * ( `pkg.daedalus.json` — the old `pkg.starmind_kcd.json` is orphaned userData that simply
+   * regenerates ), and the target of the tool-monitor widget and a subscription test. All moved
+   * together; the coupling holds because nothing was left behind.
    */
   static manifest = {
-    id: "starmind_kcd",
+    id: "daedalus",
     name: "Daedalus",
     version: "0.1.0",
     entryPoint: "dist/index.js",

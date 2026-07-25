@@ -2155,7 +2155,7 @@ var require_SlotResolver = __commonJS({
 var require_LensObject = __commonJS({
   "../kcd_sdk/dist/primitives/framework/LensObject.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -2164,16 +2164,16 @@ var require_LensObject = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
-    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ function() {
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ (function() {
       var ownKeys = function(o) {
         ownKeys = Object.getOwnPropertyNames || function(o2) {
           var ar = [];
@@ -2191,7 +2191,7 @@ var require_LensObject = __commonJS({
         __setModuleDefault(result, mod);
         return result;
       };
-    }();
+    })();
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.LensObject = void 0;
     var path2 = __importStar(require("path"));
@@ -2807,7 +2807,7 @@ var require_types = __commonJS({
 var require_primitives = __commonJS({
   "../kcd_sdk/dist/primitives/index.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -2816,10 +2816,10 @@ var require_primitives = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
+    }));
     var __exportStar = exports2 && exports2.__exportStar || function(m, exports3) {
       for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p)) __createBinding(exports3, m, p);
     };
@@ -3754,7 +3754,7 @@ var require_ToolDef = __commonJS({
 var require_agent = __commonJS({
   "../kcd_sdk/dist/agent/index.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -3763,10 +3763,10 @@ var require_agent = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
+    }));
     var __exportStar = exports2 && exports2.__exportStar || function(m, exports3) {
       for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p)) __createBinding(exports3, m, p);
     };
@@ -4342,7 +4342,7 @@ var require_RoomSession = __commonJS({
 var require_session = __commonJS({
   "../kcd_sdk/dist/session/index.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -4351,10 +4351,10 @@ var require_session = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
+    }));
     var __exportStar = exports2 && exports2.__exportStar || function(m, exports3) {
       for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p)) __createBinding(exports3, m, p);
     };
@@ -4585,7 +4585,7 @@ var require_types2 = __commonJS({
 var require_constellation = __commonJS({
   "../kcd_sdk/dist/constellation/index.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -4594,10 +4594,10 @@ var require_constellation = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
+    }));
     var __exportStar = exports2 && exports2.__exportStar || function(m, exports3) {
       for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p)) __createBinding(exports3, m, p);
     };
@@ -5202,7 +5202,7 @@ var require_html = __commonJS({
 var require_core = __commonJS({
   "../kcd_sdk/dist/core/index.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -5211,10 +5211,10 @@ var require_core = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
+    }));
     var __exportStar = exports2 && exports2.__exportStar || function(m, exports3) {
       for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p)) __createBinding(exports3, m, p);
     };
@@ -7843,7 +7843,7 @@ var require_dumper = __commonJS({
       return quotingType === QUOTING_TYPE_DOUBLE ? STYLE_DOUBLE : STYLE_SINGLE;
     }
     function writeScalar(state, string, level, iskey, inblock) {
-      state.dump = function() {
+      state.dump = (function() {
         if (string.length === 0) {
           return state.quotingType === QUOTING_TYPE_DOUBLE ? '""' : "''";
         }
@@ -7882,7 +7882,7 @@ var require_dumper = __commonJS({
           default:
             throw new YAMLException("impossible error: invalid scalar style");
         }
-      }();
+      })();
     }
     function blockHeader(string, indentPerLevel) {
       const indentIndicator = needIndentIndicator(string) ? String(indentPerLevel) : "";
@@ -7896,12 +7896,12 @@ var require_dumper = __commonJS({
     }
     function foldString(string, width) {
       const lineRe = /(\n+)([^\n]*)/g;
-      let result = function() {
+      let result = (function() {
         let nextLF = string.indexOf("\n");
         nextLF = nextLF !== -1 ? nextLF : string.length;
         lineRe.lastIndex = nextLF;
         return foldLine(string.slice(0, nextLF), width);
-      }();
+      })();
       let prevMoreIndented = string[0] === "\n" || string[0] === " ";
       let moreIndented;
       let match;
@@ -8276,7 +8276,7 @@ var require_js_yaml = __commonJS({
 var require_scanner = __commonJS({
   "../kcd_sdk/dist/scanner/scanner.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -8285,16 +8285,16 @@ var require_scanner = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
-    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ function() {
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ (function() {
       var ownKeys = function(o) {
         ownKeys = Object.getOwnPropertyNames || function(o2) {
           var ar = [];
@@ -8312,7 +8312,7 @@ var require_scanner = __commonJS({
         __setModuleDefault(result, mod);
         return result;
       };
-    }();
+    })();
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.scan = scan;
     var fs = __importStar(require("fs"));
@@ -8410,7 +8410,7 @@ var require_scanner2 = __commonJS({
 var require_McpServer = __commonJS({
   "../kcd_sdk/dist/server/McpServer.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -8419,16 +8419,16 @@ var require_McpServer = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
-    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ function() {
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ (function() {
       var ownKeys = function(o) {
         ownKeys = Object.getOwnPropertyNames || function(o2) {
           var ar = [];
@@ -8446,7 +8446,7 @@ var require_McpServer = __commonJS({
         __setModuleDefault(result, mod);
         return result;
       };
-    }();
+    })();
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.McpServer = void 0;
     var readline = __importStar(require("readline"));
@@ -8785,7 +8785,7 @@ var require_server = __commonJS({
 var require_io = __commonJS({
   "../kcd_sdk/dist/node/io.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -8794,16 +8794,16 @@ var require_io = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
-    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ function() {
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ (function() {
       var ownKeys = function(o) {
         ownKeys = Object.getOwnPropertyNames || function(o2) {
           var ar = [];
@@ -8821,7 +8821,7 @@ var require_io = __commonJS({
         __setModuleDefault(result, mod);
         return result;
       };
-    }();
+    })();
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.fsReader = void 0;
     exports2.inferProjectRoot = inferProjectRoot2;
@@ -8854,7 +8854,7 @@ var require_io = __commonJS({
 var require_Vault = __commonJS({
   "../kcd_sdk/dist/node/Vault.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -8863,16 +8863,16 @@ var require_Vault = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
-    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ function() {
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ (function() {
       var ownKeys = function(o) {
         ownKeys = Object.getOwnPropertyNames || function(o2) {
           var ar = [];
@@ -8890,7 +8890,7 @@ var require_Vault = __commonJS({
         __setModuleDefault(result, mod);
         return result;
       };
-    }();
+    })();
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.Vault = void 0;
     var fs = __importStar(require("fs"));
@@ -9236,8 +9236,46 @@ var require_Vault = __commonJS({
 var require_VaultUtilities = __commonJS({
   "../kcd_sdk/dist/node/VaultUtilities.js"(exports2) {
     "use strict";
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    }) : (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    }));
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    }) : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ (function() {
+      var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function(o2) {
+          var ar = [];
+          for (var k in o2) if (Object.prototype.hasOwnProperty.call(o2, k)) ar[ar.length] = k;
+          return ar;
+        };
+        return ownKeys(o);
+      };
+      return function(mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) {
+          for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        }
+        __setModuleDefault(result, mod);
+        return result;
+      };
+    })();
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.VaultUtilities = void 0;
+    var fs = __importStar(require("fs"));
     var primitives_1 = require_primitives();
     var VaultUtilities2 = class {
       /**
@@ -9305,13 +9343,83 @@ var require_VaultUtilities = __commonJS({
           throw new Error("compile requires at least one lens");
         const lenses = lensNames.map((name) => {
           const rel = this.lensPath(name);
-          if (!vault.exists(rel))
+          if (!fs.existsSync(vault.toAbs(rel)))
             throw new Error(`no lens found for "${name}" ( looked for ${rel} )`);
           return vault.loadLens(rel);
         });
         const blocks = lenses.flatMap((l) => l.getContextBlocks());
         const text = primitives_1.SlotResolver.compile(blocks);
         return { lenses: lensNames, text, tokens: primitives_1.KCDPrimitive._estimateTokens(text) };
+      }
+      /**
+       * A lens's compiled-context DETAIL — the structured breakdown behind the `show` chart. Reads the same
+       * lens-scoped composition `compile()` produces, but keeps it decomposed: `slots[0]` is the lens's OWN
+       * identity ( its Care/Know body + the routing tables it authors ), and each following row is one dredge
+       * SLOT off the lens's policy — its state ( off / on / suggested, or `empty` when the slot is a
+       * placeholder nothing fills ) and the tokens that component contributes. Single lens only ( a lens is
+       * what you inspect; a multi-lens compile is `compile()` ).
+       */
+      static lensView(vault, name) {
+        const rel = this.lensPath(name);
+        if (!fs.existsSync(vault.toAbs(rel)))
+          throw new Error(`no lens found for "${name}" ( looked for ${rel} )`);
+        const lens = vault.loadLens(rel);
+        const base = (p) => p.replace(/\\/g, "/").split("/").pop() ?? "";
+        const lensPath = lens.getPath() ?? rel;
+        const slots = [
+          // The lens's own identity — its Care/Know body, always fully in.
+          { what: "identity", kind: "lens", state: "suggested", tokens: lens.bodyTokens() }
+        ];
+        for (const entry of lens.getPolicy()) {
+          const href = entry.href?.trim() ?? "";
+          if (href === "" || /^\{.*\}$/.test(href)) {
+            slots.push({ what: entry.what || "( unnamed )", kind: "", state: "empty", tokens: 0 });
+            continue;
+          }
+          const target = this.tryLoad(vault, href);
+          slots.push({
+            what: entry.what || (target ? target.getName() : base(href)),
+            kind: target ? target.getType() : this.kindFromHref(href),
+            state: entry.mode,
+            // The cost the compile ACTUALLY pays at this slot's mode — `on` reduces to its routing row
+            // ( ~tens of tokens ), `suggested` rides the full body ( ~hundreds ), `off` contributes nothing.
+            // The same `modeTokens` split the Starmind composition UI reads, so the two never disagree.
+            tokens: target ? target.modeTokens(entry.mode, entry.why) : 0
+          });
+        }
+        return {
+          lens: lens.getName() || name,
+          path: lensPath,
+          slots,
+          tokens: slots.reduce((sum, s) => sum + s.tokens, 0)
+        };
+      }
+      /** Resolve a policy href to disk ( the resolver the dredge uses ) and load the full artifact — for the
+       *  `show` breakdown, which prices every slot regardless of mode. Null on an unresolvable or unreadable
+       *  target ( a dangling link ), so the caller falls back to an href-inferred kind and zero weight. */
+      static tryLoad(vault, href) {
+        try {
+          const abs = vault.resolveHref(href);
+          if (!fs.existsSync(abs))
+            return null;
+          return primitives_1.KCDPrimitive.fromHtml(fs.readFileSync(abs, "utf-8"), abs);
+        } catch {
+          return null;
+        }
+      }
+      /** Best-effort artifact kind from an href's path segment — the fallback when a slot's target can't be
+       *  loaded ( a dangling link ), so its real `getType()` is unavailable. */
+      static kindFromHref(href) {
+        const h = href.replace(/\\/g, "/");
+        if (/(^|\/)references?\//.test(h))
+          return "reference";
+        if (/(^|\/)habits?\//.test(h))
+          return "habit";
+        if (/(^|\/)plans?\//.test(h))
+          return "plan";
+        if (/(^|\/)contracts?\//.test(h))
+          return "contract";
+        return "";
       }
       /** A bare name → the lens-file convention; a value already carrying a slash or an `.html` tail is a
        *  raw vault-relative path, used as-is. */
@@ -9329,7 +9437,7 @@ var require_VaultUtilities = __commonJS({
 var require_VaultDeploy = __commonJS({
   "../kcd_sdk/dist/node/VaultDeploy.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -9338,16 +9446,16 @@ var require_VaultDeploy = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
-    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ function() {
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ (function() {
       var ownKeys = function(o) {
         ownKeys = Object.getOwnPropertyNames || function(o2) {
           var ar = [];
@@ -9365,7 +9473,7 @@ var require_VaultDeploy = __commonJS({
         __setModuleDefault(result, mod);
         return result;
       };
-    }();
+    })();
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.VaultDeploy = void 0;
     var fs = __importStar(require("fs"));
@@ -9545,6 +9653,521 @@ ${rows}
       }
     };
     exports2.VaultDeploy = VaultDeploy;
+  }
+});
+
+// ../kcd_sdk/dist/node/Survey.js
+var require_Survey = __commonJS({
+  "../kcd_sdk/dist/node/Survey.js"(exports2) {
+    "use strict";
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    }) : (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    }));
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    }) : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ (function() {
+      var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function(o2) {
+          var ar = [];
+          for (var k in o2) if (Object.prototype.hasOwnProperty.call(o2, k)) ar[ar.length] = k;
+          return ar;
+        };
+        return ownKeys(o);
+      };
+      return function(mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) {
+          for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        }
+        __setModuleDefault(result, mod);
+        return result;
+      };
+    })();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.Survey = void 0;
+    var fs = __importStar(require("fs"));
+    var path2 = __importStar(require("path"));
+    var SKIP_DIRS = /* @__PURE__ */ new Set([
+      "node_modules",
+      ".git",
+      ".svn",
+      ".hg",
+      "dist",
+      "build",
+      "out",
+      "target",
+      "bin",
+      "obj",
+      ".next",
+      ".nuxt",
+      ".venv",
+      "venv",
+      "__pycache__",
+      ".tox",
+      ".gradle",
+      ".idea",
+      ".vscode",
+      "vendor",
+      "coverage",
+      ".pytest_cache",
+      ".mypy_cache",
+      "Pods",
+      "DerivedData"
+    ]);
+    var LANGUAGES = {
+      ".ts": "TypeScript",
+      ".tsx": "TypeScript",
+      ".mts": "TypeScript",
+      ".cts": "TypeScript",
+      ".js": "JavaScript",
+      ".jsx": "JavaScript",
+      ".mjs": "JavaScript",
+      ".cjs": "JavaScript",
+      ".vue": "Vue",
+      ".svelte": "Svelte",
+      ".py": "Python",
+      ".pyi": "Python",
+      ".go": "Go",
+      ".rs": "Rust",
+      ".cs": "C#",
+      ".fs": "F#",
+      ".vb": "Visual Basic",
+      ".java": "Java",
+      ".kt": "Kotlin",
+      ".kts": "Kotlin",
+      ".scala": "Scala",
+      ".groovy": "Groovy",
+      ".rb": "Ruby",
+      ".php": "PHP",
+      ".pl": "Perl",
+      ".c": "C",
+      ".h": "C",
+      ".cpp": "C++",
+      ".cc": "C++",
+      ".cxx": "C++",
+      ".hpp": "C++",
+      ".m": "Objective-C",
+      ".mm": "Objective-C++",
+      ".swift": "Swift",
+      ".sh": "Shell",
+      ".bash": "Shell",
+      ".zsh": "Shell",
+      ".ps1": "PowerShell",
+      ".sql": "SQL",
+      ".r": "R",
+      ".lua": "Lua",
+      ".dart": "Dart",
+      ".ex": "Elixir",
+      ".exs": "Elixir",
+      ".html": "HTML",
+      ".css": "CSS",
+      ".scss": "Sass",
+      ".less": "Less",
+      ".md": "Markdown"
+    };
+    var MANIFESTS = {
+      "package.json": "npm",
+      "deno.json": "deno",
+      "requirements.txt": "python",
+      "pyproject.toml": "python",
+      "setup.py": "python",
+      "Pipfile": "python",
+      "go.mod": "go",
+      "Cargo.toml": "rust",
+      "pom.xml": "java",
+      "build.gradle": "java",
+      "build.gradle.kts": "java",
+      "Gemfile": "ruby",
+      "composer.json": "php",
+      "pubspec.yaml": "dart",
+      "mix.exs": "elixir",
+      "*.csproj": "dotnet"
+    };
+    var CONVENTIONAL_ENTRIES = [
+      "src/index.ts",
+      "src/index.js",
+      "src/main.ts",
+      "src/main.js",
+      "index.ts",
+      "index.js",
+      "src/main.py",
+      "main.py",
+      "__main__.py",
+      "app.py",
+      "manage.py",
+      "main.go",
+      "cmd/main.go",
+      "src/main.rs",
+      "src/lib.rs",
+      "Program.cs",
+      "src/Program.cs",
+      "main.swift"
+    ];
+    var APP_FRAMEWORKS = [
+      "electron",
+      "next",
+      "nuxt",
+      "@angular/core",
+      "react-scripts",
+      "express",
+      "fastify",
+      "@nestjs/core",
+      "django",
+      "flask"
+    ];
+    var TEST_DIRS = /* @__PURE__ */ new Set(["__tests__", "test", "tests", "spec", "specs", "testing", "e2e"]);
+    var TEST_PATTERNS = [
+      { pattern: "*.test.*", test: (f) => /\.test\.[a-z]+$/i.test(f) },
+      { pattern: "*.spec.*", test: (f) => /\.spec\.[a-z]+$/i.test(f) },
+      { pattern: "*_test.go", test: (f) => /_test\.go$/i.test(f) },
+      { pattern: "test_*.py", test: (f) => /^test_.+\.py$/i.test(f) },
+      { pattern: "*_test.py", test: (f) => /_test\.py$/i.test(f) },
+      { pattern: "*Test.java", test: (f) => /Test\.java$/.test(f) },
+      { pattern: "*Tests.cs", test: (f) => /Tests?\.cs$/.test(f) }
+    ];
+    var MAX_FILES = 6e4;
+    var MAX_COMPONENTS = 64;
+    var MAX_LANGUAGES = 10;
+    var MAX_ENTRY_POINTS = 8;
+    var MAX_TEST_DIRS = 8;
+    var INDEX_FILE = "index.json";
+    var Survey2 = class _Survey {
+      /** Walk `projectRoot` and produce the report. Never throws on odd trees. */
+      static run(projectRoot, opts) {
+        const root = path2.resolve(projectRoot);
+        const maxFiles = opts?.maxFiles ?? MAX_FILES;
+        const files = [];
+        const manifests = [];
+        let directories = 0, truncated = false;
+        const rel = (abs) => path2.relative(root, abs).split(path2.sep).join("/");
+        const walk = (dir, inTestDir) => {
+          let entries;
+          try {
+            entries = fs.readdirSync(dir, { withFileTypes: true });
+          } catch {
+            return;
+          }
+          for (const entry of entries) {
+            if (files.length >= maxFiles) {
+              truncated = true;
+              return;
+            }
+            const abs = path2.join(dir, entry.name);
+            if (entry.isDirectory()) {
+              if (SKIP_DIRS.has(entry.name) || entry.name.startsWith("."))
+                continue;
+              directories++;
+              const isTest = TEST_DIRS.has(entry.name.toLowerCase());
+              walk(abs, inTestDir || isTest);
+              continue;
+            }
+            if (!entry.isFile())
+              continue;
+            let size = 0;
+            try {
+              size = fs.statSync(abs).size;
+            } catch {
+            }
+            files.push({ rel: rel(abs), size, inTestDir, base: entry.name });
+            const eco = MANIFESTS[entry.name] ?? (entry.name.endsWith(".csproj") ? "dotnet" : void 0);
+            if (eco)
+              manifests.push({ dir: rel(path2.dirname(abs)), file: rel(abs), ecosystem: eco });
+          }
+        };
+        walk(root, false);
+        const components = _Survey._components(root, files, manifests);
+        return {
+          schema: "survey/1",
+          generated: (/* @__PURE__ */ new Date()).toISOString(),
+          root: root.split(path2.sep).join("/"),
+          components,
+          totals: {
+            components: components.length,
+            files: files.length,
+            bytes: files.reduce((n, f) => n + f.size, 0)
+          },
+          capabilities: { tsScan: fs.existsSync(path2.join(root, "tsconfig.json")) },
+          limits: { maxFiles, truncated }
+        };
+      }
+      /**
+       * Flush and fill `outDir` with the survey tree: a roster at `index.json` plus one file per
+       * component, FLAT beside it. Deliberately shallow — an agent should be able to list one directory
+       * and see every component, then open exactly the one it needs.
+       *
+       * Destructive by design. The survey is a derived, temporary artifact; a stale component file left
+       * behind after a rename would be worse than no file at all, so the directory is emptied first.
+       * Refuses to flush anything that does not look like a survey directory.
+       */
+      static write(report, outDir) {
+        const dir = path2.resolve(outDir);
+        if (fs.existsSync(dir)) {
+          const stray = fs.readdirSync(dir).filter((f) => !f.endsWith(".json"));
+          if (stray.length)
+            throw new Error(`refusing to flush ${dir}: it holds non-survey files ( ${stray.slice(0, 3).join(", ")} )`);
+          for (const f of fs.readdirSync(dir))
+            fs.rmSync(path2.join(dir, f), { force: true });
+        } else {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+        const written = [];
+        const emit = (name, data) => {
+          fs.writeFileSync(path2.join(dir, name), JSON.stringify(data, null, "	") + "\n");
+          written.push(name);
+        };
+        emit(INDEX_FILE, {
+          schema: report.schema,
+          generated: report.generated,
+          root: report.root,
+          totals: report.totals,
+          capabilities: report.capabilities,
+          limits: report.limits,
+          components: report.components.map((c) => ({
+            id: c.id,
+            kind: c.kind,
+            path: c.path,
+            file: `${c.id}.json`,
+            description: c.description
+          }))
+        });
+        for (const c of report.components)
+          emit(`${c.id}.json`, { schema: report.schema, ...c });
+        return written;
+      }
+      /**
+       * The lean text projection — what an agent actually READS.
+       *
+       * Raw JSON is the right thing to store and a poor thing to prompt with: repeated keys and
+       * punctuation cost roughly 1.5–2× the tokens of an equivalent outline, and small models score
+       * worse retrieving from it. So the stored tree stays JSON and this is served instead. `stats`
+       * drops whole — the same partition `layout` gets in an insight document.
+       */
+      static project(report) {
+        const out = [];
+        out.push(`# survey \xB7 ${report.root} \xB7 ${report.totals.components} components`);
+        if (report.limits.truncated)
+          out.push(`PARTIAL: walk stopped at ${report.limits.maxFiles} files \u2014 treat absences as unknown, not absent.`);
+        out.push("");
+        for (const c of report.components) {
+          out.push(`## ${c.id} \xB7 ${c.kind}${c.ecosystem ? ` \xB7 ${c.ecosystem}` : ""}`);
+          out.push(`path        ${c.path}`);
+          out.push(`about       ${c.description}`);
+          if (c.languages.length)
+            out.push(`languages   ${c.languages.map((l) => `${l.language}(${l.files})`).join(", ")}`);
+          if (c.entryPoints.length)
+            out.push(`entry       ${c.entryPoints.map((e) => e.path).join(", ")}`);
+          out.push(`tests       ${c.tests.present ? `${c.tests.files} files \xB7 ${c.tests.patterns.join(" ") || "by directory"}` : "none found"}`);
+          if (c.contains.length)
+            out.push(`contains    ${c.contains.join(", ")}`);
+          out.push("");
+        }
+        return out.join("\n");
+      }
+      // ── Internals ─────────────────────────────────────────────────────────────
+      /** Build the component set, attributing every file to the deepest component that contains it. */
+      static _components(root, files, manifests) {
+        const roots = /* @__PURE__ */ new Map();
+        for (const m of manifests) {
+          const key = m.dir === "" ? "." : m.dir;
+          if (!roots.has(key))
+            roots.set(key, { ecosystem: m.ecosystem, manifest: m.file });
+        }
+        if (!roots.has("."))
+          roots.set(".", { ecosystem: "", manifest: "" });
+        const ordered = [...roots.keys()].sort((a, b) => a.split("/").length - b.split("/").length || a.localeCompare(b)).slice(0, MAX_COMPONENTS);
+        const ids = _Survey._mintIds(ordered);
+        const byDepth = ordered.filter((r) => r !== ".").sort((a, b) => b.split("/").length - a.split("/").length);
+        const owner = (rel) => byDepth.find((r) => rel === r || rel.startsWith(r + "/")) ?? ".";
+        const buckets = new Map(ordered.map((r) => [r, []]));
+        for (const f of files)
+          buckets.get(owner(f.rel))?.push(f);
+        const parentOf = /* @__PURE__ */ new Map();
+        for (const r of ordered) {
+          if (r === ".")
+            continue;
+          parentOf.set(r, byDepth.find((o) => o !== r && r.startsWith(o + "/")) ?? ".");
+        }
+        return ordered.map((cRoot) => {
+          const meta = roots.get(cRoot);
+          const bucket = buckets.get(cRoot) ?? [];
+          const abs = path2.join(root, cRoot === "." ? "" : cRoot);
+          const langs = /* @__PURE__ */ new Map();
+          let bytes = 0, testFiles = 0;
+          const testDirs = /* @__PURE__ */ new Set(), patterns = /* @__PURE__ */ new Set();
+          for (const f of bucket) {
+            bytes += f.size;
+            const language = LANGUAGES[path2.extname(f.base).toLowerCase()];
+            if (language)
+              langs.set(language, (langs.get(language) ?? 0) + 1);
+            let matched = false;
+            for (const p of TEST_PATTERNS)
+              if (p.test(f.base)) {
+                patterns.add(p.pattern);
+                matched = true;
+              }
+            if (matched || f.inTestDir) {
+              testFiles++;
+              const d = f.rel.slice(0, f.rel.lastIndexOf("/"));
+              if (d)
+                testDirs.add(d);
+            }
+          }
+          const languages = [...langs.entries()].map(([language, n]) => ({ language, files: n })).sort((a, b) => b.files - a.files).slice(0, MAX_LANGUAGES);
+          const meta2 = meta.manifest ? _Survey._manifestMeta(path2.join(root, meta.manifest)) : {};
+          const entryPoints = _Survey._entryPoints(abs, meta.manifest ? path2.join(root, meta.manifest) : void 0);
+          const contains = ordered.filter((o) => parentOf.get(o) === cRoot).map((o) => ids.get(o));
+          const kind = _Survey._kind(cRoot, meta.ecosystem, meta2.name, languages, meta2.hasBin, meta2.isApp);
+          const stats = { files: bucket.length, bytes };
+          const c = {
+            id: ids.get(cRoot),
+            kind,
+            path: cRoot,
+            name: meta2.name,
+            version: meta2.version,
+            ecosystem: meta.ecosystem || void 0,
+            manifest: meta.manifest || void 0,
+            description: "",
+            languages,
+            entryPoints: entryPoints.slice(0, MAX_ENTRY_POINTS),
+            tests: {
+              present: testFiles > 0,
+              files: testFiles,
+              directories: [...testDirs].sort().slice(0, MAX_TEST_DIRS),
+              patterns: [...patterns].sort()
+            },
+            contains,
+            stats
+          };
+          c.description = _Survey._describe(c);
+          return c;
+        });
+      }
+      /** Short, stable, filename-safe, collision-free ids derived from the component's own directory. */
+      static _mintIds(roots) {
+        const ids = /* @__PURE__ */ new Map();
+        const seen = /* @__PURE__ */ new Set([INDEX_FILE.replace(/\.json$/, "")]);
+        const safe = (s) => s.replace(/[^A-Za-z0-9._-]/g, "-").replace(/^-+|-+$/g, "");
+        for (const r of roots) {
+          const segs = r === "." ? ["root"] : r.split("/");
+          let id = "component";
+          for (let take = 1; take <= segs.length; take++) {
+            id = segs.slice(segs.length - take).map(safe).filter(Boolean).join("-") || "component";
+            if (!seen.has(id))
+              break;
+          }
+          const base = id;
+          for (let n = 2; seen.has(id); n++)
+            id = `${base}-${n}`;
+          seen.add(id);
+          ids.set(r, id);
+        }
+        return ids;
+      }
+      /** The coarsest honest classification. `unknown` is a fine answer. */
+      static _kind(cRoot, ecosystem, name, languages, hasBin, isApp) {
+        if (/(^|\/)(plugins?|extensions?|addons?)(\/|$)/i.test(cRoot) || /-plugin$|^plugin-/i.test(name ?? ""))
+          return "plugin";
+        if (isApp)
+          return "application";
+        if (hasBin)
+          return "tool";
+        const top = languages[0]?.language;
+        if (!ecosystem && (top === "HTML" || top === "Markdown"))
+          return "docs";
+        if (!ecosystem)
+          return "unknown";
+        return cRoot === "." ? "application" : "library";
+      }
+      /** The mechanical sentence — a PROTOTYPE description, meant to be rewritten by whoever knows better. */
+      static _describe(c) {
+        const langs = c.languages.slice(0, 3).map((l) => l.language).join("/");
+        const bits = [];
+        bits.push(`${langs || "Non-code"} ${c.ecosystem ? `${c.ecosystem} ` : ""}${c.kind}`);
+        bits.push(`${c.stats.files} files`);
+        if (c.entryPoints.length)
+          bits.push(`entry ${c.entryPoints[0].path}`);
+        bits.push(c.tests.present ? `${c.tests.files} test files` : "no tests found");
+        if (c.contains.length)
+          bits.push(`${c.contains.length} sub-component${c.contains.length === 1 ? "" : "s"}`);
+        return bits.join(", ") + ".";
+      }
+      /**
+       * Name / version / bin off a manifest, best-effort. JSON is parsed; everything else is matched
+       * with a narrow regex rather than pulling TOML/YAML/XML parsers into the SDK for two fields. A
+       * miss returns nothing — a manifest's PRESENCE is the load-bearing signal, not its metadata.
+       */
+      static _manifestMeta(abs) {
+        let text;
+        try {
+          text = fs.readFileSync(abs, "utf8");
+        } catch {
+          return {};
+        }
+        if (text.length > 2e5)
+          return {};
+        if (abs.endsWith(".json")) {
+          try {
+            const j = JSON.parse(text);
+            const declared = { ...j.dependencies, ...j.devDependencies };
+            return {
+              name: typeof j.name === "string" ? j.name : void 0,
+              version: typeof j.version === "string" ? j.version : void 0,
+              hasBin: Boolean(j.bin),
+              isApp: APP_FRAMEWORKS.some((f) => f in declared)
+            };
+          } catch {
+            return {};
+          }
+        }
+        return {
+          name: text.match(/^\s*(?:name|module)\s*[=:]\s*["']?([^"'\n\r]+)/mi)?.[1]?.trim(),
+          version: text.match(/^\s*version\s*[=:]\s*["']?([^"'\n\r]+)/mi)?.[1]?.trim()
+        };
+      }
+      /** Declared entry points first ( a manifest saying so is evidence ), conventional ones second. */
+      static _entryPoints(componentAbs, manifestAbs) {
+        const found = /* @__PURE__ */ new Map();
+        if (manifestAbs?.endsWith(".json")) {
+          try {
+            const pkg = JSON.parse(fs.readFileSync(manifestAbs, "utf8"));
+            const put = (v, field) => {
+              if (typeof v === "string")
+                found.set(v, { path: v, source: "manifest", note: field });
+            };
+            put(pkg.main, "main");
+            put(pkg.module, "module");
+            if (typeof pkg.bin === "string")
+              put(pkg.bin, "bin");
+            else if (pkg.bin && typeof pkg.bin === "object")
+              for (const [k, v] of Object.entries(pkg.bin))
+                put(v, `bin.${k}`);
+          } catch {
+          }
+        }
+        for (const cand of CONVENTIONAL_ENTRIES) {
+          if (found.has(cand))
+            continue;
+          if (fs.existsSync(path2.join(componentAbs, cand)))
+            found.set(cand, { path: cand, source: "convention" });
+        }
+        return [...found.values()].sort((a, b) => a.source === b.source ? a.path.localeCompare(b.path) : a.source === "manifest" ? -1 : 1);
+      }
+    };
+    exports2.Survey = Survey2;
   }
 });
 
@@ -9963,7 +10586,7 @@ var require_SdkFileAccess = __commonJS({
 var require_node = __commonJS({
   "../kcd_sdk/dist/node/index.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -9972,15 +10595,15 @@ var require_node = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
+    }));
     var __exportStar = exports2 && exports2.__exportStar || function(m, exports3) {
       for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p)) __createBinding(exports3, m, p);
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.SEARCH_ES_TIMEOUT_MS = exports2.SEARCH_YIELD_EVERY = exports2.SEARCH_WALK_CAP = exports2.SEARCH_MATCH_CAP = exports2.GLOB_WALK_CAP = exports2.GLOB_CAP = exports2.READ_CAP_BYTES = exports2.LIST_CAP = exports2.SdkFileAccess = exports2.VaultDeploy = exports2.VaultUtilities = exports2.Vault = exports2.loadLensFromDisk = exports2.inferProjectRoot = exports2.fsReader = void 0;
+    exports2.SEARCH_ES_TIMEOUT_MS = exports2.SEARCH_YIELD_EVERY = exports2.SEARCH_WALK_CAP = exports2.SEARCH_MATCH_CAP = exports2.GLOB_WALK_CAP = exports2.GLOB_CAP = exports2.READ_CAP_BYTES = exports2.LIST_CAP = exports2.SdkFileAccess = exports2.Survey = exports2.VaultDeploy = exports2.VaultUtilities = exports2.Vault = exports2.loadLensFromDisk = exports2.inferProjectRoot = exports2.fsReader = void 0;
     __exportStar(require_core(), exports2);
     __exportStar(require_scanner2(), exports2);
     __exportStar(require_server(), exports2);
@@ -10005,6 +10628,10 @@ var require_node = __commonJS({
     var VaultDeploy_1 = require_VaultDeploy();
     Object.defineProperty(exports2, "VaultDeploy", { enumerable: true, get: function() {
       return VaultDeploy_1.VaultDeploy;
+    } });
+    var Survey_1 = require_Survey();
+    Object.defineProperty(exports2, "Survey", { enumerable: true, get: function() {
+      return Survey_1.Survey;
     } });
     var SdkFileAccess_1 = require_SdkFileAccess();
     Object.defineProperty(exports2, "SdkFileAccess", { enumerable: true, get: function() {
@@ -10041,7 +10668,7 @@ var require_node = __commonJS({
 var require_dist = __commonJS({
   "../kcd_sdk/dist/index.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -10050,10 +10677,10 @@ var require_dist = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
+    }));
     var __exportStar = exports2 && exports2.__exportStar || function(m, exports3) {
       for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p)) __createBinding(exports3, m, p);
     };
@@ -10166,6 +10793,10 @@ var Cli = class {
         return this.validate(args);
       case "compile":
         return this.compile(args);
+      case "show":
+        return this.show(args);
+      case "survey":
+        return this.survey(args);
       default:
         process.stderr.write(`daedalus: unknown command "${args.command}"
 
@@ -10214,7 +10845,112 @@ var Cli = class {
       process.exit(2);
     }
   }
+  /**
+   * `daedalus show <lens>` — the compiled-context chart for one lens: its identity plus every dredge
+   * slot, colour-coded by state ( grey off / blue on / green suggested, dim empty ), with per-component
+   * and total token counts. `--json` emits the `LensView` object.
+   */
+  static show(args) {
+    const name = args.positionals[0];
+    if (!name) {
+      process.stderr.write("daedalus: show requires a lens name\n");
+      process.exit(2);
+    }
+    try {
+      const view = import_kcd_sdk2.VaultUtilities.lensView(this.vault(), name);
+      if (args.json) this.emit(view);
+      else this.renderLensView(view);
+      process.exit(0);
+    } catch (e) {
+      process.stderr.write(`daedalus: ${e instanceof Error ? e.message : String(e)}
+`);
+      process.exit(2);
+    }
+  }
+  /**
+   * `daedalus survey` — reconnoitre the PROJECT the vault sits beside and write it as a JSON tree.
+   *
+   * The odd one out: every other command reads the vault ( the artifact store ), but a survey walks
+   * the PROJECT ROOT ( the code ). It flushes and refills <vault>/audits/survey/ — a roster plus one
+   * file per component — then prints the lean projection so a run both persists the artifact AND
+   * shows what it found. `--json` emits the full report to stdout instead of the projection ( survey
+   * is the one command whose primary payload is the structured object, not the human view ).
+   */
+  static survey(args) {
+    try {
+      const { projectRoot } = Config.resolve();
+      const report = import_kcd_sdk2.Survey.run(projectRoot);
+      const outAbs = this.vault().toAbs("audits/survey");
+      const written = import_kcd_sdk2.Survey.write(report, outAbs);
+      if (args.json) {
+        this.emit(report);
+      } else {
+        process.stderr.write(`surveyed ${projectRoot} \u2014 ${report.totals.components} components, ${report.totals.files} files \u2192 ${written.length} files in audits/survey/
+`);
+        process.stdout.write(import_kcd_sdk2.Survey.project(report) + "\n");
+      }
+      process.exit(0);
+    } catch (e) {
+      process.stderr.write(`daedalus: ${e instanceof Error ? e.message : String(e)}
+`);
+      process.exit(2);
+    }
+  }
   // ── Rendering ─────────────────────────────────────────────────────────────
+  /** ANSI palette — applied only to a TTY, so piped/redirected output stays plain text. */
+  static C = {
+    reset: "\x1B[0m",
+    dim: "\x1B[2m",
+    bold: "\x1B[1m",
+    grey: "\x1B[90m",
+    blue: "\x1B[94m",
+    green: "\x1B[92m"
+  };
+  /** Wrap `s` in an ANSI code, but only when stdout is a terminal. */
+  static tint(code, s) {
+    return process.stdout.isTTY ? code + s + this.C.reset : s;
+  }
+  /** The colour a slot state renders in: grey off, blue on, green suggested, dim empty. */
+  static stateColor(state) {
+    if (state === "suggested") return this.C.green;
+    if (state === "on") return this.C.blue;
+    if (state === "off") return this.C.grey;
+    return this.C.dim;
+  }
+  /** The lens slot chart — a small, aligned, colour-coded table of the compiled-context breakdown. */
+  static renderLensView(view) {
+    const fmt = (n) => n > 0 ? n.toLocaleString("en-US") : "\u2014";
+    const rows = view.slots;
+    const modeW = Math.max(9, ...rows.map((r) => r.state.length));
+    const compW = Math.max("COMPONENT".length, ...rows.map((r) => r.what.length));
+    const kindW = Math.max("KIND".length, ...rows.map((r) => r.kind.length));
+    const tokW = Math.max("TOKENS".length, ...rows.map((r) => fmt(r.tokens).length));
+    const ruleW = 3 + modeW + 2 + compW + 2 + kindW + 2 + tokW;
+    const rule = this.tint(this.C.dim, "  " + "\u2500".repeat(ruleW - 2));
+    const out = [];
+    out.push("");
+    out.push("  " + this.tint(this.C.bold, view.lens) + this.tint(this.C.dim, "  \xB7  Lens"));
+    out.push("");
+    out.push(this.tint(
+      this.C.dim,
+      "   " + "MODE".padEnd(modeW) + "  " + "COMPONENT".padEnd(compW) + "  " + "KIND".padEnd(kindW) + "  " + "TOKENS".padStart(tokW)
+    ));
+    out.push(rule);
+    for (const r of rows) {
+      const col = this.stateColor(r.state);
+      const mode = this.tint(col, r.state.padEnd(modeW));
+      const comp = this.tint(col, r.what.padEnd(compW));
+      const kind = this.tint(this.C.dim, r.kind.padEnd(kindW));
+      const tok = fmt(r.tokens).padStart(tokW);
+      out.push("   " + mode + "  " + comp + "  " + kind + "  " + (r.tokens > 0 ? tok : this.tint(this.C.dim, tok)));
+    }
+    out.push(rule);
+    const count = (s) => rows.filter((r) => r.state === s).length;
+    const tally = ["suggested", "on", "off", "empty"].filter((s) => count(s) > 0).map((s) => this.tint(this.stateColor(s), `${s} ${count(s)}`)).join("   ");
+    out.push("   " + tally + this.tint(this.C.dim, `      total  ~${view.tokens.toLocaleString("en-US")}`));
+    out.push("");
+    process.stdout.write(out.join("\n") + "\n");
+  }
   /** Human-readable health output — issues grouped by artifact, then a one-line tally. */
   static renderHealth(report, scope) {
     const where = scope ? scope : "vault";
@@ -10286,7 +11022,7 @@ var Cli = class {
   }
   static printHelp() {
     process.stdout.write(
-      "daedalus \u2014 a context compiler\n\nUsage: daedalus <command> [options]\n\nCommands:\n  validate [path]   Validate one artifact, or the whole vault when no path is given.\n  compile <lens...> Compile one or more lenses to a context string ( first = primary ).\n\nOptions:\n  --root <dir>      Project root the vault sits under ( default: inferred by walking up ).\n  --doc-root <dir>  Doc root within the project ( default: the standard vault folder ).\n  --json            Emit the raw result object instead of formatted lines.\n  -h, --help        Show this help.\n\nExit codes: 0 = clean, 1 = errors found, 2 = usage error.\n"
+      "daedalus \u2014 a context compiler\n\nUsage: daedalus <command> [options]\n\nCommands:\n  validate [path]   Validate one artifact, or the whole vault when no path is given.\n  compile <lens...> Compile one or more lenses to a context string ( first = primary ).\n  show <lens>       Chart one lens's compiled context \u2014 slots, states, token counts.\n  survey            Reconnoitre the project beside the vault \u2192 a JSON tree in audits/survey/.\n\nOptions:\n  --root <dir>      Project root the vault sits under ( default: inferred by walking up ).\n  --doc-root <dir>  Doc root within the project ( default: the standard vault folder ).\n  --json            Emit the raw result object instead of formatted lines.\n  -h, --help        Show this help.\n\nExit codes: 0 = clean, 1 = errors found, 2 = usage error.\n"
     );
   }
 };

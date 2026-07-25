@@ -1,4 +1,4 @@
-import { Vault, VaultUtilities } from 'kcd_sdk';
+import { Vault, VaultUtilities, Survey } from 'kcd_sdk';
 import type { HealthReport, LensView } from 'kcd_sdk';
 import { Config } from '../Config';
 
@@ -48,6 +48,8 @@ export class Cli {
 				return this.compile( args );
 			case 'show':
 				return this.show( args );
+			case 'survey':
+				return this.survey( args );
 			default:
 				process.stderr.write( `daedalus: unknown command "${ args.command }"\n\n` );
 				this.printHelp();
@@ -118,6 +120,37 @@ export class Cli {
 			const view = VaultUtilities.lensView( this.vault(), name );
 			if ( args.json ) this.emit( view );
 			else this.renderLensView( view );
+			process.exit( 0 );
+		} catch ( e ) {
+			process.stderr.write( `daedalus: ${ e instanceof Error ? e.message : String( e ) }\n` );
+			process.exit( 2 );
+		}
+	}
+
+	/**
+	 * `daedalus survey` — reconnoitre the PROJECT the vault sits beside and write it as a JSON tree.
+	 *
+	 * The odd one out: every other command reads the vault ( the artifact store ), but a survey walks
+	 * the PROJECT ROOT ( the code ). It flushes and refills <vault>/audits/survey/ — a roster plus one
+	 * file per component — then prints the lean projection so a run both persists the artifact AND
+	 * shows what it found. `--json` emits the full report to stdout instead of the projection ( survey
+	 * is the one command whose primary payload is the structured object, not the human view ).
+	 */
+	private static survey( args: ParsedArgs ): void {
+		try {
+			const { projectRoot } = Config.resolve();
+			const report  = Survey.run( projectRoot );
+			const outAbs  = this.vault().toAbs( 'audits/survey' );
+			const written = Survey.write( report, outAbs );
+
+			if ( args.json ) {
+				this.emit( report );
+			} else {
+				// The tree is the artifact; the projection is the receipt. Summary → stderr so stdout
+				// stays the paste-ready orientation view.
+				process.stderr.write( `surveyed ${ projectRoot } — ${ report.totals.components } components, ${ report.totals.files } files → ${ written.length } files in audits/survey/\n` );
+				process.stdout.write( Survey.project( report ) + '\n' );
+			}
 			process.exit( 0 );
 		} catch ( e ) {
 			process.stderr.write( `daedalus: ${ e instanceof Error ? e.message : String( e ) }\n` );
@@ -265,7 +298,8 @@ export class Cli {
 			'Commands:\n' +
 			'  validate [path]   Validate one artifact, or the whole vault when no path is given.\n' +
 			'  compile <lens...> Compile one or more lenses to a context string ( first = primary ).\n' +
-			'  show <lens>       Chart one lens\'s compiled context — slots, states, token counts.\n\n' +
+			'  show <lens>       Chart one lens\'s compiled context — slots, states, token counts.\n' +
+			'  survey            Reconnoitre the project beside the vault → a JSON tree in audits/survey/.\n\n' +
 			'Options:\n' +
 			'  --root <dir>      Project root the vault sits under ( default: inferred by walking up ).\n' +
 			'  --doc-root <dir>  Doc root within the project ( default: the standard vault folder ).\n' +
