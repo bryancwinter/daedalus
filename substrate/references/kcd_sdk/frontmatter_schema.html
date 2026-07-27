@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>frontmatter-schema — Framework</title>
+	<link rel="stylesheet" href="../../kcd.css">
+</head>
+<body>
+
+<article data-kcd="framework">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">frontmatter-schema</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">The frontmatter contract every KCD artifact carries — universal fields, reserved fields, and per-type additions; conforms to and defers to kcd-document-protocol §4 as the locked authority.</dd>
+		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">framework</dd>
+		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">active</dd>
+		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
+		<dt>author</dt>        <dd data-kcd-field="author"         data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
+		<dt>updated</dt>       <dd data-kcd-field="updated"        data-kcd-type="date">2026-06-30</dd>
+	</dl>
+
+	<h1>Frontmatter Schema — Framework</h1>
+
+	<p>The frontmatter every artifact in the <code>_Claude/</code> tree carries. This doc restates the
+	contract for orientation; the <strong>locked authority</strong> is
+	<a href="_Claude/references/kcd_sdk/kcd-document-protocol.html">kcd-document-protocol</a> §4 — where
+	the two differ, the protocol wins.</p>
+
+	<section data-kcd-section="core-principles">
+		<h3>Core principles</h3>
+		<ol>
+			<li><strong>No universal schema beyond the required four — the type's template is its
+			schema.</strong> A lens looks nothing like a plan; that is correct, not drift. Each type's
+			template (see templates) defines the field
+			set it adds on top of the universal core.</li>
+			<li><strong>Frontmatter is a visible, addressable surface.</strong> It renders as a
+			<code>&lt;dl data-kcd-frontmatter&gt;</code> whose every value is an inline-editable
+			<code>&lt;dd data-kcd-field="…" data-kcd-type="…"&gt;</code>. The same element is both the
+			human-readable value and the machine address (protocol §1).</li>
+			<li><strong>Names are kebab-case.</strong> The <code>name</code> field follows the Skill
+			standard — kebab, ≤64 chars, <code>[a-z0-9-]</code>, no "claude"/"anthropic". Word separators
+			within any name (including the leading-underscore framework scaffolds like
+			<code>_lens-base</code>) are hyphens.</li>
+			<li><strong>On-disk ≠ dispatched.</strong> When context is compiled into a bundle, frontmatter
+			and section scaffolding are <strong>stripped</strong> and Know/Care/Do are merged into one
+			prompt block. Frontmatter is authoring/tooling metadata — its byte cost is paid only when an
+			agent reads the raw file, never in the dispatched prompt.</li>
+			<li><strong>File-level, all-or-nothing validation.</strong> Every field declares a
+			<code>data-kcd-type</code> mapped to a validator; if any required field is missing or fails,
+			the whole file is discarded. A document is not <code>active</code> until it validates
+			(protocol §1).</li>
+		</ol>
+	</section>
+
+	<section data-kcd-section="universal-fields">
+		<h3>Universal fields</h3>
+		<p><strong>Required on every artifact:</strong> <code>name</code>, <code>description</code>,
+		<code>type</code>, <code>status</code>. <strong>Also universal (optional):</strong>
+		<code>schema-version</code>, <code>author</code>, <code>updated</code> / <code>created</code>.</p>
+
+		<table>
+			<thead><tr><th>Field</th><th>Tier</th><th>Type</th><th>Notes</th></tr></thead>
+			<tbody>
+				<tr><td><code>name</code></td><td>universal · required</td><td>slug</td><td>Skill standard — kebab, ≤64 chars, <code>[a-z0-9-]</code>, no "claude"/"anthropic"</td></tr>
+				<tr><td><code>description</code></td><td>universal · required</td><td>text</td><td>Skill standard — what it does <strong>+ when to use it</strong> (the trigger), ≤1024</td></tr>
+				<tr><td><code>type</code></td><td>universal · required</td><td>enum</td><td>the discriminator (see <em>Artifact types</em> below)</td></tr>
+				<tr><td><code>status</code></td><td>universal · required</td><td>enum</td><td><code>draft｜active｜observation｜composed｜disabled｜deployed｜complete｜retired｜paused</code>; <strong><code>active</code> ⇒ validated</strong>. <code>observation</code> = a note's forward-looking, not-yet-built status</td></tr>
+				<tr><td><code>schema-version</code></td><td>universal</td><td>text</td><td>the protocol version this doc targets — the migration hook for a locked schema</td></tr>
+				<tr><td><code>author</code></td><td>universal</td><td>text</td><td>the author block — <code>Name &lt;email&gt;</code></td></tr>
+				<tr><td><code>updated</code> / <code>created</code></td><td>universal</td><td>date</td><td>staleness signal</td></tr>
+			</tbody>
+		</table>
+
+		<p>The universal shape as authored:</p>
+<pre><code>&lt;dl data-kcd-frontmatter&gt;
+  &lt;dt&gt;name&lt;/dt&gt;          &lt;dd data-kcd-field="name"           data-kcd-type="slug"&gt;{kebab-slug}&lt;/dd&gt;
+  &lt;dt&gt;description&lt;/dt&gt;   &lt;dd data-kcd-field="description"    data-kcd-type="text"&gt;{what + when to use}&lt;/dd&gt;
+  &lt;dt&gt;type&lt;/dt&gt;          &lt;dd data-kcd-field="type"           data-kcd-type="enum"&gt;{type}&lt;/dd&gt;
+  &lt;dt&gt;status&lt;/dt&gt;        &lt;dd data-kcd-field="status"         data-kcd-type="enum"&gt;{status}&lt;/dd&gt;
+  &lt;dt&gt;schema-version&lt;/dt&gt;&lt;dd data-kcd-field="schema-version" data-kcd-type="text"&gt;0.1&lt;/dd&gt;
+  &lt;dt&gt;author&lt;/dt&gt;        &lt;dd data-kcd-field="author"         data-kcd-type="text"&gt;Bryan C. Winter &amp;lt;bryancwinter@gmail.com&amp;gt;&lt;/dd&gt;
+&lt;/dl&gt;</code></pre>
+	</section>
+
+	<section data-kcd-section="status-conventions">
+		<h3>Status conventions</h3>
+		<ul>
+			<li><strong><code>active</code> = a live, validated artifact in place.</strong> Framework
+			meta-docs and nav-indexes read directly from <code>kcd/</code>; any deployed copy is also
+			<code>active</code>. <code>active</code> ⇒ the file has passed validation (protocol §1).</li>
+			<li><strong><code>disabled</code> in canonical <code>kcd/</code> = a deployable seed</strong>
+			— inert until deployed; the deploy script flips the deployed copy to <code>active</code>.
+			Applies to the artifacts that are <strong>copied</strong> into the deployed tree: deployable
+			lenses (including <code>_lens_base</code>), habits, and canonical generators/analyzers.
+			<code>disabled</code> excludes the artifact from standalone loading (the compiler skips it; a
+			link-follower reads it as "use the deployed twin").</li>
+			<li><strong><code>composed</code> = a live-in-place base</strong> — read directly and composed
+			into its instances (e.g. <code>_generator-base</code>, <code>_analyzer-base</code>); never
+			deployed and never run standalone.</li>
+			<li><strong><code>deployed</code></strong> — the live state of a copied-and-flipped artifact
+			in the deployed tree, where the deployment lifecycle tracks it distinctly from an in-place
+			<code>active</code>.</li>
+			<li><strong><code>draft</code> · <code>paused</code> · <code>complete</code> ·
+			<code>retired</code></strong> — the plan/work lifecycle values (a plan starts
+			<code>draft</code>, ends <code>complete</code> or <code>retired</code>).</li>
+			<li><strong><code>template</code> leaves <code>status</code> blank</strong> — a scaffold is
+			never run; the authored artifact receives a real status.</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="reserved-fields">
+		<h3>Reserved fields</h3>
+		<p>Universal but optional, present as empty editing surfaces until used:</p>
+		<table>
+			<thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead>
+			<tbody>
+				<tr><td><code>audience</code></td><td>enum</td><td><code>human｜agent｜both</code> — audience-aware extraction (protocol §5)</td></tr>
+				<tr><td><code>tags</code></td><td>list</td><td>chip field; semantic-retrieval / nav-index hints</td></tr>
+				<tr><td><code>domain</code></td><td>list</td><td>a special tag — topic-area membership; a lens gathers the candidate files it MIGHT need by domain (may overlap). <strong>Retires <code>category</code>.</strong></td></tr>
+				<tr><td><code>origin</code> / <code>hash</code></td><td>slug / text</td><td>crystallization lineage (origin template id + content hash); informational, never authoritative. This is how a deployed copy records its canonical ancestor.</td></tr>
+			</tbody>
+		</table>
+	</section>
+
+	<section data-kcd-section="per-type-additions">
+		<h3>Per-type additions</h3>
+		<p>On top of the universal core, each type adds only its own fields:</p>
+		<table>
+			<thead><tr><th>Type</th><th>Adds</th><th>Notes</th></tr></thead>
+			<tbody>
+				<tr><td><code>lens</code></td><td><code>base</code>, <code>dredge-depth</code>, <code>audience</code>, <code>tags</code>, <code>todo_path</code>, <code>completed_path</code></td><td><code>todo_path</code>/<code>completed_path</code> are log paths (populated at deploy); <code>_lens-base</code> is auto-loaded. <strong>No invocation command</strong> — lenses are description-triggered (protocol §7).</td></tr>
+				<tr><td><code>plan</code></td><td><code>lens</code>, <code>created</code>, <code>updated</code></td><td><code>lens: {name｜cross}</code>; live states (<code>draft｜active｜paused</code>) require a <code>phases</code> section.</td></tr>
+				<tr><td><code>reference</code></td><td><code>domain</code>, <code>updated</code></td><td>references live in <code>references/{domain}/</code> only; they do not travel.</td></tr>
+				<tr><td><code>note</code></td><td><code>updated</code></td><td>a forward-looking observation — keeps its open / candidate sections (unlike a reference); legal status <code>observation</code>.</td></tr>
+				<tr><td><code>how-to</code></td><td><code>updated</code></td><td>a procedural recipe — keeps its own step shape.</td></tr>
+				<tr><td><code>contract</code></td><td><code>scope</code></td><td><code>universal｜lens:{name}</code>.</td></tr>
+				<tr><td><code>generator</code></td><td><code>base</code></td><td><code>base: _generator-base</code>; deployed copy records its ancestor via <code>origin</code>. (<code>model</code> is a <strong>parameter</strong>, not frontmatter.)</td></tr>
+				<tr><td><code>analyzer</code></td><td><code>lens</code>, <code>base</code></td><td><code>lens</code> = the lens it composes with, so it can run cold. (<code>model</code> is a <strong>parameter</strong>, not frontmatter.)</td></tr>
+				<tr><td><code>habit</code></td><td><code>habit-class</code></td><td>optional mutual-exclusion group (protocol §6); classless habits are additive.</td></tr>
+				<tr><td><code>framework</code></td><td><code>updated</code></td><td>conceptual prose; canonical-only, no deployed twin.</td></tr>
+				<tr><td><code>nav-index</code></td><td><code>updated</code></td><td>navigational; rows are What/Where/Why faux-tables (protocol §3).</td></tr>
+				<tr><td><code>template</code></td><td><em>(none)</em></td><td><code>status</code> blank; identified by directory + filename (<code>_{target}-template</code>).</td></tr>
+			</tbody>
+		</table>
+	</section>
+
+	<section data-kcd-section="artifact-types">
+		<h3>Artifact types</h3>
+		<p>The <code>type</code> discriminator is one of the twelve:</p>
+		<p><code>lens</code> · <code>plan</code> · <code>reference</code> · <code>note</code> ·
+		<code>how-to</code> · <code>framework</code> · <code>template</code> · <code>nav-index</code> ·
+		<code>habit</code> · <code>contract</code> · <code>generator</code> · <code>analyzer</code>.</p>
+		<p><code>type</code> is also a drift guard: a <code>type</code>↔location mismatch is a signal.
+		(<code>command</code>, <code>pipeline</code>, <code>index</code>, <code>doc</code>,
+		<code>utility</code>, and the <code>category</code> field are retired — superseded respectively
+		by description-triggering, the dropped pipeline idiom, <code>nav-index</code>,
+		<code>framework</code>, the deferred utility surface, and <code>domain</code>.)</p>
+	</section>
+
+	<section data-kcd-section="cross-cutting-rules">
+		<h3>Cross-cutting rules</h3>
+		<ul>
+			<li><strong>Model convention:</strong> default <code>claude-sonnet-5</code> (the reliable
+			workhorse); downgrade to <code>claude-haiku-4-5</code> only for genuinely trivial,
+			fully-mechanical work. Declared per procedure in <code>model</code>.</li>
+			<li><strong><code>disabled</code> = ignored twice:</strong> behavioral (lenses skip) +
+			mechanical (the compiler excludes).</li>
+			<li><strong>Aggressive over passive:</strong> AI generates volume; default to retiring
+			AI-authored artifacts. <code>paused</code> / explicit human action is the opt-out.</li>
+			<li><strong><code>base</code> kept</strong> on generator/analyzer/lens frontmatter as an
+			explicit composition-chain link.</li>
+		</ul>
+	</section>
+
+</article>
+
+</body>
+</html>

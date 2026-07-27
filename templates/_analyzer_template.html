@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Analyzer (template)</title>
+	<link rel="stylesheet" href="../kcd.css">
+</head>
+<body>
+
+<article data-kcd="template">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">_analyzer-template</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">Scaffold for authoring an analyzer — a judgment pass that reads broadly and writes one report. Copy, fill placeholders, delete scaffold notes.</dd>
+		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">template</dd>
+		<!-- blank on a template; the authored analyzer gets active|disabled. -->
+		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum"></dd>
+		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
+		<dt>author</dt>        <dd data-kcd-field="author"         data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
+	</dl>
+
+	<h1>Analyzer (template)</h1>
+
+	<section data-kcd-section="scaffold-note" data-kcd-audience="human">
+		<h3>Scaffold note</h3>
+		<p>Scaffold for authoring a canonical analyzer. Copy to
+		<code>_Claude/kcd/analyzers/{name}/{name}.html</code> (an analyzer is a folder: the
+		<code>.html</code> trunk plus a <code>context/</code> subfolder). Holds all generic
+		interpretation logic; <strong>declares — never solves — its requirements</strong>, and names no
+		project-specific path or value. Fill every <code>{placeholder}</code> and delete these scaffold
+		notes.</p>
+		<p>The authored analyzer's frontmatter replaces this template's identity fields:</p>
+		<ul>
+			<li><code>type</code> → <code>analyzer</code></li>
+			<li><code>status</code> → <code>active</code> or <code>disabled</code></li>
+			<li><code>lens</code> → <code>{lens}</code> — the lens this analyzer composes with (gives it
+			judgment; lets it run cold)</li>
+			<li><code>base</code> → <code>_analyzer-base</code></li>
+		</ul>
+		<p><em>(<code>model</code> is no longer frontmatter — it is the <code>model</code> parameter
+		below.)</em></p>
+		<p>Base rules:
+		<a href="_Claude/analyzers/_analyzer_base.html">_analyzer_base</a> — role, composition
+		model, requirement resolution, output conventions.</p>
+	</section>
+
+	<!-- Parameters — typed, user-set inputs. Faux-table; each cell addressable. Optional: omit if zero. -->
+	<section data-kcd-section="parameters">
+		<h3>Parameters</h3>
+		<div data-kcd-table data-kcd-params style="--kcd-cols: 1fr 1fr 1fr 2fr">
+			<div data-kcd-head><span>Name</span><span>Type</span><span>Default</span><span>Description</span></div>
+			<!-- model — the default model that seeds this agent's node in the work graph. Optional.
+			     NOT YET IMPLEMENTED: no runtime reads it; declared now so authoring can start. Leave
+			     the default `null` in the template; an authored analyzer sets it to a model id. -->
+			<div data-kcd-param>
+				<span data-kcd-field="name"        data-kcd-type="slug">model</span>
+				<span data-kcd-field="type"        data-kcd-type="enum">model</span>
+				<span data-kcd-field="default"     data-kcd-type="text">null</span>
+				<span data-kcd-field="description" data-kcd-type="text">Default model that seeds this analyzer's work-graph node (not yet implemented).</span>
+			</div>
+			<div data-kcd-param>
+				<span data-kcd-field="name"        data-kcd-type="slug">{param-name}</span>
+				<span data-kcd-field="type"        data-kcd-type="enum">text</span>
+				<span data-kcd-field="default"     data-kcd-type="text">{default}</span>
+				<span data-kcd-field="description" data-kcd-type="text">{what it tunes}</span>
+			</div>
+		</div>
+		<p>Output: <code data-kcd-address>_Claude/reports/{name}.html</code>
+		<em>(primary report; additional reports, if any, also under <code>reports/</code>)</em></p>
+		<p data-kcd-audience="human"><em>Each parameter is a <strong>name / type / default</strong>
+		triple — the typed-field vocabulary the app's setting fields use. <code>model</code> is one such
+		parameter (the default model that seeds the work-graph node; not yet implemented); <code>lens</code>
+		lives in frontmatter. <code>name</code> is the folder/file name and is not retyped here. An
+		analyzer's write authority is <strong>report-only</strong> — it writes reports (typically one; a
+		small number is fine), never source or canonical paths.</em></p>
+	</section>
+
+	<!-- Know — an analyzer reads anywhere; its inputs are declared references → slots with NO `always`
+	     (declared inputs, not auto-loaded context). -->
+	<section data-kcd-section="know">
+		<h3>Know</h3>
+		<p data-kcd-audience="human"><em>An analyzer reads <strong>anywhere</strong> — source,
+		references, and generator output (<code>audits/</code>). Declare the inputs this analyzer reads;
+		audits are one input among many, not a precondition.</em></p>
+		<div data-kcd-table>
+			<div data-kcd-head><span>What</span><span>Where</span><span>Why</span></div>
+			<div data-kcd-slot="link">
+				<span data-kcd-field="what"  data-kcd-type="text">{input}</span>
+				<a    data-kcd-field="where" data-kcd-type="path" href="{path}">{label}</a>
+				<span data-kcd-field="why"   data-kcd-type="text">{what it's read for}</span>
+			</div>
+		</div>
+	</section>
+
+	<section data-kcd-section="care">
+		<h3>Care</h3>
+		<p><strong>Defends:</strong></p>
+		<ul>
+			<li>Manifests are self-contained and executable without further judgment — every consequence
+			resolved</li>
+			<li>Write-one-place: writes only its report; never modifies source or any canonical path</li>
+		</ul>
+		<p><strong>Will not touch:</strong></p>
+		<ul><li>Source files or canonical paths — reads only</li></ul>
+		<p><strong>Surfaces (notes inline, does not block):</strong></p>
+		<ul><li>{ambiguous case, missing optional input} — note it in the report; do not error</li></ul>
+	</section>
+
+	<section data-kcd-section="do">
+		<h3>Do</h3>
+		<p>Pre-flight (deployment + requirement resolution) runs first, per <code>_analyzer_base</code>.</p>
+		<section data-kcd-section="phase-1">
+			<h4>Phase 1 — Read</h4>
+			<p>{What to read — source, references, audits — and what to extract from each.}</p>
+		</section>
+		<section data-kcd-section="phase-2">
+			<h4>Phase 2 — Interpret &amp; rank</h4>
+			<p>{Interpret findings; rank by priority/severity where it applies; identify what could be
+			made mechanical and handed to a generator.}</p>
+		</section>
+		<section data-kcd-section="phase-3">
+			<h4>Phase 3 — Manifests</h4>
+			<p>For each opportunity worth acting on, compose a <strong>manifest</strong>: a self-contained,
+			paste-ready spec a generator (or a human) can execute without further judgment.</p>
+		</section>
+		<section data-kcd-section="phase-n">
+			<h4>Phase N — Output declaration</h4>
+			<p>Write <code>_Claude/reports/{name}.html</code> — flush-and-fill. This analyzer produces no
+			other output.</p>
+		</section>
+	</section>
+
+	<section data-kcd-section="report-shape" data-kcd-audience="human">
+		<h3>Recommended report shape</h3>
+		<p>The report's structure is the analyzer author's judgment, but a workable default is: a
+		<strong>Summary</strong> (what was reviewed, headline counts / priorities), then
+		<strong>Findings / Opportunities</strong> — each with a priority + title, its
+		<strong>Source</strong>, a one-paragraph description, and a self-contained
+		<strong>Manifest</strong> a generator or human can run without further judgment.</p>
+	</section>
+
+</article>
+
+</body>
+</html>

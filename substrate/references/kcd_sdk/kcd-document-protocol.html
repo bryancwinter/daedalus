@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>KCD Document Protocol — Canonical Reference</title>
+	<link rel="stylesheet" href="../../kcd.css">
+</head>
+<body>
+
+<article data-kcd="reference">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">kcd-document-protocol</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">The canonical, locked HTML format every KCD artifact is authored in — the addressing contract, component vocabulary, frontmatter, and validation rules. Use when authoring, parsing, validating, or rendering any KCD document.</dd>
+		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">reference</dd>
+		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">active</dd>
+		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
+		<dt>author</dt>        <dd data-kcd-field="author"         data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
+		<dt>updated</dt>       <dd data-kcd-field="updated"        data-kcd-type="date">2026-07-22</dd>
+	</dl>
+
+	<h1>KCD Document Protocol — Canonical Reference</h1>
+
+	<section data-kcd-section="why">
+		<h2 data-kcd-heading>Why</h2>
+		<p>authoring, parsing, validating, or rendering any KCD document</p>
+	</section>
+
+	<blockquote>
+		<p>
+			<strong>This is stone.</strong> The locked specification for how a KCD artifact is encoded
+			as an HTML document. Drift here is costly — it ripples through the parser, the validator,
+			the renderer, the editor, and every authored and crystallized artifact. Change this only
+			with an explicit ruling, never incidentally. Reference implementation:
+			<code data-kcd-address>_Claude/work/lens_crafter/html-proposal/lens.html</code> +
+			<code data-kcd-address>_Claude/kcd/kcd.css</code>. Origin trial:
+			<code data-kcd-address>_Claude/work/lens_crafter/html-proposal/</code>. Migration plan:
+			html-substrate.
+		</p>
+	</blockquote>
+
+	<p>
+		<strong>Substrate:</strong> standards-valid HTML — opens and navigates in any browser,
+		rendered dark via one shared <code>kcd.css</code>, read mechanically by Starmind. No
+		proprietary format. A small, closed set of <code>data-kcd-*</code> attributes carries all
+		machine meaning.
+	</p>
+
+	<section data-kcd-section="addressing-contract">
+		<h2 data-kcd-heading>1 · The addressing contract (the core law)</h2>
+		<ol>
+			<li><strong>Every machine value is an addressable field:</strong> <code>data-kcd-field="&lt;name&gt;"</code>. The field's own content <strong>is</strong> the value — the element's text, or its <code>href</code> when the field is a link.</li>
+			<li><strong>One element, two duties.</strong> The same element surfaces the text to the human <strong>and</strong> is the machine address. No separate machine copy, no duplicated <code>data-x="…"</code> + visible span.</li>
+			<li><strong>No brittle dependencies.</strong> The parser reads <strong>only</strong> explicit <code>data-kcd-*</code> attributes and <code>data-kcd-field</code> values. Never element order, never grid position, never class names, never scraped free text. Anything not addressed is human chrome the parser ignores.</li>
+			<li><strong>Greppable, then fast.</strong> <code>grep 'data-kcd-field="where"'</code> finds every reference target in the corpus today; the explicit format lets faster structured tools be built tomorrow.</li>
+			<li><strong>File-level, all-or-nothing validation.</strong> Every field declares a <code>data-kcd-type</code>; each type maps to a tiny validator function. If <strong>any</strong> required field is missing or fails its validator, the <strong>whole file is discarded and ignored</strong> — never partially parsed. A document is not <code>active</code> until it validates. This is what keeps malformed data out of the system.</li>
+			<li><strong>Validators are shared.</strong> The per-type validator functions are a small composable library reused by <strong>SettingField</strong> — the same <code>data-kcd-type</code> vocabulary drives both document validation and the inline editor's controls.</li>
+			<li><strong>Reference implementation.</strong> The binary validator is <code>kcd_sdk</code>'s <code>KcdValidate</code> (<code>kcd_sdk/src/core/html/KcdValidate.ts</code>), built on the Node-free <code>HtmlTree</code> reader and the <code>KcdAddress</code> grammar — pure JS/TS, no DOM dependency, file-level all-or-nothing exactly as above.</li>
+		</ol>
+	</section>
+
+	<section data-kcd-section="links-and-addresses">
+		<h2 data-kcd-heading>1.1 &middot; Links and addresses (2026-07-22)</h2>
+
+		<p><strong>A link asserts occupancy. An address does not.</strong></p>
+
+		<p><code>&lt;a href="&hellip;"&gt;</code> means <em>there is a document there, go read it</em>. The
+		validator probes every one, and a miss is a warning &mdash; correctly, because the sentence containing
+		it is false when the target is absent.</p>
+
+		<p><code>&lt;code data-kcd-address&gt;</code> means <em>this is the location</em>. Something may occupy
+		it now, may occupy it later, or may never arrive. <strong>Vacancy is a legitimate state and is never
+		reported as an issue.</strong> This is the encoding for:</p>
+		<ul>
+			<li><strong>output declarations</strong> &mdash; a path an artifact writes to when it runs; absent
+			until then, and absent in every freshly installed vault</li>
+			<li><strong>forward references</strong> &mdash; a document that is planned but not yet authored</li>
+			<li><strong>ephemeral space</strong> &mdash; <code>work/</code>, <code>logs/</code>,
+			<code>scratch/</code>, <code>reports/</code>, <code>audits/</code>, <code>dev-utilities/</code>,
+			which are <code>indexed: false</code> by registry and are not installed into a user&rsquo;s vault at
+			all</li>
+			<li><strong>non-artifacts</strong> &mdash; source files, directories</li>
+		</ul>
+
+		<p><strong>Form.</strong> The visible text <em>is</em> the address; the attribute is a bare marker, so
+		&sect;1&rsquo;s one-element-two-duties rule holds with no machine copy:</p>
+<pre><code>&lt;code data-kcd-address&gt;_Claude/reports/audit-consistency.html&lt;/code&gt;</code></pre>
+		<p>When the prose must read differently, the attribute carries the value, exactly as
+		<code>href</code> does:</p>
+<pre><code>&lt;code data-kcd-address="_Claude/reports/audit-consistency.html"&gt;the consistency report&lt;/code&gt;</code></pre>
+		<p>As a <strong>typed field</strong> &mdash; frontmatter, or a faux-table cell &mdash; the type is
+		<code>data-kcd-type="address"</code>, and the value comes from text content like every other non-link
+		type. <code>todo</code> and <code>completed</code> are addresses for exactly this reason: a lens
+		declares where its log lives, it does not assert that one has been written.</p>
+
+		<p><strong>Two value shapes.</strong> An <strong>artifact name</strong> (a slug) resolves through the
+		same name index <code>base</code> and <code>lens</code> already use, and therefore <strong>survives any
+		move</strong>. A <strong>path</strong> is project-root-relative, for targets that have no name. Prefer
+		the name whenever the target is, or will be, a KCD artifact &mdash; it is the only form that does not
+		rot when a file is relocated.</p>
+
+		<p><strong>Validation.</strong> An address is checked for <strong>well-formedness only</strong> &mdash;
+		a valid slug, or a valid project-root-relative path with no <code>../</code> chain and no absolute
+		root. A malformed address is an error. A well-formed address pointing at nothing is
+		<strong>silent</strong>. Vacancy may be inventoried on request (<code>Vault.vacantAddresses</code>),
+		never in the health stream &mdash; otherwise the primitive merely relocates the noise it exists to
+		remove.</p>
+
+		<p><strong>The one prohibition.</strong> An artifact must never <code>&lt;a href&gt;</code> into
+		<code>indexed: false</code> space. Occupancy there can never be asserted, so the link is false by
+		construction &mdash; whether or not the target happens to exist on the authoring machine. The banned
+		set is derived from <code>VaultLayout</code>, never hand-maintained.</p>
+	</section>
+
+	<section data-kcd-section="component-vocabulary">
+		<h2 data-kcd-heading>2 · Component vocabulary (closed set)</h2>
+		<table>
+			<thead>
+				<tr><th>Component</th><th>Markup</th><th>Identity / key attributes</th></tr>
+			</thead>
+			<tbody>
+				<tr><td><strong>artifact</strong></td><td><code>&lt;article data-kcd="&lt;type&gt;"&gt;</code></td><td>root, one per file; <code>&lt;type&gt;</code> = the discriminator</td></tr>
+				<tr><td><strong>frontmatter</strong></td><td><code>&lt;dl data-kcd-frontmatter&gt;</code></td><td>visible, inline-editable; pairs of <code>&lt;dt&gt;</code> label + <code>&lt;dd data-kcd-field="…" data-kcd-type="…"&gt;</code> value</td></tr>
+				<tr><td><strong>region</strong></td><td><code>&lt;section data-kcd-region="know|care|do"&gt;</code></td><td>Know / Care / Do</td></tr>
+				<tr><td><strong>section</strong></td><td><code>&lt;section data-kcd-section="&lt;name&gt;"&gt;</code></td><td>the <strong>merge key</strong>; <code>data-kcd-merge="additive|declarative|union"</code> (default <code>additive</code>)</td></tr>
+				<tr><td><strong>heading</strong></td><td><code>&lt;h1&gt;</code>–<code>&lt;h6&gt;</code>, optional <code>data-kcd-heading</code></td><td>a heading is human chrome by default — the context compiler <strong>strips every untagged <code>&lt;h1&gt;</code>–<code>&lt;h6&gt;</code></strong> from compiled context (the prose still rides, just unlabeled). Add the valueless <code>data-kcd-heading</code> to mark one <strong>canonical</strong>: it survives the strip and rides the wire as <code>#</code>×N at its own tag level. Tag a heading only when it titles inline prose an agent should read (a Care <em>Purpose</em>/<em>Philosophy</em>, a reference's own body sub-headings). Do <strong>not</strong> tag the document <code>&lt;h1&gt;</code> title, the Know/Care/Do region labels, or routing-table section headings (References/Domains/Habits/Contracts/Files) — those are synthesized into the bottom Manifest already</td></tr>
+				<tr><td><strong>slot</strong></td><td>a row in a faux-table, <code>data-kcd-slot="&lt;kind&gt;"</code></td><td><strong>kind is explicit and by POSITION</strong> — a slot inherits the role of the block it sits in, never the type of what its <code>where</code> points at (a habit linked from a References block is a <code>reference</code>, not an accessible habit). Closed set — <strong>dredge roles</strong> <code>reference</code> · <code>habit</code> · <code>contract</code> · <code>tool</code> · <code>rule</code> (domains fold into <code>reference</code>); <strong>non-dredge</strong> <code>link</code> (points somewhere, but not a routable KCD artifact — decoratable later) · <code>table-data</code> (a pure tabular row, extracted + dumped when its region rides, never dredged). Fields <code>what</code> / <code>where</code> (a link) / <code>why</code>; <code>data-kcd-mode="off|on|suggested"</code> (default <code>on</code>) governs a dredge role's inclusion — off excludes entirely, on is routing-row-only, suggested rides full text; <code>data-kcd-habit-class="&lt;class&gt;"</code> = mutual-exclusion group</td></tr>
+				<tr><td><strong>param</strong></td><td>a row, <code>data-kcd-param</code></td><td>fields <code>name</code> / <code>type</code> / <code>default</code> / <code>description</code>; lives in <strong>Know</strong>; any artifact, <strong>default zero</strong></td></tr>
+				<tr><td><strong>tag</strong></td><td><code>&lt;ul data-kcd-chips&gt;&lt;li data-kcd-tag&gt;</code></td><td>chip container for <code>list</code>-type fields</td></tr>
+				<tr><td><strong>chrome</strong></td><td>see §5</td><td>human-only furniture: demo / live / script</td></tr>
+				<tr><td><strong>address</strong></td><td><code>&lt;code data-kcd-address&gt;</code></td><td>a LOCATION that may or may not be occupied (§1.1); value = text content, or the attribute when the prose must read differently</td></tr>
+				<tr><td><strong>seed</strong></td><td><code>&lt;script type="text/kcd-md" data-kcd-seed="&lt;host&gt;"&gt;</code></td><td>a literal payload extracted to a non-KCD file at deploy (§10). <code>data-kcd-target</code> (required) = the emitted filename, <strong>project-root</strong>-relative; <code>data-kcd-mode="prepend|create-only"</code> (default <code>prepend</code>). Never a slot, never routed, never compiled into context</td></tr>
+			</tbody>
+		</table>
+		<p>A field value's source by type: <strong>link fields</strong> (<code>where</code>, paths, urls) → <code>href</code>; <strong>all others</strong> → text content.</p>
+		<p><strong>Structural rule — no empty containers.</strong> Include a region (or section) <strong>only when it carries content</strong>. Never emit an empty Know / Care / Do. An artifact uses only the structure it needs — most non-lens artifacts use few regions or none. (How <em>much</em> a single artifact should carry is left to judgment: a habit must stay atomic, not larded with fifty things. No mechanical cap yet.)</p>
+	</section>
+
+	<section data-kcd-section="faux-tables">
+		<h2>3 · Faux-tables (never a real <code>&lt;table&gt;</code>)</h2>
+		<p>What/Where/Why-shaped idioms (References, Domains, Habits, Contracts, Parameters) render as <strong>styled divs</strong>, not <code>&lt;table&gt;</code>:</p>
+<pre><code>&lt;div data-kcd-table&gt;
+  &lt;div data-kcd-head&gt;&lt;span&gt;What&lt;/span&gt;&lt;span&gt;Where&lt;/span&gt;&lt;span&gt;Why&lt;/span&gt;&lt;/div&gt;
+  &lt;div data-kcd-slot="reference" data-kcd-mode="on"&gt;
+    &lt;span data-kcd-field="what"  data-kcd-type="text"&gt;Framework concepts&lt;/span&gt;
+    &lt;a    data-kcd-field="where" data-kcd-type="path" href="…/kcd_framework.html"&gt;kcd_framework&lt;/a&gt;
+    &lt;span data-kcd-field="why"   data-kcd-type="text"&gt;the primitives this lens enforces&lt;/span&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+		<ul>
+			<li><code>data-kcd-head</code> is human chrome (column labels); the parser ignores it.</li>
+			<li>Each row is a component (<code>data-kcd-slot</code> / <code>data-kcd-param</code>); each cell is an addressable field.</li>
+			<li>Columns via the <code>--kcd-cols</code> custom property. <strong>Canonical column order: What / Where / Why.</strong></li>
+			<li>Order is cosmetic — fields are read by name, so a reordered or renamed cell breaks neither parse nor render.</li>
+			<li><strong><code>data-kcd-slot</code> is canonical-only.</strong> A slot row's cells <strong>must</strong> be <code>data-kcd-field</code>s. Never put <code>data-kcd-slot</code> on a row you are not addressing — an unaddressed slot is invalid (the file fails).</li>
+			<li><strong><code>data-kcd-slot</code> carries its kind, by position.</strong> Every slot is <code>data-kcd-slot="&lt;kind&gt;"</code> from the closed set (§2); the parser reads it directly and <strong>never infers type from the <code>where</code> href</strong>. Kind follows the BLOCK: a References / Domains block yields <code>reference</code>s, Habits <code>habit</code>s, Contracts <code>contract</code>s, Tools <code>tool</code>s, Rules <code>rule</code>s; <strong>any other block</strong> yields <code>link</code> (a row carrying a link) or <code>table-data</code> (a row with no link). Only the five dredge roles are routed / dredged — <code>link</code> and <code>table-data</code> ride their region as plain content, never as affordances.</li>
+			<li><strong>Illustrative tables are chrome, not faux-tables.</strong> A descriptive table in prose (common in framework / reference docs) carries no canonical data — author it as a <strong>plain <code>&lt;table&gt;</code></strong>. The parser ignores any <code>&lt;table&gt;</code>, and a <code>&lt;table&gt;</code> may <strong>never</strong> carry <code>data-kcd-field</code> / <code>-slot</code> / <code>-param</code>. <strong>Bright line: <code>data-kcd-slot</code> ⇒ canonical; <code>&lt;table&gt;</code> ⇒ chrome.</strong></li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="frontmatter-fields">
+		<h2 data-kcd-heading>4 · Frontmatter fields</h2>
+		<p>Visible <code>&lt;dl data-kcd-frontmatter&gt;</code>; each value is an addressable, inline-editable <code>&lt;dd data-kcd-field="…" data-kcd-type="…"&gt;</code>.</p>
+		<table>
+			<thead>
+				<tr><th>Field</th><th>Tier</th><th>Type</th><th>Notes</th></tr>
+			</thead>
+			<tbody>
+				<tr><td><code>name</code></td><td>universal · required</td><td>slug</td><td><strong>Skill standard</strong> — kebab, ≤64 chars, <code>[a-z0-9-]</code>, no "claude"/"anthropic"</td></tr>
+				<tr><td><code>description</code></td><td>universal · required</td><td>text</td><td><strong>Skill standard</strong> — what it does <strong>+ when to use it</strong> (the trigger), ≤1024</td></tr>
+				<tr><td><code>type</code></td><td>universal · required</td><td>enum</td><td>the discriminator — the closed artifact-type set: <code>lens</code>, <code>plan</code>, <code>reference</code>, <code>note</code>, <code>how-to</code>, <code>framework</code>, <code>template</code>, <code>nav-index</code>, <code>habit</code>, <code>contract</code>, <code>generator</code>, <code>analyzer</code></td></tr>
+				<tr><td><code>status</code></td><td>universal · required</td><td>enum</td><td><code>draft|active|observation|composed|disabled|deployed|complete|retired|paused</code>; <strong><code>active</code> ⇒ validated</strong>. <code>composed</code> = a live-in-place base (read directly, never deployed or run standalone); <code>observation</code> = a note's forward-looking, not-yet-built status</td></tr>
+				<tr><td><code>schema-version</code></td><td>universal</td><td>text</td><td>the protocol version this doc targets — the migration hook for a locked schema</td></tr>
+				<tr><td><code>author</code></td><td>universal</td><td>text</td><td>the author block — <code>Name &lt;email&gt;</code></td></tr>
+				<tr><td><code>updated</code> / <code>created</code></td><td>universal</td><td>date</td><td>staleness signal</td></tr>
+				<tr><td><code>audience</code></td><td>reserved</td><td>enum</td><td><code>human|agent|both</code> — audience-aware extraction (see §5)</td></tr>
+				<tr><td><code>tags</code></td><td>reserved</td><td>list</td><td>chip field; semantic-retrieval / nav-index hints</td></tr>
+				<tr><td><code>domain</code></td><td>reserved (a special tag)</td><td>list</td><td>topic-area membership — a lens gathers the candidate files it MIGHT need by domain; may overlap. Retires <code>category</code>.</td></tr>
+				<tr><td><code>origin</code> / <code>hash</code></td><td>reserved</td><td>slug / text</td><td>crystallization lineage (origin template id + content hash); informational, never authoritative</td></tr>
+				<tr><td><code>base</code></td><td>type-specific</td><td>slug</td><td>composition parent</td></tr>
+				<tr><td><code>dredge-depth</code></td><td>type-specific (lens)</td><td>number</td><td>optional override of the default depth</td></tr>
+				<tr><td><code>lens</code></td><td>type-specific (plan/analyzer)</td><td>slug</td><td>the lens this artifact associates with</td></tr>
+				<tr><td><code>scope</code></td><td>type-specific (contract)</td><td>enum</td><td><code>universal|lens:{name}</code></td></tr>
+				<tr><td><code>habit-class</code></td><td>type-specific (habit)</td><td>slug</td><td>mutual-exclusion group (see §6)</td></tr>
+				<tr><td><code>todo</code> / <code>completed</code></td><td>type-specific (lens)</td><td>address</td><td>where the log lives — not an assertion that one exists (§1.1)</td></tr>
+			</tbody>
+		</table>
+		<blockquote>
+			<p><strong><code>model</code> is a parameter, not frontmatter.</strong> A generator/analyzer's model is the <strong><code>model</code> parameter</strong> — the default model that seeds the agent's node in the work graph. Optional, and <strong>not yet implemented</strong> (no runtime reads it yet; we declare it now so authoring can start populating parameters). It is a <code>data-kcd-param</code> row whose <code>default</code> cell holds the model id (a connector route like <code>remote.gemma31</code> is a valid default — <code>default</code> is freeform text, not a slug). Templates leave the default <code>null</code>.</p>
+		</blockquote>
+		<p><strong>Naming note.</strong> A leading <code>_</code> on framework scaffolds (<code>_lens-base</code>, <code>_lens-template</code>) is a sort prefix, not part of the Skill <code>name</code> itself; word separators within the name are hyphens.</p>
+		<p><strong>Templates.</strong> Templates are exempt from validation — scaffolds legitimately carry <code>{placeholders}</code> and the target type's own structure; template-aware validation is a deferred follow-up, not yet enforced. A template does not declare a <code>target</code> frontmatter field — the target type is inferred from the filename. <code>utility</code> is not a document type: it is declarative code (<code>UtilityObject</code>), not part of the template set. The index-type scaffold is filed as <code>_nav-index_template.html</code> (not <code>_index_template.html</code>), matching the <code>index</code> → <code>nav-index</code> rename.</p>
+	</section>
+
+	<section data-kcd-section="audience-chrome">
+		<h2 data-kcd-heading>5 · Audience &amp; chrome (dual extraction)</h2>
+		<p>The same surface yields two automatic extractions, chosen by <strong>consumer context</strong>:</p>
+		<ul>
+			<li><strong>Human read</strong> — the full visual: frontmatter panel, demos, styling. Optimized for the eye.</li>
+			<li><strong>AI read</strong> — chrome stripped, optimized for brevity.</li>
+		</ul>
+		<p><code>data-kcd-audience="human|agent|both"</code> (default <code>both</code>) on any element is the strip control; <code>human</code> nodes are kept for the visual read and dropped from the AI read.</p>
+		<p>Chrome components (all human-audience by nature):</p>
+		<ul>
+			<li><strong>Living demo</strong> — <code>data-kcd-chrome="demo"</code>: an interactive area (rendered in Starmind, placeholder in a plain browser).</li>
+			<li><strong>Live widget</strong> — <code>data-kcd-live="&lt;id&gt;"</code>: an embedded Starmind widget; inert placeholder elsewhere.</li>
+			<li><strong>Bespoke vanilla JS</strong> — <code>&lt;script type="text/kcd-js" data-entry="&lt;fn&gt;"&gt;…&lt;/script&gt;</code>: the canonical insertion point for custom JS. The non-standard <code>type</code> means it <strong>does not execute in a browser</strong> (the script-exec gate stays closed outside Starmind, which extracts and sandboxes it). Source is shown to humans, stripped for the AI.</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="composable-rules">
+		<h2 data-kcd-heading>6 · Composable rules — <code>habit-class</code> and the cascade</h2>
+		<p>A <code>habit-class</code> is a named <strong>mutual-exclusion group</strong> ("textual radio-buttons"): a set of behaviors where, by definition, only <strong>one</strong> may apply (e.g. <code>subagent-policy</code> = { <code>no-subagents</code>, <code>always-use-subagents</code> }). Classless habits are <strong>additive</strong> (all apply, union); classed habits are subject to the cascade below. Declared on a habit's own frontmatter (<code>habit-class</code>); <strong>mirrored</strong> on the including slot (<code>data-kcd-habit-class</code>), validated to agree.</p>
+		<p><strong>Carriers (the first composition rule).</strong> Habits may be applied to exactly three things — a <strong>Lens</strong>, an <strong>Agent</strong>, or <strong>injected in a Workflow</strong>. No other artifact type carries habits.</p>
+		<p><strong>Cascade priority — highest wins: <code>Workflow &gt; Agent &gt; Lens</code>.</strong> A lens-level habit is the <strong>base</strong> default; an Agent or a Workflow can override it. This is a <strong>one-dimensional override</strong> — like a primitive CSS cascade whose only specificity axis is the carrier level.</p>
+		<p><strong>Resolution:</strong></p>
+		<ul>
+			<li><strong>Within one carrier</strong>, including two habits of the same <code>habit-class</code> is a <strong>parser error</strong> — the file is discarded.</li>
+			<li><strong>Across carriers</strong>, for each <code>habit-class</code> the <strong>highest-priority carrier</strong> that specifies a member <strong>wins</strong>; lower-level members of that class are <strong>overridden</strong> (dropped).</li>
+			<li><strong>Classless</strong> habits never conflict — they union.</li>
+		</ul>
+		<p>This is the spine of the composable-rules feature. Open: how an override <strong>surfaces in the UI</strong> (which habit won, which were overridden).</p>
+	</section>
+
+	<section data-kcd-section="skill-alignment">
+		<h2 data-kcd-heading>7 · Skill alignment (we are a superset)</h2>
+		<p>KCD maps onto the Anthropic Agent Skills standard rather than redefining shared terms:</p>
+		<ul>
+			<li><code>name</code> + <code>description</code> adopt the <code>SKILL.md</code> field names and constraints (§4).</li>
+			<li><strong>Dredge = progressive disclosure.</strong> <code>data-kcd-mode="suggested"</code> ⇒ full text always-loaded (Skill Level 1–2); <code>on</code> (the default, no attribute needed) ⇒ available-on-request, a routing row only (Level 3 / bundled resource); <code>off</code> ⇒ excluded entirely, not even a routing row.</li>
+			<li><strong>No invocation command</strong> — KCD artifacts, like Skills, are description-triggered. This retires the whole command family: the lens <code>!{name}</code> command, the generator/analyzer <code>#{name}</code> task tag, and the session-log <code>!{lens}</code> token. <code>CLAUDE.md</code> may keep <code>!lens</code> / log shorthands as a Claude-level hook, but they are <strong>not KCD canonical</strong> and appear in no authored artifact.</li>
+			<li><strong>Folder + bundled resources</strong> ↔ a lens folder + <code>context/</code> + its slots.</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="rendering-theme">
+		<h2 data-kcd-heading>8 · Rendering &amp; theme</h2>
+		<ul>
+			<li><strong>Dark by default.</strong> Light is a future productization theme — it overrides only the <code>:root</code> variable block in <code>kcd.css</code>; every component reads the variables.</li>
+			<li>One shared <code>kcd.css</code> styles every component by keying off the <strong>same</strong> <code>data-kcd-*</code> addresses the parser reads — styling and parsing share one contract.</li>
+			<li>Links navigate natively in any browser; chrome is inert outside Starmind.</li>
+		</ul>
+
+		<h3 data-kcd-heading>8.1 · The stylesheet path (interim rule, 2026-07-01)</h3>
+		<p><strong>Canonical file:</strong> <a href="_Claude/kcd.css">kcd.css</a>. One copy, no duplicates. <code>kcd/</code> is the project's canonical framework library — the right home for a shared, framework-wide asset.</p>
+		<p><strong>Why this needs a rule at all.</strong> A KCD document is meant to open directly in a browser — <code>file://</code>, no server, no virtual root — so <code>&lt;link rel="stylesheet"&gt;</code> can only ever be a real filesystem-relative path. There is no <code>/absolute</code> that resolves the same way from every checkout, and a bare <code>href="kcd.css"</code> (what most of the corpus currently has) only works if a copy of the file sits in the <em>same directory</em> as the document — which, outside the original <code data-kcd-address="_Claude/work/lens_crafter/html-proposal/">html-proposal</code> origin trial, is not true anywhere. This is exactly the "dangling reference" class of bug the 2026-07-01 corpus audit surfaced.</p>
+		<p><strong>The rule, for now:</strong> compute the relative path from the document's own directory up to <code>_Claude/</code>, then down into <code>kcd/kcd.css</code> — one <code>../</code> per directory level under <code>_Claude/</code>.</p>
+		<table>
+			<thead>
+				<tr><th>Document location (under <code>_Claude/</code>)</th><th>Levels under <code>_Claude/</code></th><th>Correct <code>href</code></th></tr>
+			</thead>
+			<tbody>
+				<tr><td><code>lenses/_lens_base.html</code></td><td>1</td><td><code>../kcd/kcd.css</code></td></tr>
+				<tr><td><code>habits/{name}.html</code></td><td>1</td><td><code>../kcd/kcd.css</code></td></tr>
+				<tr><td><code>contracts/{name}.html</code></td><td>1</td><td><code>../kcd/kcd.css</code></td></tr>
+				<tr><td><code>lenses/{name}/{name}.html</code></td><td>2</td><td><code>../../kcd/kcd.css</code></td></tr>
+				<tr><td><code>references/domain/{name}.html</code></td><td>2</td><td><code>../../kcd/kcd.css</code></td></tr>
+				<tr><td><code>references/domain/orchestration/research/{name}.html</code></td><td>4</td><td><code>../../../../kcd/kcd.css</code></td></tr>
+			</tbody>
+		</table>
+		<p><strong>This is explicitly a stopgap</strong>, called out as such by the person who ruled it (2026-07-01): it still relies on whoever authors a document counting directory levels correctly by hand, which is exactly the kind of scut work a future authoring tool should absorb (a generator that stamps the correct relative path at deploy time, or a Starmind-side base-href rewrite when it renders these documents itself, removing the need for the raw file to carry a working link at all). Until that tool exists, an agent authoring or fixing a KCD document computes this path correctly by hand rather than copying the bare <code>href="kcd.css"</code> seen elsewhere in the corpus. The back-sweep to correct every already-deployed document's <code>href</code> to this rule is a separate, tracked pass — not implied by this section.</p>
+	</section>
+
+	<section data-kcd-section="scope-non-html">
+		<h2 data-kcd-heading>9 · Scope — what stays outside the substrate</h2>
+		<p><strong>The rule:</strong> every KCD primitive — lens, contract, habit, generator, analyzer,
+		template, reference, plan, nav-index, note, how-to — and every document that describes or points at
+		one, is authored as <code>.html</code> per this protocol. No exceptions, and no new primitive type
+		is ever authored as <code>.md</code>. <code>work/</code> is the sole grandfather clause: pre-2026-07-01
+		drafts left there are not back-converted, but anything <em>new</em> written to <code>work/</code> is
+		HTML from the start (see the <a href="_Claude/contracts/plan.html">plan contract</a>'s "every plan
+		is HTML, at every stage" rule for the concrete case).</p>
+		<p><strong>What is exempt</strong> — not KCD documents, so this protocol does not govern them:</p>
+		<ul>
+			<li><strong>Session, todo, and completed logs</strong> — <code>_Claude/logs/session.md</code>,
+			<code>_Claude/logs/{lens}/todo/todo.md</code>, <code>_Claude/logs/{lens}/completed/completed.md</code>.
+			Append-only breadcrumb lines, not dual-audience artifacts — see the
+			<a href="_Claude/habits/session-logging/session-log-aggressive.html">session-log-aggressive</a> habit (one of two poles of the
+			session-logging mutual-exclusion slot — see §6).</li>
+			<li><strong>Chat transcripts</strong> — <code>_Claude/logs/chats/*.md</code>. Raw session
+			capture, not an authored document.</li>
+			<li><strong>Raw generator/analyzer output</strong> — <code>_Claude/audits/**</code>,
+			<code>_Claude/reports/**</code>, and a generator's own deployed <code>context/</code>
+			config/data files (e.g. an <code>output-contract.md</code>, a <code>run-log.md</code>). These are
+			machine-written run records and config, the same kind as a registry — not something a human or
+			agent reads as a document in its own right.</li>
+			<li><strong>External standards</strong> — <code>CLAUDE.md</code>, <code>SKILL.md</code>,
+			<code>AGENTS.md</code>. Conventions owned outside KCD (Claude Code, the Agent Skills standard);
+			this protocol has no authority to reformat them.</li>
+			<li><strong>Docs a generator writes into a target codebase it is not itself part of</strong> —
+			e.g. <code>safe_work/docs/front-end-component-map.md</code>. That codebase's own documentation
+			conventions govern, not this one.</li>
+		</ul>
+		<p>Anything not on this list that is still <code>.md</code> outside <code>work/</code> is drift, not
+		a legitimate exception — flag it.</p>
+	</section>
+
+	<section data-kcd-section="seeds">
+		<h2 data-kcd-heading>10 · Seeds — payload carried, not compiled</h2>
+		<p>§9 puts a small set of files outside this protocol, <code>CLAUDE.md</code> and its siblings
+		most of all. A <strong>seed</strong> is how a governed HTML artifact authors one of them: a
+		literal payload block carried inside the document, extracted at deploy and written to a file
+		this protocol does not govern. The artifact is the <strong>source and is never copied</strong>;
+		the emitted file is a product. This is the sanctioned bridge across the §9 boundary — it lets
+		an external-standard file be authored, versioned, and reviewed as a KCD document without
+		claiming authority over its format.</p>
+
+		<p><strong>Container.</strong> A seed is the §5 non-executing script idiom with a markdown
+		type:</p>
+<pre><code>&lt;script type="text/kcd-md"
+        data-kcd-seed="claude"
+        data-kcd-target="CLAUDE.md"
+        data-kcd-mode="prepend"&gt;
+# Heading
+
+Markdown, verbatim.
+&lt;/script&gt;</code></pre>
+		<p>The non-standard <code>type</code> means no browser executes or renders it, and script
+		content is raw text — so the payload needs <strong>no HTML escaping</strong>. The single
+		exception is a literal <code>&lt;/script</code>, which must be escaped.</p>
+		<ul>
+			<li><code>data-kcd-seed="&lt;host&gt;"</code> — <strong>required</strong>, a slug naming the
+			agent host this payload is for (<code>claude</code>, <code>codex</code>,
+			<code>gemini</code>). One document carries one block per host; the extractor selects by this
+			key. Host keys are open, not a closed set — a new host is a new block, not a schema
+			change.</li>
+			<li><code>data-kcd-target="&lt;filename&gt;"</code> — <strong>required</strong>, the file
+			written, resolved from the <strong>project root</strong> rather than the vault. A seed
+			missing its target fails the file, per §1.5.</li>
+			<li><code>data-kcd-mode</code> — <code>prepend</code> (default) or
+			<code>create-only</code>.</li>
+		</ul>
+		<p><strong>Modes.</strong> <code>create-only</code> writes the whole file and never touches one
+		that already exists. <code>prepend</code> maintains a <strong>managed block</strong> at the top
+		of the target, delimited by <code>&lt;!-- kcd:begin --&gt;</code> and
+		<code>&lt;!-- kcd:end --&gt;</code>; re-extraction replaces only what lies between the markers
+		and leaves everything below them alone. That is what lets a vault deploy over a project whose
+		<code>CLAUDE.md</code> already says things of its own, and re-deploy later without clobbering
+		them.</p>
+		<p><strong>A seed is not a slot.</strong> It carries no <code>data-kcd-field</code> cells, is
+		never routed or dredged, and belongs to no faux-table. The two are unrelated primitives that
+		happen to share an English word: <code>data-kcd-slot</code> is a routing row (§3),
+		<code>data-kcd-seed</code> is a payload block.</p>
+		<p><strong>Seeds never compile.</strong> The context compiler <strong>strips every seed
+		block</strong>, exactly as it strips chrome (§5). A seed is deploy input, not agent context. A
+		document carrying three host payloads would otherwise triple itself on the wire — and each
+		payload is prose written <em>for</em> an agent that has not read the vault yet, which is
+		precisely the wrong thing to hand one that has.</p>
+	</section>
+
+	<section data-kcd-section="resolved-and-open">
+		<h2 data-kcd-heading>Resolved &amp; still-open</h2>
+		<p><strong>Resolved (now stone):</strong> names are kebab-case (Skill standard; the leading <code>_</code> on framework scaffolds is a sort prefix, not part of the name); regions are optional (§2 no-empty rule); the frontmatter field set (§4) is locked; the habit composition cascade (§6) is locked; <code>author</code> is universal, block form; <code>domain</code> (a special tag, may overlap) retires <code>category</code>; the template <code>target</code> field is dropped (inferred from filename); <code>utility</code> is not a document type (it is declarative code — <code>UtilityObject</code>); tables (§3) — <code>data-kcd-slot</code> canonical-only, illustrative tables are plain <code>&lt;table&gt;</code> chrome; a slot carries its kind explicitly and <strong>by block-position</strong> (dredge roles <code>reference</code>/<code>habit</code>/<code>contract</code>/<code>tool</code>/<code>rule</code>, domains folding into reference; non-dredge <code>link</code>/<code>table-data</code>), retiring href-inferred typing; templates are exempt from validation; the reference validator is pure-JS + binary; <code>model</code> is a parameter (§4); <code>composed</code> is a legal status; the command family is retired (§7); the index scaffold is <code>_nav-index_template.html</code>. The artifact-type set now includes <code>note</code> (a forward-looking observation — keeps its open / candidate sections, unlike a reference) and <code>how-to</code> (a procedural recipe — keeps its own step shape); <code>observation</code> is a legal (note) status; the non-HTML scope (§9) is locked — logs/chat-transcripts/raw-generator-output/external-standards/target-codebase-docs are the only legitimate <code>.md</code>, everything else is drift. The <code>seed</code> component (§10) is the sanctioned bridge to those exempt files — payload carried in HTML, extracted at deploy, stripped from compiled context; it is a distinct primitive from <code>data-kcd-slot</code> and shares nothing with it but the English word.</p>
+		<p><strong>Retired — must NOT appear in any authored document:</strong> <code>command</code> / invocation (incl. the <code>#{name}</code> task tag and <code>!{lens}</code> log token — only <code>CLAUDE.md</code> keeps the <code>!lens</code> shorthand) · <code>pipeline</code> (superseded by Workflows) · <code>index</code> as a type name (→ <code>nav-index</code>) · <code>category</code> (→ <code>domain</code>) · the template <code>target</code> field · <code>utility</code> documents.</p>
+		<p><strong>Still open (judgment for now):</strong> how much a single artifact may carry (atomicity vs. larding — no mechanical cap); UI surfacing of habit overrides (which won, which were dropped).</p>
+	</section>
+
+	<section data-kcd-section="references" data-kcd-merge="union">
+		<h2>References</h2>
+		<div data-kcd-table>
+			<div data-kcd-head><span>What</span><span>Where</span><span>Why</span></div>
+			<div data-kcd-slot="reference">
+				<span data-kcd-field="what"  data-kcd-type="text">kcd-primitives</span>
+				<a    data-kcd-field="where" data-kcd-type="path" href="_Claude/references/kcd_sdk/kcd-primitives.html">kcd-primitives</a>
+				<span data-kcd-field="why"   data-kcd-type="text">The SDK object model (being brought to this substrate).</span>
+			</div>
+			<div data-kcd-slot="reference">
+				<span data-kcd-field="what"  data-kcd-type="text">Exemplar (lens.html)</span>
+				<span data-kcd-field="where" data-kcd-type="address">_Claude/work/lens_crafter/html-proposal/lens.html</span>
+				<span data-kcd-field="why"   data-kcd-type="text">The reference-implementation exemplar this spec was validated against.</span>
+			</div>
+		</div>
+		<p><em>Related memory: project-kcd-html-migration · project-kcd-vocab-alignment · project-settingfield-universal-schema · project-contract-primitive · feedback-defer-security-name-the-gate.</em></p>
+	</section>
+
+</article>
+
+</body>
+</html>

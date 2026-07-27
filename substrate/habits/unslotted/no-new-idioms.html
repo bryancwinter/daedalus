@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>no-new-idioms — Habit</title>
+	<link rel="stylesheet" href="../../kcd.css">
+</head>
+<body>
+
+<article data-kcd="habit">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">no-new-idioms</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">Announce any new named abstraction (class, service, store, connector) the task did not ask for by name, in the turn it is created; fires when minting unrequested glue. Non-blocking — visibility, not permission.</dd>
+		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">habit</dd>
+		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">active</dd>
+		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
+		<dt>author</dt>        <dd data-kcd-field="author"         data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
+	</dl>
+
+	<h1>no-new-idioms — Habit</h1>
+
+	<section data-kcd-section="why">
+		<h3>Why</h3>
+		<p>about to create a new named abstraction the user did not ask for by name — a class, interface,
+		base class, service, store, or connector/glue module whose existence is an implementation choice
+		rather than the task itself</p>
+	</section>
+
+	<section data-kcd-section="action">
+		<h3>Action</h3>
+		<p>announce it in the turn it's created — "New idiom: {Name} ({glue | connector | domain}). It
+		exists to {one-line job}. Alternative considered: {fold into X / none obvious}." — then keep
+		building</p>
+	</section>
+
+	<section data-kcd-section="explanation">
+		<h3>Explanation</h3>
+		<p>The point is visibility, not permission — speed is preserved; silence is approval. Glue
+		accumulates silently and compounds into conceptual bloat, but an announced idiom can still be
+		collapsed cheaply before commit. One new class is fine; three unannounced connectors is an
+		architecture decision nobody made.</p>
+	</section>
+
+	<section data-kcd-section="rules">
+		<h3>Rules</h3>
+		<ul>
+			<li>the abstraction the task names is pre-approved — if the user asked for a <code>FooService</code>, build it, no announcement</li>
+			<li>everything else is announced in the turn it's created, not discovered at commit review; non-blocking — state it and keep building</li>
+			<li>the announcement collapses the data — what the idiom is, why the task forced it, and what the fold-in alternative was</li>
+		</ul>
+	</section>
+
+</article>
+
+</body>
+</html>

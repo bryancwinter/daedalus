@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>apply-repairs — Generator</title>
+	<link rel="stylesheet" href="../../kcd.css">
+</head>
+<body>
+
+<article data-kcd="generator">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>        <dd data-kcd-field="name"        data-kcd-type="slug">apply-repairs</dd>
+		<dt>description</dt> <dd data-kcd-field="description" data-kcd-type="text">Mechanical-apply stage of doc healing: consumes a repair manifest from audit-structure and applies each row in-place — link rewrites, index stubs, frontmatter cascades, log prunes. Decides nothing; every row is pre-resolved.</dd>
+		<dt>type</dt>        <dd data-kcd-field="type"        data-kcd-type="enum">generator</dd>
+		<dt>status</dt>      <dd data-kcd-field="status"      data-kcd-type="enum">active</dd>
+		<dt>base</dt>        <dd data-kcd-field="base"        data-kcd-type="slug">_generator-base</dd>
+	</dl>
+
+	<h1>apply-repairs — Generator</h1>
+
+	<p><em>The <strong>mechanical-apply</strong> half of doc healing: it consumes a repair manifest
+	produced by audit-structure
+	and applies each row <strong>in-place</strong> — link rewrites, index stubs, frontmatter
+	cascades, log prunes. It decides nothing; every row is pre-resolved.</em></p>
+
+	<p>Base rules: <a href="_Claude/generators/_generator_base.html">_generator_base</a> —
+	composition model, requirement resolution, fail behavior, output conventions.</p>
+
+	<p><em>This is the <strong>apply</strong> stage of the <code>repair-docs</code> cycle:
+	<code>audit-structure → apply-repairs</code>. Its input is the analyzer's repair manifest; the
+	human-facing decisions report is the analyzer's output, never touched here. Textbook generator —
+	executes a spec, exercises no judgment.</em></p>
+
+	<p><strong>The manifest is the contract.</strong> apply-repairs reads the manifest in the format
+	defined by audit-structure (<code>## Repair Manifest Format</code>): one table, columns
+	<code># | action | target | locator | from | to | note</code>, six actions. Every row is, by the
+	analyzer's construction, a deployed-zone fix with an obvious resolution — so applying it requires
+	no choice. Where a row <em>cannot</em> be applied cleanly, apply-repairs <strong>does not
+	guess</strong> — it skips the row and logs it (the generator invariant: broad write ⇒ low
+	autonomy).</p>
+
+	<section data-kcd-section="parameters">
+		<h2 data-kcd-heading>Parameters</h2>
+		<p>Output: <code>_Claude/audits/apply-repairs.md</code> — the <strong>run log</strong> (what
+		was applied / skipped), flush-and-fill. The repairs themselves are <strong>in-place
+		edits</strong> to the files named in the manifest (declared in Phase 4).</p>
+		<p><em><code>name</code> / <code>#{name}</code> derive from the filename;
+		<code>model</code> / <code>base</code> live in frontmatter.</em></p>
+	</section>
+
+	<section data-kcd-section="requirements">
+		<h2 data-kcd-heading>Requirements</h2>
+
+		<table>
+			<thead>
+				<tr><th>Name</th><th>Kind</th><th>Description</th><th>Value</th></tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td><code>repair-manifest</code></td>
+					<td>Input</td>
+					<td>The repair manifest file produced by <code>audit-structure</code>
+					(<code>_Claude/reports/audit-structure-manifest.md</code>). The spec this generator
+					executes.</td>
+					<td><code>_Claude/reports/audit-structure-manifest.md</code></td>
+				</tr>
+				<tr>
+					<td><code>doc-root</code></td>
+					<td>Input</td>
+					<td>Root of the documentation tree. Bounds write authority — apply-repairs never edits a
+					path outside <code>{doc-root}</code>, and never under <code>{doc-root}/kcd/</code>
+					(canonical is read-only).</td>
+					<td><code>_Claude</code></td>
+				</tr>
+			</tbody>
+		</table>
+
+		<p><em>No <code>log-max-age</code> requirement: a <code>prune-log</code> row carries its
+		cutoff date in <code>from</code> (the analyzer computed it). The generator removes by the
+		given cutoff — no age judgment of its own.</em></p>
+	</section>
+
+	<section data-kcd-section="care">
+		<h2>Care</h2>
+		<p>apply-repairs applies the manifest <strong>verbatim</strong>. It builds nothing the
+		manifest does not specify, and it makes no decision a row leaves open. Broad write authority
+		is safe only because the work is fully specified upstream; the moment a row is ambiguous or
+		unapplicable, the generator stops at that row, logs it, and moves on — it never improvises
+		a repair.</p>
+
+		<p><strong>Defends:</strong></p>
+		<ul>
+			<li>Executes only what a manifest row specifies — never infers an unlisted repair.</li>
+			<li>A row it cannot apply cleanly (target/locator/<code>from</code> not found) is
+			<strong>skipped and logged</strong>, never guessed.</li>
+			<li>Never writes outside <code>_Claude</code>; <strong>never modifies
+			<code>_Claude/kcd/**</code></strong> — canonical is look-don't-touch, so a manifest row
+			targeting it is a contract violation: skipped and flagged.</li>
+			<li>Never touches the <code>kcd:</code> frontmatter block —
+			<code>cascade-field</code> writes top-level keys only.</li>
+			<li><strong>Idempotent</strong> — a repair already satisfied (the <code>from</code> value
+			is absent / the field already present) is a no-op skip, not an error. A second run applies
+			nothing.</li>
+			<li>The run log is flush-and-fill.</li>
+		</ul>
+
+		<p><strong>Will not touch:</strong></p>
+		<ul>
+			<li>Any file not named as a manifest <code>target</code>.</li>
+			<li>Prose, Care content, or argument text — only the precise span a row's
+			<code>locator</code> + <code>from</code> identifies.</li>
+			<li>The manifest or the decisions report — read-only inputs.</li>
+			<li>Non-markdown files.</li>
+		</ul>
+
+		<p><strong>Surfaces (logs to the run report, does not block):</strong></p>
+		<ul>
+			<li>A row whose <code>target</code>, <code>locator</code>, or <code>from</code> value
+			cannot be located → skip, log under <em>Not applied</em>.</li>
+			<li>A row whose <code>target</code> resolves under <code>kcd/**</code> or outside
+			<code>_Claude</code> → skip, log as a contract violation.</li>
+			<li>A malformed/unparseable manifest row (unknown action, missing required column) → skip,
+			log.</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="path-convention">
+		<h2 data-kcd-heading>Path Convention</h2>
+		<p>Every path is relative to <code>_Claude</code> unless it begins with another requirement
+		variable. Manifest <code>target</code> paths are taken as written; apply-repairs verifies
+		each is inside <code>_Claude</code> and not under <code>kcd/</code> before editing.</p>
+	</section>
+
+	<section data-kcd-section="do">
+		<h2>Do</h2>
+		<p><em>Pre-flight runs first, per <code>_generator_base</code> — deployment check, then
+		requirement resolution.</em></p>
+
+		<section data-kcd-section="phase-1">
+			<h3 data-kcd-heading>Phase 1 — Load &amp; Validate the Manifest</h3>
+			<p>Read <code>_Claude/reports/audit-structure-manifest.md</code> and parse its repair table.
+			If the file is absent or carries an empty table, there is nothing to apply: skip to Phase 3
+			and write an empty run log (an empty manifest is <strong>not</strong> a failure — the
+			cycle skips this stage when the analyzer slates no repairs).</p>
+			<p>For each row, validate before queuing it:</p>
+			<ul>
+				<li><code>action</code> is one of the six known verbs (<code>rewrite-link</code>,
+				<code>index-add</code>, <code>index-remove</code>, <code>index-create</code>,
+				<code>cascade-field</code>, <code>prune-log</code>).</li>
+				<li>The columns that action requires are present (per the action table below).</li>
+				<li><code>target</code> resolves <strong>inside <code>_Claude</code></strong> and
+				<strong>not under <code>kcd/</code></strong>.</li>
+			</ul>
+			<p>A row failing any check is <strong>rejected</strong> (not queued) and recorded for the
+			run log. Validation never modifies a file.</p>
+		</section>
+
+		<section data-kcd-section="phase-2">
+			<h3 data-kcd-heading>Phase 2 — Apply Repairs</h3>
+			<p>Apply each validated row exactly as specified. Per-action mechanics:</p>
+
+			<table>
+				<thead>
+					<tr><th>action</th><th>mechanic</th></tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td><code>rewrite-link</code></td>
+						<td>In <code>target</code>, find the markdown link whose text is <code>locator</code>
+						and whose path is <code>from</code>; replace the path with <code>to</code>. If the
+						link/path is not present, skip (idempotent / already-fixed).</td>
+					</tr>
+					<tr>
+						<td><code>index-add</code></td>
+						<td>In the <code>target</code> index, insert the <code>to</code> row into the
+						<code>What | Where | Why</code> table (skip if an equivalent row already exists).</td>
+					</tr>
+					<tr>
+						<td><code>index-remove</code></td>
+						<td>In the <code>target</code> index, delete the table row identified by
+						<code>locator</code> matching <code>from</code> (skip if already gone).</td>
+					</tr>
+					<tr>
+						<td><code>index-create</code></td>
+						<td>Create <code>target</code> (a new <code>nav-index.html</code>) with the stub header +
+						the <code>to</code> content. Skip if the file already exists.</td>
+					</tr>
+					<tr>
+						<td><code>cascade-field</code></td>
+						<td>In <code>target</code>'s frontmatter, add top-level key <code>locator</code> with
+						value <code>to</code>. <strong>Never</strong> write inside <code>kcd:</code>;
+						<strong>never</strong> overwrite an existing value (if the key is already present,
+						skip).</td>
+					</tr>
+					<tr>
+						<td><code>prune-log</code></td>
+						<td>In the <code>target</code> log, remove every date-stamped entry
+						(<code>- [YYYY-MM-DD] …</code>) older than the cutoff date in <code>from</code>.
+						Leave headers, blank lines, and prose untouched.</td>
+					</tr>
+				</tbody>
+			</table>
+
+			<p>A row whose precondition is already satisfied is a <strong>no-op skip</strong> (this is
+			what makes the generator idempotent). A row that cannot be located at all (target missing,
+			span absent for a non-idempotent reason) is recorded under <em>Not applied</em> — the
+			generator does not search for a near-match.</p>
+		</section>
+
+		<section data-kcd-section="phase-3">
+			<h3 data-kcd-heading>Phase 3 — Write Run Log (flush-and-fill)</h3>
+			<p>Destroy and recreate <code>_Claude/audits/apply-repairs.md</code>:</p>
+			<pre><code># Apply-Repairs Run — {YYYY-MM-DD}
+
+**Manifest**: _Claude/reports/audit-structure-manifest.md
+**Rows**: N total   ·   **Applied**: N   ·   **Skipped (no-op)**: N   ·   **Not applied**: N   ·   **Rejected**: N
+
+## Applied
+
+| action | target | what changed |
+|---|---|---|
+
+## Skipped (already satisfied — idempotent no-op)
+
+| action | target | why |
+|---|---|---|
+
+## Not applied (could not locate — surfaced, not guessed)
+
+| action | target | why |
+|---|---|---|
+
+## Rejected (invalid row — unknown action / missing column / out-of-bounds target)
+
+| action | target | why |
+|---|---|---|</code></pre>
+		</section>
+
+		<section data-kcd-section="phase-4">
+			<h3 data-kcd-heading>Phase 4 — Output Declaration</h3>
+			<p>Writes <code>_Claude/audits/apply-repairs.md</code> (the run log, flush-and-fill).
+			<strong>Modifies in-place</strong> the <code>.md</code> files named as manifest
+			<code>target</code>s — link rewrites, index stub add/remove/create, frontmatter field
+			cascades, and log-entry prunes, exactly as the manifest specifies. Modifies nothing under
+			<code>_Claude/kcd/</code>, nothing outside <code>_Claude</code>, and no file not named in
+			the manifest. No console output, logs, or side effects outside the run log and the listed
+			targets.</p>
+			<p>After Phase 4, the <code>run-report</code> habit fires automatically (declared at
+			<code>_generator_base</code>).</p>
+		</section>
+	</section>
+
+</article>
+
+</body>
+</html>

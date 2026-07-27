@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>write-approval-always — Habit</title>
+	<link rel="stylesheet" href="../../kcd.css">
+</head>
+<body>
+
+<article data-kcd="habit">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">write-approval-always</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">Requires explicit approval before every write operation, everywhere — no pre-approved zone, not even inside _Claude/. The strictest pole of the write-approval mutual-exclusion class.</dd>
+		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">habit</dd>
+		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">active</dd>
+		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
+		<dt>author</dt>        <dd data-kcd-field="author"         data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
+		<dt>habit-class</dt>   <dd data-kcd-field="habit-class"    data-kcd-type="slug">write-approval</dd>
+	</dl>
+
+	<h1>write-approval-always — Habit</h1>
+
+	<section data-kcd-section="why">
+		<h3>Why</h3>
+		<p>any write operation is about to occur, anywhere — including inside <code>_Claude/</code></p>
+	</section>
+
+	<section data-kcd-section="action">
+		<h3>Action</h3>
+		<p>state the target path and intended change, then wait for the user's clearance before executing
+		any write</p>
+	</section>
+
+	<section data-kcd-section="explanation">
+		<h3>Explanation</h3>
+		<p>The strictest pole: the other two (<code>write-approval-docs</code>,
+		<code>write-approval-yolo</code>) pre-approve some zone for speed, but a lens working somewhere
+		with real blast radius — production config, a shared credential store, anything the user can't
+		cheaply revert — should clear every write, every time, with no exceptions carved for convenience.
+		Two hard exceptions refuse regardless of lens: <code>_Claude/kcd/</code> is read-only (framework
+		root; write only on explicit command) and <code>CLAUDE.md</code> is read-only to all but
+		<code>lens_crafter</code>, which drafts to <code>_Claude/work/lens_crafter/plans/</code> and gets
+		approval first.</p>
+	</section>
+
+	<section data-kcd-section="rules">
+		<h3>Rules</h3>
+		<ul>
+			<li>every write, everywhere — state path + intended change, wait for clearance; no path is pre-approved, including under <code>_Claude/</code></li>
+			<li><code>_Claude/kcd/</code> — never write without an explicit user command during the session</li>
+			<li><code>CLAUDE.md</code> — only <code>lens_crafter</code> edits it, via drafted-and-approved changes</li>
+		</ul>
+	</section>
+
+</article>
+
+</body>
+</html>

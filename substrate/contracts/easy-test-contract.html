@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>easy-test-contract — Contract</title>
+	<link rel="stylesheet" href="../kcd.css">
+</head>
+<body>
+
+<article data-kcd="contract">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>        <dd data-kcd-field="name"        data-kcd-type="slug">easy-test-contract</dd>
+		<dt>description</dt> <dd data-kcd-field="description" data-kcd-type="text">Grade the output of the easy-test generator: read the SVG it wrote, check the three known shapes, and return a single PASS / FAIL verdict.</dd>
+		<dt>type</dt>        <dd data-kcd-field="type"        data-kcd-type="enum">contract</dd>
+		<dt>status</dt>      <dd data-kcd-field="status"      data-kcd-type="enum">active</dd>
+		<dt>scope</dt>       <dd data-kcd-field="scope"       data-kcd-type="enum">universal</dd>
+	</dl>
+
+	<h1>Easy Test — Contract</h1>
+
+	<p>Grade the output of the <a href="_Claude/generators/easy-test/easy-test.html">easy-test</a>
+	generator: read the SVG it wrote, check the three known shapes, and return a single PASS / FAIL
+	verdict.</p>
+
+	<p>This is a test fixture for the agent / workflow harness. The expected answer is fixed, so the
+	grade is deterministic — a useful known-good signal when driving generators from a workflow
+	graph. Pairs one-to-one with the <code>easy-test</code> generator.</p>
+
+	<section data-kcd-section="when">
+		<h2 data-kcd-heading>When</h2>
+		<p>This contract activates whenever a session or sub-agent:</p>
+		<ul>
+			<li>Receives <code>#easy-test-contract</code> or "grade the easy-test output" / "test the easy-test SVG"</li>
+			<li>Runs as the verify step after the <code>easy-test</code> generator in a workflow graph</li>
+			<li>Is asked to confirm <code>_Claude/audits/easy-test/easy-test.svg</code> is correct</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="artifact-format">
+		<h2 data-kcd-heading>Artifact Format</h2>
+		<p>A grade — printed inline (and written to
+		<code>_Claude/audits/easy-test/easy-test-grade.md</code> when run unattended),
+		flush-and-fill. Shape:</p>
+		<pre><code># easy-test grade — PASS | FAIL
+
+| Check | Expected | Found | OK |
+|---|---|---|---|
+| Box | blue rect | ... | ✅ / ❌ |
+| Circle | green circle | ... | ✅ / ❌ |
+| Triangle | black triangle | ... | ✅ / ❌ |
+
+**Verdict:** PASS | FAIL — {one-line reason}</code></pre>
+	</section>
+
+	<section data-kcd-section="lifecycle">
+		<h2 data-kcd-heading>Lifecycle</h2>
+
+		<section data-kcd-section="phase-1">
+			<h3 data-kcd-heading>Phase 1 — Read</h3>
+			<p><strong>Trigger:</strong> The contract is invoked.</p>
+			<p><strong>Together:</strong> Read <code>_Claude/audits/easy-test/easy-test.svg</code>. If
+			the file does not exist or is not parseable as SVG, that is an immediate
+			<strong>FAIL</strong> — record it and skip to Phase 3.</p>
+			<p><strong>Standard:</strong> The file's contents are in hand, or absence is recorded as a
+			hard fail.</p>
+		</section>
+
+		<section data-kcd-section="phase-2">
+			<h3 data-kcd-heading>Phase 2 — Check the three shapes</h3>
+			<p><strong>Trigger:</strong> The SVG was read.</p>
+			<p><strong>Together:</strong> Verify each of the three required shapes is present with the
+			right element and the right color. Judge by intent, not by exact string — accept color
+			synonyms (<code>blue</code> / <code>#0000ff</code> / <code>rgb(0,0,255)</code>,
+			<code>green</code> / <code>#008000</code>, <code>black</code> / <code>#000000</code>) and
+			any valid encoding of each shape.</p>
+
+			<table>
+				<thead>
+					<tr><th>Check</th><th>Passes when</th></tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td>Box</td>
+						<td>a <code>&lt;rect&gt;</code> (or equivalent box path) with a blue fill exists</td>
+					</tr>
+					<tr>
+						<td>Circle</td>
+						<td>a <code>&lt;circle&gt;</code> (or <code>&lt;ellipse&gt;</code> with equal radii) with a green fill exists</td>
+					</tr>
+					<tr>
+						<td>Triangle</td>
+						<td>a closed three-point <code>&lt;polygon&gt;</code>/<code>&lt;path&gt;</code> with a black fill exists</td>
+					</tr>
+				</tbody>
+			</table>
+
+			<p>Record each check as OK or not, with what was actually found.</p>
+			<p><strong>Standard:</strong> All three checks evaluated; each has a concrete found-value,
+			not a guess.</p>
+		</section>
+
+		<section data-kcd-section="phase-3">
+			<h3 data-kcd-heading>Phase 3 — Verdict</h3>
+			<p><strong>Trigger:</strong> All checks evaluated (or a hard fail from Phase 1).</p>
+			<p><strong>Together:</strong> Emit the grade in the Artifact Format above.
+			<strong>PASS only if all three checks are OK.</strong> Any missing, miscolored, or
+			wrong-typed shape → <strong>FAIL</strong>, naming which check(s) failed.</p>
+			<p><strong>Standard:</strong> Exactly one verdict — PASS or FAIL — with a one-line reason
+			and the per-check table.</p>
+		</section>
+	</section>
+
+	<section data-kcd-section="standards">
+		<h2 data-kcd-heading>Standards</h2>
+		<ul>
+			<li><strong>Hard gate — all three or fail.</strong> PASS requires box, circle, and triangle
+			all correct. There is no partial pass.</li>
+			<li><strong>Missing file is FAIL, not an error.</strong> A missing or unparseable SVG grades
+			FAIL; the contract still returns a verdict.</li>
+			<li><strong>Judge intent, tolerate representation.</strong> Color synonyms and equivalent
+			shape encodings pass; wrong color or wrong shape type does not.</li>
+			<li><strong>Deterministic.</strong> The same SVG always yields the same grade — this is what
+			makes it a useful harness signal.</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="edge-cases">
+		<h2 data-kcd-heading>Edge Cases</h2>
+		<ul>
+			<li><strong>Extra shapes present:</strong> Not a failure. Grade only the three required
+			shapes; ignore extras.</li>
+			<li><strong>Right shape, wrong color</strong> (e.g. a red rect): FAIL the relevant check —
+			color is part of the spec.</li>
+			<li><strong>Shapes drawn but malformed SVG</strong> (won't parse): FAIL at Phase 1.</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="scope-values">
+		<h2 data-kcd-heading>Scope Values</h2>
+		<p><code>scope: workflow:easy-test</code> — this contract is not loaded into every session and
+		is not wired to a lens. It is invoked on demand by the easy-test workflow (or by tag), paired
+		with the <code>easy-test</code> generator. The <code>scope</code> field is self-documenting;
+		contracts are loose and not chain-conformed by the structural audit.</p>
+	</section>
+
+</article>
+
+</body>
+</html>

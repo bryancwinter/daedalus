@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>subagents-allowed — Habit</title>
+	<link rel="stylesheet" href="../../kcd.css">
+</head>
+<body>
+
+<article data-kcd="habit">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">subagents-allowed</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">Spawn subagents freely for delegatable work — the opposite pole of no-subagents. Experimental; not wired into any lens by default.</dd>
+		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">habit</dd>
+		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">active</dd>
+		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
+		<dt>author</dt>        <dd data-kcd-field="author"         data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
+		<dt>habit-class</dt>   <dd data-kcd-field="habit-class"    data-kcd-type="slug">subagent-policy</dd>
+	</dl>
+
+	<h1>subagents-allowed — Habit</h1>
+
+	<section data-kcd-section="why">
+		<h3>Why</h3>
+		<p>a task could be decomposed or parallelized and a subagent would offload it</p>
+	</section>
+
+	<section data-kcd-section="action">
+		<h3>Action</h3>
+		<p>spawn a subagent for delegatable work without waiting for the user to ask by name</p>
+	</section>
+
+	<section data-kcd-section="explanation">
+		<h3>Explanation</h3>
+		<p>The opposite pole of
+		<a href="_Claude/habits/subagent-policy/no-subagents.html">no-subagents</a> — exists so a lens
+		or session that genuinely wants autonomous delegation can opt in explicitly rather than fighting
+		the default. Off by default everywhere today: a real, unsettled tradeoff (cold-start cost, lost
+		lens context) worth experimenting with rather than enabling broadly yet.</p>
+	</section>
+
+</article>
+
+</body>
+</html>

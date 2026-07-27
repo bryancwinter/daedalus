@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>run-report — Habit</title>
+	<link rel="stylesheet" href="../../kcd.css">
+</head>
+<body>
+
+<article data-kcd="habit">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">run-report</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">Writes a per-phase self-assessment chart at the end of every generator or analyzer run, so unusual runs stand out and the agent gets a forced reflection pass before exit.</dd>
+		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">habit</dd>
+		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">active</dd>
+		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
+		<dt>author</dt>        <dd data-kcd-field="author"         data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
+	</dl>
+
+	<h1>run-report — Habit</h1>
+
+	<p><em>Invoked at the end of every automated generator or analyzer run. Writes a per-phase
+	self-assessment chart so unusual runs can be spotted at a glance, and so the agent gets a forced
+	reflection pass on its own work before exit.</em></p>
+
+	<section data-kcd-section="why">
+		<h3>Why</h3>
+		<p>After the procedure's final phase (i.e. after Output Declaration if it has one). Runs
+		unconditionally — every generator and analyzer declared by an <code>_*_base</code> emits a run
+		report.</p>
+	</section>
+
+	<section data-kcd-section="action">
+		<h3>Action</h3>
+		<p>write a per-phase self-assessment chart to <code>_Claude/audits/{name}-run.md</code>
+		(flush-and-fill, one file per procedure) — see the Output/Format sections below for the exact
+		shape</p>
+	</section>
+
+	<section data-kcd-section="explanation">
+		<h3>Explanation</h3>
+		<p>Self-assessment by the agent is noisy in absolute terms, so use this as an outlier detector and
+		a forced reflection prompt, not a calibrated quality metric — the differential across phases and
+		the contents of the Notes section carry more signal than absolute confidence numbers. It runs
+		unconditionally at the end of every generator/analyzer so an unusual run stands out at a glance.</p>
+	</section>
+
+	<section data-kcd-section="output">
+		<h3>Output</h3>
+		<p>File: <code>_Claude/audits/{name}-run.md</code> — one file per procedure, flush-and-fill.
+		<code>{name}</code> is the procedure's canonical name. Create <code>_Claude/audits/</code> if
+		it does not exist.</p>
+	</section>
+
+	<section data-kcd-section="format">
+		<h3>Format</h3>
+<pre><code># {name} — Run Report
+
+**Run:** YYYY-MM-DD HH:MM:SS
+
+| # | Action | Confidence |
+|---|---|---|
+| 1 | {Phase 1 name} | N |
+| 2 | {Phase 2 name} | N |
+| ... | ... | ... |
+
+## Notes
+
+{optional free text}</code></pre>
+	</section>
+
+	<section data-kcd-section="rules">
+		<h3>Rules</h3>
+		<ul>
+			<li><strong>One row per phase.</strong> Use the exact phase name from the canonical's Do
+			section.</li>
+			<li><strong>Skipped or unrun phases get confidence <code>0</code>.</strong> Row count stays
+			positionally stable across runs so a downstream parser can rely on row N referring to the
+			same phase every time.</li>
+			<li><strong>Confidence scale anchors</strong> (numbers between anchors are fine):
+				<ul>
+					<li><code>10</code> — clean, no ambiguity</li>
+					<li><code>8</code> — solid; minor uncertainty or trivial edge cases</li>
+					<li><code>5</code> — completed but with reservations the human should know about</li>
+					<li><code>3</code> — partial output; significant doubt about correctness</li>
+					<li><code>1</code> — could not complete the work; output is unreliable</li>
+					<li><code>0</code> — phase did not run (skipped, pre-empted, or not reached)</li>
+				</ul>
+			</li>
+			<li><strong>Notes section is optional and unconstrained.</strong> Use it for anything the
+			agent wants the human to know — unusual conditions, things it worked around, ambiguity it
+			resolved one way and not another. Silence is acceptable.</li>
+			<li><strong>No outcome status line.</strong> The chart is the structured surface; the parser
+			derives run state from it.</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="calibration-note">
+		<h3>Calibration note</h3>
+		<p>Self-assessment by the agent is noisy in absolute terms. Use this habit as an <strong>outlier
+		detector</strong> and a <strong>reflection prompt</strong>, not as a calibrated quality metric.
+		The differential across phases and the contents of the Notes section carry more signal than
+		absolute confidence numbers.</p>
+	</section>
+
+</article>
+
+</body>
+</html>

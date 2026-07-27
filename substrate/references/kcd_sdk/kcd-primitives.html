@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>KCD Primitives — SDK Reference</title>
+	<link rel="stylesheet" href="../../kcd.css">
+</head>
+<body>
+
+<article data-kcd="reference">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">kcd-primitives</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">The KCD SDK object model — the artifact type discriminators and their classes, the role model, the serialized wire shape, and the error types. The conceptual skeleton; the parse/serialize mechanics moved to HTML in the Phase-2 cutover (see the staleness note). Shared by lens_crafter, render, and mcp.</dd>
+		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">reference</dd>
+		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">active</dd>
+		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
+		<dt>author</dt>        <dd data-kcd-field="author"         data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
+		<dt>updated</dt>       <dd data-kcd-field="updated"        data-kcd-type="date">2026-06-06</dd>
+	</dl>
+
+	<h1>KCD Primitives — SDK Reference</h1>
+
+	<section data-kcd-section="why">
+		<h2 data-kcd-heading>Why</h2>
+		<p>working with the KCD SDK's object model — artifact types, roles, or the wire shape</p>
+	</section>
+
+	<section data-kcd-section="overview">
+		<p>
+			Concrete TypeScript classes in <code>kcd_sdk/src/primitives/</code> that parse, validate, and
+			serialize every KCD artifact type. The conceptual side lives in
+			<a href="_Claude/kcd_framework.html">kcd_framework</a>; this document covers the SDK
+			implementation — types, validation rules, roles, and the parse pipeline.
+		</p>
+	</section>
+
+	<section data-kcd-section="staleness-note" data-kcd-audience="human">
+		<h2 data-kcd-heading>⚠️ Staleness note — parse mechanics moved to HTML</h2>
+		<p>This reference predates the <strong>Phase-2 HTML substrate cutover</strong>. The <em>parse and
+		serialize mechanics</em> it originally documented — the markdown pipeline
+		(<code>splitFrontmatter</code> → <code>parseBody</code> (<code>## </code>-split) →
+		<code>extractLinks</code>), <code>runInit</code>, the factory registry, <code>toMarkdown</code>, and
+		<code>command</code>-style frontmatter — <strong>are gone</strong>: HTML is now the sole substrate,
+		entry is <code>fromHtml</code> (validate-first via <code>KcdValidate</code> / <code>KcdParse</code>),
+		and writing awaits the Phase-3 emitter. The <strong>type/role/wire tables below remain the durable
+		object-model reference</strong>; for the current substrate see
+		<a href="_Claude/references/kcd_sdk/kcd-document-protocol.html">kcd-document-protocol</a> and the
+		html-substrate migration plan. <code>pipeline</code> has been
+		dropped from the type union and its class deleted (2026-07-08) — the table below reflects the current
+		union. The <code>index</code>→<code>nav-index</code> rename is still a deferred follow-up. A
+		full rewrite of this reference is pending (parser lens).</p>
+	</section>
+
+	<section data-kcd-section="type-system">
+		<h2 data-kcd-heading>Type System</h2>
+
+		<h3 data-kcd-heading>ArtifactType</h3>
+
+		<p>Every artifact carries one of these type discriminators (declared in frontmatter as <code>type:</code>):</p>
+
+		<table>
+			<thead>
+				<tr><th>Value</th><th>Class</th><th>Detected by</th></tr>
+			</thead>
+			<tbody>
+				<tr><td><code>lens</code></td><td><code>LensObject</code></td><td>frontmatter <code>type: lens</code> + <code>lenses/</code> directory</td></tr>
+				<tr><td><code>plan</code></td><td><code>PlanObject</code></td><td>frontmatter <code>type: plan</code> + <code>plans/</code> directory</td></tr>
+				<tr><td><code>reference</code></td><td><code>ReferenceObject</code></td><td>frontmatter <code>type: reference</code> + <code>references/</code> directory</td></tr>
+				<tr><td><code>generator</code></td><td><code>GeneratorObject</code></td><td>frontmatter <code>type: generator</code> + <code>generators/</code> directory</td></tr>
+				<tr><td><code>analyzer</code></td><td><code>AnalyzerObject</code></td><td>frontmatter <code>type: analyzer</code> + <code>analyzers/</code> directory</td></tr>
+				<tr><td><code>habit</code></td><td><code>HabitObject</code></td><td>frontmatter <code>type: habit</code> + <code>habits/</code> directory</td></tr>
+				<tr><td><code>contract</code></td><td><code>ContractObject</code></td><td>frontmatter <code>type: contract</code> + <code>contracts/</code> directory</td></tr>
+				<tr><td><code>template</code></td><td><code>TemplateObject</code></td><td>directory convention (<code>kcd/templates/</code>); frontmatter check skipped</td></tr>
+				<tr><td><code>framework</code></td><td><code>FrameworkObject</code></td><td>directory convention (<code>kcd/</code>, not <code>kcd/templates/</code>); frontmatter check skipped</td></tr>
+				<tr><td><code>unknown</code></td><td><code>KCDPrimitive</code> (base)</td><td>fallback; nav-index files (<code>nav-index.html</code>) and unclassified paths</td></tr>
+			</tbody>
+		</table>
+
+		<p><code>LensObject.classifyByPath()</code> performs the authoritative path-to-type mapping at scan time.</p>
+
+		<h3 data-kcd-heading>KCDRole</h3>
+
+		<p>Determines which context dock an artifact belongs to in the UI:</p>
+
+		<table>
+			<thead>
+				<tr><th>Role</th><th>Artifacts</th></tr>
+			</thead>
+			<tbody>
+				<tr><td><code>'know'</code></td><td><code>LensObject</code> returns <code>'lens'</code> (composite); <code>PlanObject</code>, <code>ReferenceObject</code>, <code>FrameworkObject</code>, <code>TemplateObject</code> return <code>'know'</code> (default)</td></tr>
+				<tr><td><code>'do'</code></td><td><code>HabitObject</code>, <code>ContractObject</code>, <code>GeneratorObject</code>, <code>AnalyzerObject</code>, <code>UtilityObject</code></td></tr>
+				<tr><td><code>'lens'</code></td><td><code>LensObject</code> only</td></tr>
+			</tbody>
+		</table>
+
+		<p>Base <code>KCDPrimitive.getRole()</code> returns <code>'know'</code>; <code>do</code>-role classes override it explicitly.</p>
+	</section>
+
+	<section data-kcd-section="parse-pipeline">
+		<h2 data-kcd-heading>Parse Pipeline</h2>
+
+		<p>Every artifact runs the same init pipeline on construction:</p>
+
+		<pre><code>splitFrontmatter() → validateFrontmatter() → parseBody() → validateStructure() → extractLinks()</code></pre>
+
+		<ul>
+			<li><code>splitFrontmatter</code> — splits <code>---</code>-delimited YAML from body; throws <code>KCDParseError</code> on malformed YAML</li>
+			<li><code>validateFrontmatter</code> — checks required frontmatter fields; throws <code>KCDValidationError</code> on failure</li>
+			<li><code>parseBody</code> — splits body by <code>##</code> headings into <code>sections: Record&lt;string, string&gt;</code></li>
+			<li><code>validateStructure</code> — checks required sections; throws <code>KCDValidationError</code> on failure</li>
+			<li><code>extractLinks</code> — walks all <code>[text](href)</code> in body; classifies as <code>internal | external | anchor</code>; records which <code>##</code> section each link was found in</li>
+		</ul>
+
+		<p>Two init paths exist:</p>
+		<ul>
+			<li><code>runInit(markdown)</code> — parses raw markdown; full pipeline</li>
+			<li><code>runInitFromScanned(ScannedFile)</code> — trusts pre-split frontmatter from the scanner; skips <code>splitFrontmatter</code></li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="base-class">
+		<h2 data-kcd-heading>Base Class — KCDPrimitive</h2>
+
+		<p><code>kcd_sdk/src/primitives/framework/KCDPrimitive.ts</code></p>
+
+		<p>The shared parse chain, factory registry, and serialization layer. All concrete classes extend it.</p>
+
+		<p>
+			<strong>Factory registry</strong> — <code>KCDPrimitive.register(type, fn)</code> maps each
+			<code>ArtifactType</code> to a factory. <code>KCDPrimitive.create(type, markdown, absPath)</code>
+			dispatches through the registry; falls back to <code>KCDPrimitive.createBase()</code> for
+			unregistered types. All concrete subclasses self-register at module load time.
+		</p>
+
+		<p><strong>Key static methods:</strong></p>
+
+		<table>
+			<thead>
+				<tr><th>Method</th><th>Purpose</th></tr>
+			</thead>
+			<tbody>
+				<tr><td><code>KCDPrimitive.create(type, md, path)</code></td><td>Dispatch through factory registry</td></tr>
+				<tr><td><code>KCDPrimitive.parse(md, path)</code></td><td>Parse as unknown/base type</td></tr>
+				<tr><td><code>KCDPrimitive.fromScanned(ScannedFile)</code></td><td>Hydrate from scanner output</td></tr>
+				<tr><td><code>KCDPrimitive.fromSerialized(SerializedArtifact)</code></td><td>Hydrate from wire JSON; bypasses parse pipeline</td></tr>
+				<tr><td><code>KCDPrimitive.collectWrites(objects[])</code></td><td>Collect dirty objects into a <code>WriteMap</code></td></tr>
+			</tbody>
+		</table>
+
+		<p><strong>Key instance methods:</strong></p>
+
+		<table>
+			<thead>
+				<tr><th>Method</th><th>Purpose</th></tr>
+			</thead>
+			<tbody>
+				<tr><td><code>getRole()</code></td><td>Returns <code>KCDRole</code>; <code>'know'</code> by default</td></tr>
+				<tr><td><code>getPolicy()</code></td><td>Returns <code>PolicyEntry[]</code>; <code>[]</code> by default (only <code>LensObject</code> produces policy)</td></tr>
+				<tr><td><code>typeCheck()</code></td><td>Non-throwing validation; returns <code>TypeCheckIssue[]</code></td></tr>
+				<tr><td><code>toContextBlock()</code></td><td>Renders artifact as a context-window block</td></tr>
+				<tr><td><code>toMarkdown()</code></td><td>Reconstructs full markdown with frontmatter</td></tr>
+				<tr><td><code>serialize()</code></td><td>Returns <code>SerializedArtifact</code> for wire transfer</td></tr>
+			</tbody>
+		</table>
+
+		<p><strong><code>DREDGE_MAX = 4</code></strong> — the maximum allowed dredge depth, clamped in <code>clampDepth()</code>.</p>
+	</section>
+
+	<section data-kcd-section="framework-classes">
+		<h2 data-kcd-heading>Framework-Layer Classes</h2>
+
+		<h3 data-kcd-heading>LensObject</h3>
+
+		<p><code>kcd_sdk/src/primitives/framework/LensObject.ts</code></p>
+
+		<p>The spine: owns project root, reads files, orchestrates dredge, assembles context.</p>
+
+		<p><strong>Frontmatter required:</strong> <code>type: lens</code>, <code>command</code> (the <code>!name</code> invocation string)</p>
+		<p><strong>Sections required:</strong> <code>## Know</code>, <code>## Care</code>, <code>## Do</code></p>
+		<p><strong>Role:</strong> <code>'lens'</code></p>
+
+		<p>
+			<strong>Dredge:</strong> parses the <code>## Know</code> table for <code>PolicyEntry</code>
+			rows. Rows whose <code>why</code> cell starts with <code>always</code> (case-insensitive) are
+			auto-dredged at load time up to <code>dredgeDepth</code> (default 2, clamped to
+			<code>DREDGE_MAX = 4</code>). Non-<code>always</code> entries appear in the
+			<code>## Available on request</code> stub block appended by <code>serializeForContext()</code>.
+		</p>
+
+		<p><strong>Key extras:</strong></p>
+
+		<table>
+			<thead>
+				<tr><th>Method/Field</th><th>Purpose</th></tr>
+			</thead>
+			<tbody>
+				<tr><td><code>LensObject.load(path, opts?)</code></td><td>Full load: parse + dredge; primary entry point</td></tr>
+				<tr><td><code>LensObject.inferProjectRoot(path)</code></td><td>Walks ancestors until <code>_Claude/</code> found</td></tr>
+				<tr><td><code>LensObject.classifyByPath(abs, root)</code></td><td>Path → <code>ArtifactType</code>; used by scanner and dredge</td></tr>
+				<tr><td><code>LensObject.resolveHref(href, root)</code></td><td>Vault-root-relative href → absolute path</td></tr>
+				<tr><td><code>serializeForContext()</code></td><td>Assembles dredged nodes into one context blob</td></tr>
+				<tr><td><code>getPolicy()</code></td><td>Returns parsed <code>PolicyEntry[]</code> from Know table</td></tr>
+				<tr><td><code>getNodes()</code></td><td>Returns dredged <code>KCDPrimitive[]</code></td></tr>
+			</tbody>
+		</table>
+
+		<p>
+			<code>readFile()</code> is an overridable seam — the Model Context Protocol server can swap it out for a custom
+			reader without subclassing. The default reads via <code>fs.readFileSync</code>.
+		</p>
+
+		<h3 data-kcd-heading>PlanObject</h3>
+
+		<p><code>kcd_sdk/src/primitives/framework/PlanObject.ts</code></p>
+		<p>A Know artifact: digest of ongoing work and intent. Loaded for context, not execution.</p>
+		<p><strong>Frontmatter required:</strong> <code>type: plan</code></p>
+		<p><strong>Sections required:</strong> <code>## Goal</code>, <code>## Approach</code>, <code>## Phases</code></p>
+		<p><strong>Role:</strong> <code>'know'</code> (inherited)</p>
+
+		<h3 data-kcd-heading>ReferenceObject</h3>
+
+		<p><code>kcd_sdk/src/primitives/framework/ReferenceObject.ts</code></p>
+		<p>Free-form prose loaded on demand. No required section structure.</p>
+		<p><strong>Frontmatter required:</strong> <code>type: reference</code></p>
+		<p><strong>Role:</strong> <code>'know'</code> (inherited)</p>
+
+		<h3 data-kcd-heading>FrameworkObject</h3>
+
+		<p><code>kcd_sdk/src/primitives/framework/FrameworkObject.ts</code></p>
+		<p>
+			Conceptual foundations and conventions for the KCD system. Identified by directory
+			(<code>kcd/</code> but not <code>kcd/templates/</code>); frontmatter type check is skipped. No
+			required sections.
+		</p>
+		<p><strong>Role:</strong> <code>'know'</code> (inherited)</p>
+
+		<h3 data-kcd-heading>TemplateObject</h3>
+
+		<p><code>kcd_sdk/src/primitives/framework/TemplateObject.ts</code></p>
+		<p>
+			Scaffolds for authoring a specific artifact type. Identified by <code>kcd/templates/</code>
+			directory; frontmatter type check is skipped. No required sections.
+		</p>
+		<p><strong>Role:</strong> <code>'know'</code> (inherited)</p>
+	</section>
+
+	<section data-kcd-section="procedure-classes">
+		<h2 data-kcd-heading>Procedure-Layer Classes</h2>
+
+		<p>All procedure classes override <code>getRole()</code> to return <code>'do'</code>.</p>
+
+		<h3 data-kcd-heading>HabitObject</h3>
+
+		<p><code>kcd_sdk/src/primitives/procedure/HabitObject.ts</code></p>
+		<p>Atomic behavior fragment — leaf node, no dredge policy. Canonical four-field shape, in order:
+		<code>why</code> · <code>action</code> · <code>explanation</code> · <code>rules</code>
+		(<code>rules</code> optional; a <em>don't</em>-style habit omits <code>action</code>). The body is
+		no longer free-form — those four fields project by code into a dense two-line agent form
+		(a terse deck pointer when <strong>linked</strong>, the full two-liner when <strong>suggested</strong>),
+		so <code>why</code>/<code>action</code> stay one terse clause each and depth lives in
+		<code>explanation</code>. <code>why</code> was <code>when</code> until 2026-07-13 — renamed to match
+		the canonical What|Where|Why convention; it's the same trigger prose a lens's Why cell can defer to
+		via <code>mode:habit</code>. See _habit-template.</p>
+		<p><strong>Frontmatter required:</strong> <code>type: habit</code></p>
+		<p><strong>Sections required:</strong> <code>## Why</code> (+ <code>## Action</code> for a do-style habit)</p>
+		<p><strong>Role:</strong> <code>'do'</code></p>
+
+		<h3 data-kcd-heading>ContractObject</h3>
+
+		<p><code>kcd_sdk/src/primitives/procedure/ContractObject.ts</code></p>
+		<p>Behavioral agreement between a lens and an agent. Must declare the trigger condition.</p>
+		<p><strong>Frontmatter required:</strong> <code>type: contract</code></p>
+		<p><strong>Sections required:</strong> <code>## When</code></p>
+		<p><strong>Role:</strong> <code>'do'</code></p>
+
+		<h3 data-kcd-heading>GeneratorObject</h3>
+
+		<p><code>kcd_sdk/src/primitives/procedure/GeneratorObject.ts</code></p>
+		<p>Mechanical, manifest-driven builder. Must declare the execution procedure.</p>
+		<p><strong>Frontmatter required:</strong> <code>type: generator</code></p>
+		<p><strong>Sections required:</strong> <code>## Do</code></p>
+		<p><strong>Role:</strong> <code>'do'</code></p>
+
+		<h3 data-kcd-heading>AnalyzerObject</h3>
+
+		<p><code>kcd_sdk/src/primitives/procedure/AnalyzerObject.ts</code></p>
+		<p>Judgment pass that reads broadly and writes one report. Must declare the execution procedure.</p>
+		<p><strong>Frontmatter required:</strong> <code>type: analyzer</code></p>
+		<p><strong>Sections required:</strong> <code>## Do</code></p>
+		<p><strong>Role:</strong> <code>'do'</code></p>
+
+	</section>
+
+	<section data-kcd-section="key-types">
+		<h2 data-kcd-heading>Key Types</h2>
+
+		<p><code>kcd_sdk/src/primitives/types.ts</code></p>
+
+		<table>
+			<thead>
+				<tr><th>Type</th><th>Purpose</th></tr>
+			</thead>
+			<tbody>
+				<tr><td><code>ArtifactType</code></td><td>String union of all valid type discriminators (see table above)</td></tr>
+				<tr><td><code>KCDRole</code></td><td><code>'know' | 'do' | 'lens'</code> — context dock assignment</td></tr>
+				<tr><td><code>LinkEntry</code></td><td>Parsed link: <code>{ text, href, type: LinkType, section? }</code></td></tr>
+				<tr><td><code>LinkType</code></td><td><code>'internal' | 'external' | 'anchor'</code></td></tr>
+				<tr><td><code>PolicyEntry</code></td><td>Dredge-policy row from Know table: <code>{ what, href, why, always, type, section? }</code></td></tr>
+				<tr><td><code>SerializedArtifact</code></td><td>Wire format: <code>{ path, type, frontmatter, sections, body, links }</code></td></tr>
+				<tr><td><code>WriteMap</code></td><td><code>Record&lt;path, SerializedArtifact&gt;</code> — batch write unit for <code>kcd_save</code></td></tr>
+				<tr><td><code>TypeCheckIssue</code></td><td>Non-throwing validation issue: <code>{ severity, message, field?, section? }</code></td></tr>
+				<tr><td><code>ReaderFn</code></td><td><code>(absPath: string) =&gt; string</code> — the <code>readFile</code> seam type; server-side only</td></tr>
+				<tr><td><code>ArtifactRef</code></td><td>Lightweight pointer: <code>{ path, type, name }</code> — name from frontmatter or filename stem</td></tr>
+			</tbody>
+		</table>
+	</section>
+
+	<section data-kcd-section="error-types">
+		<h2 data-kcd-heading>Error Types</h2>
+
+		<p><code>kcd_sdk/src/primitives/errors.ts</code></p>
+
+		<table>
+			<thead>
+				<tr><th>Error</th><th>When thrown</th><th>Key fields</th></tr>
+			</thead>
+			<tbody>
+				<tr><td><code>KCDParseError</code></td><td>YAML frontmatter is malformed</td><td><code>path</code>, <code>rawContent</code>, <code>line?</code></td></tr>
+				<tr><td><code>KCDValidationError</code></td><td>Required frontmatter field or section is missing/wrong</td><td><code>path</code>, <code>expected</code>, <code>got</code>, <code>field?</code>, <code>section?</code></td></tr>
+			</tbody>
+		</table>
+
+		<p>
+			Both are thrown during <code>runInit</code> / <code>runInitFromScanned</code>.
+			<code>typeCheck()</code> catches both and returns them as <code>TypeCheckIssue[]</code> — use
+			it when you want non-throwing validation (e.g. after <code>fromSerialized</code>, or before a
+			save).
+		</p>
+	</section>
+
+	<section data-kcd-section="references" data-kcd-merge="union">
+		<h2>References</h2>
+		<div data-kcd-table>
+			<div data-kcd-head><span>What</span><span>Where</span><span>Why</span></div>
+			<div data-kcd-slot="reference">
+				<span data-kcd-field="what"  data-kcd-type="text">kcd-document-protocol</span>
+				<a    data-kcd-field="where" data-kcd-type="path" href="_Claude/references/kcd_sdk/kcd-document-protocol.html">kcd-document-protocol</a>
+				<span data-kcd-field="why"   data-kcd-type="text">The current HTML substrate the parser now targets (supersedes this doc's parse mechanics).</span>
+			</div>
+		</div>
+	</section>
+
+</article>
+
+</body>
+</html>

@@ -4,8 +4,11 @@ node_modules/
 # ── Build output ──────────────────────────────────────────────
 # tsbuildinfo is incremental-compile state, never shipped.
 *.tsbuildinfo
-# esbuild sourcemap — a dev aid, big and churny, not part of the shipped artifact.
-dist/*.map
+# esbuild sourcemaps — a dev aid, big and churny, not part of the shipped artifact. The pattern is
+# `**` deliberately: `dist/*.map` matched only the top level, so dist/cli/index.js.map was tracked
+# AND shipped ( ~961 kB, near-doubling the package ) until 2026-07-25. npm falls back to .gitignore
+# when there is no .npmignore, so ignoring them here is also what keeps them out of the tarball.
+dist/**/*.map
 #
 # NOTE: dist/index.js IS committed on purpose ( alpha, ruled 2026-07-23 — standalone-kit plan,
 # Option A ). Daedalus ships a prebuilt, self-contained bundle so a standalone clone runs with no

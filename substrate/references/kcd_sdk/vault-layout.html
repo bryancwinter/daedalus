@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Vault Layout — SDK Reference</title>
+	<link rel="stylesheet" href="../../kcd.css">
+</head>
+<body>
+
+<article data-kcd="reference">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">vault-layout</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">The canonical KCD directory structure — what every folder under the doc root is for, which of the three deployment layers it belongs to, whether the library index walks it, and how a deploy creates it. The published face of the VaultLayout table in the SDK, which is the machine-readable authority: classification, the index whitelist, and the deploy scaffold all read that one table. Replaces the retired deployment_schema canvas.</dd>
+		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">reference</dd>
+		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">active</dd>
+		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
+		<dt>author</dt>        <dd data-kcd-field="author"         data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
+		<dt>updated</dt>       <dd data-kcd-field="updated"        data-kcd-type="date">2026-07-21</dd>
+	</dl>
+
+	<h1>Vault Layout — SDK Reference</h1>
+
+	<section data-kcd-section="why">
+		<h2 data-kcd-heading>Why</h2>
+		<p>navigating a KCD vault, deciding where a new artifact belongs, or changing anything that
+		classifies, indexes, or deploys the directory structure</p>
+	</section>
+
+	<section data-kcd-section="overview">
+		<p>A KCD vault is one directory — the <strong>doc root</strong>, conventionally
+		<code>_Claude/</code> — sitting inside a project root. The folders beneath it are not a
+		convention to be remembered; they are a table in code. <code>VaultLayout</code>
+		(VaultLayout.ts) is that table, and it is the
+		<strong>machine-readable authority</strong>. Three consumers read it and nothing else defines
+		the structure:</p>
+		<ul>
+			<li><strong>Classification</strong> — a path to its artifact type
+			(<code>VaultLayout.classify</code>, which the SDK's <code>classifyRelPath</code> and
+			<code>LensObject.classifyByPath</code> both resolve through).</li>
+			<li><strong>The library index whitelist</strong> — which top-level folders the artifact
+			index descends into (<code>VaultLayout.indexedDirs</code>).</li>
+			<li><strong>The deploy scaffold</strong> — the empty directories a new project gets created with. What FILLS them is <code>InstallManifest</code>'s job, not this table's.</li>
+		</ul>
+		<p>Before the table these three were written down separately and had already drifted; the
+		whitelist carried a <code>plans_complete/</code> folder that has never existed at the top level.
+		One table is the fix.</p>
+	</section>
+
+	<section data-kcd-section="authority-note">
+		<h2 data-kcd-heading>Authority</h2>
+		<p><strong>The code is authoritative; this document is its published face.</strong> The table
+		below is maintained alongside VaultLayout.ts — when
+		they disagree, the code wins and this document is the thing that is wrong. Change a row there
+		first, then reflect it here. An agent that needs the exact machine-readable rows should read the
+		source; this document exists so the <em>reasoning</em> — what each folder is for, and why some
+		are excluded — is legible without reading TypeScript.</p>
+	</section>
+
+	<section data-kcd-section="layers">
+		<h2 data-kcd-heading>The two layers</h2>
+		<p>Every directory belongs to exactly one layer. The layer answers "who owns this and how does it
+		get here?"</p>
+		<ul>
+			<li><strong><code>agent</code></strong> — the Know + Care + Do artifacts an agent is composed
+			from. Authored per project.</li>
+			<li><strong><code>data</code></strong> — everything a project accumulates as it runs:
+			knowledge it has distilled, agreements it has made, and the output and scratch its work
+			produces.</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="structure">
+		<h2 data-kcd-heading>The structure</h2>
+		<p><em>Paths are relative to the doc root. <strong>Indexed</strong> means the artifact library
+		walks it; an unindexed folder still exists and is still used, it simply holds nothing the library
+		should catalogue.</em></p>
+
+		<h3>Substrate — retired from this table ( 2026-07-25 )</h3>
+		<p>A vault used to carry its own canonical mirror under a <code>kcd/</code> row here, with a
+		<code>kcd/templates/</code> row beneath it. Both are gone: <strong>canonical is not deployed</strong>
+		— the framework's master copy lives in the installed Daedalus package, and a deployed vault holds no
+		<code>kcd/</code> folder at all. What fills a vault is now a separate table,
+		<code>InstallManifest</code>, which maps <code>bundle source → vault home → required | optional</code>.
+		This table describes empty structure only; that one describes what lands in it.</p>
+
+		<h3>Agent layer</h3>
+		<div data-kcd-table>
+			<div data-kcd-head><span>What</span><span>Where</span><span>Why</span></div>
+			<div data-kcd-slot="link">
+				<span data-kcd-field="what" data-kcd-type="text">lenses/ — <em>lens</em> · indexed</span>
+				<a data-kcd-field="where" data-kcd-type="path" href="_Claude/lenses/">lenses/</a>
+				<span data-kcd-field="why" data-kcd-type="text">Know+Care personalities. One folder per lens, each holding its lens file and a <code>context/</code> of support material.</span>
+			</div>
+			<div data-kcd-slot="link">
+				<span data-kcd-field="what" data-kcd-type="text">analyzers/ — <em>analyzer</em> · indexed</span>
+				<a data-kcd-field="where" data-kcd-type="path" href="_Claude/analyzers/">analyzers/</a>
+				<span data-kcd-field="why" data-kcd-type="text">Read-anywhere, write-one-report agents.</span>
+			</div>
+			<div data-kcd-slot="link">
+				<span data-kcd-field="what" data-kcd-type="text">generators/ — <em>generator</em> · indexed</span>
+				<a data-kcd-field="where" data-kcd-type="path" href="_Claude/generators/">generators/</a>
+				<span data-kcd-field="why" data-kcd-type="text">Manifest-driven write agents — broad write authority, no judgment of their own.</span>
+			</div>
+			<div data-kcd-slot="link">
+				<span data-kcd-field="what" data-kcd-type="text">habits/ — <em>habit</em> · indexed</span>
+				<a data-kcd-field="where" data-kcd-type="path" href="_Claude/habits/">habits/</a>
+				<span data-kcd-field="why" data-kcd-type="text">Atomic behavior fragments. Flat files, no subfolders.</span>
+			</div>
+		</div>
+
+		<h3>Data / output layer</h3>
+		<div data-kcd-table>
+			<div data-kcd-head><span>What</span><span>Where</span><span>Why</span></div>
+			<div data-kcd-slot="link">
+				<span data-kcd-field="what" data-kcd-type="text">references/ — <em>reference</em> · indexed</span>
+				<a data-kcd-field="where" data-kcd-type="path" href="_Claude/references/">references/</a>
+				<span data-kcd-field="why" data-kcd-type="text">The project knowledge store, categorized by folder — <strong>the folder IS the category</strong>. A reference exists only here.</span>
+			</div>
+			<div data-kcd-slot="link">
+				<span data-kcd-field="what" data-kcd-type="text">contracts/ — <em>contract</em> · indexed</span>
+				<a data-kcd-field="where" data-kcd-type="path" href="_Claude/contracts/">contracts/</a>
+				<span data-kcd-field="why" data-kcd-type="text">Behavioral agreements — composable prose a third party can evaluate against.</span>
+			</div>
+			<div data-kcd-slot="link">
+				<span data-kcd-field="what" data-kcd-type="text">utilities/ — <em>utility</em> · indexed</span>
+				<a data-kcd-field="where" data-kcd-type="path" href="_Claude/utilities/">utilities/</a>
+				<span data-kcd-field="why" data-kcd-type="text">The registered tool tier — <code>draft/</code> (unapproved) and <code>deployed/</code> (approved), with a registry.</span>
+			</div>
+			<div data-kcd-slot="link">
+				<span data-kcd-field="what" data-kcd-type="text">plans/ — <em>plan</em> · indexed</span>
+				<a data-kcd-field="where" data-kcd-type="path" href="_Claude/plans/">plans/</a>
+				<span data-kcd-field="why" data-kcd-type="text">Promoted plans that authorize action, plus the <code>plans_complete/</code> and <code>plans_deferred/</code> buckets beneath. Those two are nested, not top-level — they classify as <code>plan</code> through their parent.</span>
+			</div>
+			<div data-kcd-slot="link">
+				<span data-kcd-field="what" data-kcd-type="text">work/ — <em>untyped</em> · not indexed</span>
+				<span data-kcd-field="where" data-kcd-type="address">_Claude/work/</span>
+				<span data-kcd-field="why" data-kcd-type="text">Per-lens scratch space (<code>AI/</code>, <code>human/</code>, <code>plans/</code>). Cheap and discardable until something is promoted out of it. A plan here does <strong>not</strong> authorize action.</span>
+			</div>
+			<div data-kcd-slot="link">
+				<span data-kcd-field="what" data-kcd-type="text">logs/ — <em>untyped</em> · not indexed</span>
+				<span data-kcd-field="where" data-kcd-type="address">_Claude/logs/</span>
+				<span data-kcd-field="why" data-kcd-type="text">Session log plus per-lens <code>completed/</code>, <code>todo/</code>, and <code>agent-status/</code>.</span>
+			</div>
+			<div data-kcd-slot="link">
+				<span data-kcd-field="what" data-kcd-type="text">reports/ — <em>untyped</em> · not indexed</span>
+				<span data-kcd-field="where" data-kcd-type="address">_Claude/reports/</span>
+				<span data-kcd-field="why" data-kcd-type="text">Analyzer output.</span>
+			</div>
+			<div data-kcd-slot="link">
+				<span data-kcd-field="what" data-kcd-type="text">audits/ — <em>untyped</em> · not indexed</span>
+				<span data-kcd-field="where" data-kcd-type="address">_Claude/audits/</span>
+				<span data-kcd-field="why" data-kcd-type="text">Generator raw output and vault backups. Deliberately unindexed — backup copies of the vault living here are what once made the library accrue duplicate references.</span>
+			</div>
+			<div data-kcd-slot="link">
+				<span data-kcd-field="what" data-kcd-type="text">scratch/ — <em>untyped</em> · not indexed</span>
+				<span data-kcd-field="where" data-kcd-type="address">_Claude/scratch/</span>
+				<span data-kcd-field="why" data-kcd-type="text">Free scratch space with no per-lens structure.</span>
+			</div>
+			<div data-kcd-slot="link">
+				<span data-kcd-field="what" data-kcd-type="text">dev-utilities/ — <em>untyped</em> · not indexed</span>
+				<span data-kcd-field="where" data-kcd-type="address">_Claude/dev-utilities/</span>
+				<span data-kcd-field="why" data-kcd-type="text">The dev command deck — a JSON-declared list of scripts run against the project. Tooling, not governed artifacts.</span>
+			</div>
+		</div>
+	</section>
+
+	<section data-kcd-section="classification-rules">
+		<h2 data-kcd-heading>Classification rules</h2>
+		<p>A path resolves to its type by the table, with three rules that run <em>first</em> because none
+		of them is decided by which folder a file sits in:</p>
+		<ol>
+			<li><strong>A nav-index is a nav-index anywhere.</strong> Any file named
+			<code>nav-index.html</code> classifies <code>nav-index</code> regardless of its folder — it is
+			a navigational primitive, not a member of its parent's category.</li>
+			<li><strong>Anything under a <code>context/</code> folder is a reference.</strong>
+			<code>context/</code> holds support material for whatever owns it — a lens, an analyzer, a
+			generator — and support material is reference material.</li>
+			<li><strong>Inside <code>lenses/</code>, only the lens's own file is the lens.</strong>
+			<code>lenses/{name}/{name}.html</code> is a <code>lens</code>; anything nested deeper is
+			<code>reference</code>.</li>
+		</ol>
+		<p>Then the table, matched by <strong>longest directory prefix</strong>, so a more specific row
+		always beats a shorter one it also sits under. Longest-prefix rather than table order means adding
+		a row can never silently change how an existing one classifies.</p>
+	</section>
+
+	<section data-kcd-section="absence">
+		<h2 data-kcd-heading>What is not in the table</h2>
+		<p><strong>A directory absent from the table classifies <code>unknown</code> and is never
+		indexed.</strong> Absence is the safe default, and it is what gives the index whitelist teeth: a
+		fresh audit dump or a stray folder cannot leak artifacts into the library until someone
+		deliberately adds a row.</p>
+		<p>This is why the untyped folders above are <em>listed</em> rather than omitted. They are real,
+		expected parts of the structure — a deploy needs to create them, and agentic work generates drift
+		and throwaway content quickly, so it matters that there are sanctioned places for it to land.
+		Listing them with no type distinguishes <strong>"known, holds nothing to catalogue"</strong> from
+		<strong>"unrecognized"</strong>, which are genuinely different signals.</p>
+	</section>
+
+	<section data-kcd-section="deployment">
+		<h2 data-kcd-heading>Deployment</h2>
+		<p>Every row in this table is created as an empty directory, which is what lets a vault be
+		installed into any directory — fresh, or wrapping code that already exists. Rows used to carry a
+		<code>scaffold</code> mode distinguishing "create empty" from "fill from the canonical master";
+		that field was retired on 2026-07-25 along with the substrate rows, since every remaining row is
+		created empty and filling is <code>InstallManifest</code>'s job.</p>
+		<p>A deploy is idempotent — anything already present is left alone — so the same operation both
+		creates a new vault and repairs an incomplete one.</p>
+	</section>
+
+</article>
+
+</body>
+</html>

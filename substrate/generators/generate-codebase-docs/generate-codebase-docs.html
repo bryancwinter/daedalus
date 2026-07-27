@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<!-- ============================================================================
+     GENERATOR — generate-codebase-docs (canonical). Migrated from generate-codebase-docs.md.
+     Full format law: _Claude/kcd/references/kcd_sdk/kcd-document-protocol.html. Parameters §3.
+     ============================================================================ -->
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>generate-codebase-docs — Generator</title>
+	<link rel="stylesheet" href="../../kcd.css">
+</head>
+<body>
+
+<article data-kcd="generator">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">generate-codebase-docs</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">Reads a project's source and emits navigation references (api-surface, route-map, folder-index, domain-map, composition-graph) that give an agent a fast attack surface without reading raw source. Run after deploying its output-contract for a codebase.</dd>
+		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">generator</dd>
+		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">disabled</dd>
+		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
+		<dt>author</dt>        <dd data-kcd-field="author"         data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
+		<dt>base</dt>          <dd data-kcd-field="base"           data-kcd-type="slug">_generator-base</dd>
+	</dl>
+
+	<h1>generate-codebase-docs — Generator</h1>
+
+	<p><em>Generic across any codebase. Reads a project's source files and emits a set of navigation
+	references designed to give an agent a fast, navigable attack surface — enough to plan and execute
+	substantial work without reading raw source. An <strong>output-contract</strong> (deployed at
+	<code>context/output-contract.md</code>) declares which strategies run, what sources they read, and
+	where output goes. The canonical defines the strategy shapes and execution model; the deployed copy
+	solves all project-specific values.</em></p>
+
+	<p>Base rules: <a href="_Claude/generators/_generator_base.html">_generator_base</a> —
+	composition model, requirement resolution, fail behavior, output conventions.</p>
+
+	<section data-kcd-section="parameters">
+		<h3>Parameters</h3>
+		<div data-kcd-table data-kcd-params style="--kcd-cols: 1fr 1fr 1fr 2fr">
+			<div data-kcd-head><span>Name</span><span>Type</span><span>Default</span><span>Description</span></div>
+			<!-- model — default model seeding the work-graph node. Optional; NOT YET IMPLEMENTED. -->
+			<div data-kcd-param>
+				<span data-kcd-field="name"        data-kcd-type="slug">model</span>
+				<span data-kcd-field="type"        data-kcd-type="enum">model</span>
+				<span data-kcd-field="default"     data-kcd-type="text">claude-sonnet-5</span>
+				<span data-kcd-field="description" data-kcd-type="text">Default model that seeds this generator's work-graph node (not yet implemented). Interpretive — infers purpose and writes summaries.</span>
+			</div>
+		</div>
+		<p><em>Output: declared per strategy in the output-contract; all paths relative to
+		<code>reference-root</code>. <code>name</code> derives from the filename.</em></p>
+	</section>
+
+	<section data-kcd-section="requirements">
+		<h3>Requirements</h3>
+		<ul>
+			<li><code>output-contract</code> (Input) — Path to the deployed output-contract (<code>context/output-contract.md</code>). Declares active strategies, sources, and output paths.</li>
+			<li><code>reference-root</code> (Input) — Base path under which all strategy outputs are written.</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="output-strategies">
+		<h3>Output Strategies</h3>
+		<p><em>Five strategies. Each is optional — enabled or disabled in the output-contract. The
+		<strong>write-if condition</strong> is a natural language predicate evaluated at deployment time and
+		recorded in the contract. The running generator reads the result and never re-evaluates. Judgment
+		lives in the deployment session, not in the run.</em></p>
+		<p><strong>Canonical run order:</strong> api-surface → route-map → folder-index → domain-map →
+		composition-graph. Running api-surface first surfaces the external call layer, which informs every
+		subsequent strategy — it establishes integration points and dependency context before the other docs
+		are written.</p>
+
+		<section data-kcd-section="strategy-api-surface">
+			<h4><code>api-surface</code></h4>
+			<p><strong>Write-if:</strong> The codebase makes external calls from an organized call layer — a
+			module, service, or set of functions whose job is to reach outside the application's own process
+			and fetch or send data.</p>
+			<p><em>This is outbound calls only — not what this system exposes, but what it calls elsewhere. It
+			is the anti-duplication index: an agent writing new feature code checks this doc before adding a
+			call that may already exist. Running this strategy first benefits the rest of the run because the
+			external call map reveals integration points, dependency patterns, and naming conventions that make
+			every other doc more precise.</em></p>
+			<p><strong>Source:</strong> The external-call layer(s) declared in the contract. Covers HTTP
+			clients, fetch, axios, curl-equivalents — any mechanism that exits the process. May be a glob over
+			a dedicated <code>api/</code> or <code>services/</code> folder, or a single file that centralizes
+			all calls.</p>
+			<p><strong>Output:</strong> One reference doc. Organized by module or file. Each section covers one
+			source file's calls.</p>
+			<pre><code># API Surface — Outbound Calls
+*Generated by generate-codebase-docs (api-surface) on {date}. Flush-and-fill.*
+
+## {ModuleName} — {source-path}
+| Function | Method | Endpoint | Returns | Notes |
+|---|---|---|---|---|
+| {fn(params)} | GET/POST/… | {url pattern} | {return shape} | {optional} |</code></pre>
+			<p><em>If a module has zero identifiable external calls, include its section header and note "no
+			external calls identified — verify." Do not silently skip.</em></p>
+		</section>
+
+		<section data-kcd-section="strategy-route-map">
+			<h4><code>route-map</code></h4>
+			<p><strong>Write-if:</strong> The codebase has a defined routing layer — a place where inbound
+			paths (HTTP, CLI, events, or any entry mechanism) are declared and bound to handlers.</p>
+			<p><strong>Source:</strong> The routing entry point(s) declared in the contract. Stack-neutral:
+			whatever file(s) constitute the routing layer for this project.</p>
+			<p><strong>Output:</strong> One reference doc. Every inbound path mapped to its handler, auth
+			requirement, and any notable constraint.</p>
+			<pre><code># Route Map
+*Generated by generate-codebase-docs (route-map) on {date}. Flush-and-fill.*
+
+| Verb | Path | Handler | Auth | Notes |
+|---|---|---|---|---|
+| {verb} | {path} | {Class::method or equivalent} | {guard/none} | {optional} |</code></pre>
+			<p><em>For non-HTTP routing (CLI commands, event listeners): use the same table with Verb replaced
+			by the entry-mechanism type. The deployed contract notes the stack convention.</em></p>
+		</section>
+
+		<section data-kcd-section="strategy-folder-index">
+			<h4><code>folder-index</code></h4>
+			<p><strong>Write-if:</strong> The codebase has logical module folders cohesive enough that a
+			per-folder file listing aids navigation.</p>
+			<p><strong>Source:</strong> A set of <code>source-glob → output-file</code> entries declared in the
+			contract. Each entry maps a glob pattern to one output document. The glob determines which source
+			files appear in that document. Granularity is controlled by how specific the glob is — a broad
+			<code>components/**</code> produces one flat doc; per-subfolder globs
+			(<code>components/saturation/**</code>, <code>components/campaigns/**</code>) produce separate docs
+			per domain. The deployed contract carries the glob entries; the generator expands them
+			mechanically.</p>
+			<p>Glob entries are <strong>produced at deployment</strong>. The deployment process surveys the
+			project structure and generates the entries. The long-term path is script-driven generation; for
+			now, the deploying agent proposes patterns and the user confirms. See <em>Deployment
+			Philosophy</em>.</p>
+			<p><strong>Output:</strong> One reference doc per contract entry. Lists all files matched by the
+			glob with one-line purpose summaries.</p>
+			<pre><code># {glob-label}/ — Index
+*Generated by generate-codebase-docs (folder-index) on {date}. Flush-and-fill.*
+
+| File | Purpose |
+|---|---|
+| {filename} | {one-line purpose inferred from source} |</code></pre>
+		</section>
+
+		<section data-kcd-section="strategy-domain-map">
+			<h4><code>domain-map</code></h4>
+			<p><strong>Write-if:</strong> The codebase has identifiable classes or structured objects. The
+			deployed contract declares what "class" means for this stack.</p>
+			<p><strong>Source:</strong> One or more domain roots declared in the contract. Each root is a
+			source glob and a corresponding output file. One domain-map doc is produced per root.</p>
+			<p><strong>Output:</strong> One reference doc per declared root. For each class in scope: a method
+			table. These docs are <strong>planning documents</strong> — an agent should be able to plan
+			substantial work from them without reading source code.</p>
+			<p><strong>Determining access (language-agnostic):</strong></p>
+			<p>A method is <strong>private</strong> if it is not intended to be called from outside the class
+			or module. Determination uses this precedence, highest first:</p>
+			<ol>
+				<li>Explicit language visibility keyword (<code>private</code>, <code>protected</code>, or equivalent) — always wins</li>
+				<li>Leading <code>_</code> prefix — a universal convention; always private</li>
+				<li>Internal-only docblock or annotation (<code>@internal</code>, <code>@private</code>, or equivalent)</li>
+				<li>AI judgment from call patterns — if the method is called only from within the same class body and has no plausible external use, treat as private; if called from outside, public</li>
+			</ol>
+			<p>The deployed copy may declare a <strong>stack-specific override</strong> for non-idiomatic
+			patterns. An override replaces AI judgment for its declared scope — it is not additive. This is the
+			escape hatch for unusual conventions; the canonical does not prescribe language-specific rules.</p>
+			<p><strong>Rules:</strong></p>
+			<ul>
+				<li>Class-body methods only — do not follow inheritance chains; note the parent class name but do not expand it</li>
+				<li>Return type: from declaration if present; inferred from return statement if clear; <code>mixed</code> if not resolvable</li>
+				<li>Params: <code>name: type</code> if typed, <code>name</code> if not; omit default values unless semantically significant (a default of <code>null</code> is noise; a named constant default is signal)</li>
+				<li>Purpose: one line; business intent not implementation; "Creates and persists a campaign" not "calls $this-&gt;save()"</li>
+				<li>A class with no methods: include the class header, note "no methods defined"</li>
+			</ul>
+			<pre><code># Domain Map — {root-name}
+*Generated by generate-codebase-docs (domain-map) on {date}. Flush-and-fill.*
+
+## {ClassName} — {source-path}
+*{One-line class purpose. Extends: {ParentClass} if applicable.}*
+
+| Method | Access | Params | Returns | Purpose |
+|---|---|---|---|---|
+| {name} | public | {param list} | {type or shape} | {one line} |
+| _{name} | private | {param list} | {type or shape} | {one line} |</code></pre>
+		</section>
+
+		<section data-kcd-section="strategy-composition-graph">
+			<h4><code>composition-graph</code></h4>
+			<p><strong>Write-if:</strong> The codebase has a UI component hierarchy worth mapping visually — a
+			set of views or pages that compose named components, where understanding the composition
+			relationships aids development.</p>
+			<p><strong>Source:</strong> UI source roots declared in the contract (views glob + components
+			glob). A stack-specific <strong>framework context file</strong> (e.g.
+			<code>context/vue-sfc-extraction.md</code>) is declared in the contract; the generator reads it
+			before extraction. This file defines how to identify component usage in templates, resolve
+			component names from imports, and distinguish page views from sub-components.</p>
+			<p><strong>Output:</strong> One Obsidian <code>.canvas</code> file. Unlike the other strategies,
+			this is <strong>template-applied</strong>, not flush-and-fill.</p>
+			<p><strong>Why template-applied:</strong> Canvas nodes carry x/y coordinates. A generator
+			recreating the canvas from scratch each run produces a valid graph but an incoherent layout —
+			positions shift, groups scatter. The deployment session establishes the canvas layout once (groups
+			per page, component nodes inside groups) and stores it as
+			<code>context/composition-graph-template.canvas</code>. Subsequent runs refresh the edges and
+			component membership while preserving node positions and group structure from the template.</p>
+			<p><strong>Run behavior:</strong></p>
+			<ol>
+				<li>Read <code>context/composition-graph-template.canvas</code> — the layout artifact from deployment</li>
+				<li>Read current source via the framework context file</li>
+				<li>Refresh: update component membership inside each group; update edges</li>
+				<li>Preserve: node positions, group boundaries, group labels</li>
+				<li>Surface: any page/view found in source with no corresponding group in the template — note in run-report; do not silently omit and do not auto-add</li>
+			</ol>
+			<p><strong>New pages after deployment:</strong> When a view is added to the source after the
+			template was established, the generator surfaces it in the run-report. Template update is handled by
+			a companion habit — <code>add-page-to-composition-graph</code> — which the user invokes to add the
+			new group. Front-end sessions can attach this habit to page-creation workflows. The generator never
+			modifies the template.</p>
+			<pre><code>Output: {path}.canvas
+Format: Obsidian canvas JSON — groups per page, component nodes, composition edges</code></pre>
+		</section>
+	</section>
+
+	<section data-kcd-section="output-contract-format">
+		<h3>Output Contract Format</h3>
+		<p><em>Specification for <code>context/output-contract.md</code> in the deployed generator. Produced
+		by the deployment process; read by the generator on every run.</em></p>
+		<pre><code># Output Contract — {project-name}
+
+deployment-status: active | draft
+reference-root: {base path}
+
+---
+
+## api-surface
+enabled: true | false
+write-if-rationale: {reason recorded at deployment}
+
+sources:
+  - {glob covering external-call layer files}
+output: {path relative to reference-root}
+
+---
+
+## route-map
+enabled: true | false
+write-if-rationale: {reason}
+
+source: {path or glob to routing layer}
+output: {path relative to reference-root}
+
+---
+
+## folder-index
+enabled: true | false
+write-if-rationale: {reason}
+
+entries:
+  - source-glob: {glob pattern}
+    output: {path relative to reference-root}
+    label: {human-readable name used in the doc header}
+  - source-glob: {glob pattern}
+    output: {path relative to reference-root}
+    label: {label}
+
+---
+
+## domain-map
+enabled: true | false
+write-if-rationale: {reason}
+stack-override: {optional — explicit convention for non-idiomatic stacks}
+
+roots:
+  - name: {root-name}
+    source-glob: {glob}
+    output: {path relative to reference-root}
+
+---
+
+## composition-graph
+enabled: true | false
+write-if-rationale: {reason}
+
+source-views: {glob}
+source-components: {glob}
+framework-context: context/{stack}-sfc-extraction.md
+canvas-template: context/composition-graph-template.canvas
+output: {path}.canvas</code></pre>
+	</section>
+
+	<section data-kcd-section="deployment">
+		<h3>Deployment</h3>
+		<p><em>Deployment produces the output-contract. Subsequent runs are mechanical. Re-run deployment
+		only when the project structure changes significantly enough that the contract no longer reflects
+		reality.</em></p>
+		<p><strong>Deployment philosophy:</strong> Deployment aspires to be script-driven. AI input is
+		limited to steps that genuinely require judgment: write-if evaluation, initial glob pattern proposals
+		where project structure is ambiguous, and composition-graph initial layout. All deterministic work —
+		file structure survey, glob expansion, output-contract write, validation — belongs in a script. AI is
+		for exploration and judgment; predictable mechanics belong in code. The current deployment steps are
+		agentic because the automation tooling is not yet built; the shape of each step reflects that eventual
+		boundary.</p>
+		<p><em>If deployment requires multiple sessions, record progress in
+		<code>context/deployment-notes.md</code> so work can be resumed without re-surveying from
+		scratch.</em></p>
+
+		<section data-kcd-section="deployment-steps">
+			<h4>Deployment Steps</h4>
+			<p><strong>1 — Survey.</strong> Read the top-level codebase structure. Identify: language(s),
+			frameworks, entry point files, major source folders, whether a UI layer exists. This step is
+			mechanical; a script could produce it. For now, the deploying agent does it and records a brief
+			summary in <code>context/deployment-notes.md</code>.</p>
+			<p><strong>2 — Strategy evaluation.</strong> For each strategy, evaluate the write-if condition
+			against the survey findings. Record <code>enabled: true | false</code> and the rationale. Every
+			decision is explicit — do not default-enable, do not guess. This is an AI judgment step.</p>
+			<p><strong>3 — Glob entry generation</strong> <em>(for <code>folder-index</code>,
+			<code>api-surface</code>, <code>domain-map</code>)</em>. For each enabled strategy, propose source
+			globs and output paths. The deploying agent derives these from the survey and proposes them; the
+			user confirms or adjusts. Future: script-generated from a directory walk. Record confirmed entries
+			in the contract draft.</p>
+			<p><strong>4 — Composition graph setup</strong> <em>(if <code>composition-graph</code> enabled)</em>:</p>
+			<ol type="a">
+				<li>Read the UI source; identify pages/views and their top-level component usage.</li>
+				<li>Propose a canvas layout: groups per page, component nodes inside, edges for composition.</li>
+				<li>Present to user; apply any layout adjustments.</li>
+				<li>Write the confirmed layout to <code>context/composition-graph-template.canvas</code>.</li>
+				<li>Write or identify the framework context file (<code>context/{stack}-sfc-extraction.md</code>).</li>
+				<li>Record both paths in the contract draft.</li>
+			</ol>
+			<p><strong>5 — Write output-contract.</strong> Write <code>context/output-contract.md</code> per
+			the format above with all decisions recorded. Future: this step is a script that takes the
+			confirmed decisions as input and emits the file.</p>
+			<p><strong>6 — Validate.</strong> Run <code>generate-codebase-docs --test</code>. Confirm: all
+			enabled strategies have reachable sources, all output paths are under <code>reference-root</code>,
+			the composition-graph template and framework context files exist if that strategy is enabled.</p>
+			<p><strong>7 — Activate.</strong> Set <code>deployment-status: active</code> in the
+			output-contract.</p>
+		</section>
+	</section>
+
+	<section data-kcd-section="care">
+		<h3>Care</h3>
+		<p><strong>Defends:</strong></p>
+		<ul>
+			<li>The output-contract is the invariant. The generator executes it faithfully and does not extend beyond what the contract declares.</li>
+			<li>Write-if decisions are deployment-time only. The running generator reads <code>enabled</code> from the contract and never re-evaluates conditions.</li>
+			<li>Glob entries are strict — a file not matched by a declared glob is never indexed.</li>
+			<li>Domain-map: class-body methods only; no inheritance chain expansion.</li>
+			<li>Composition-graph: template node positions and group structure are never modified by a run. Only edges and component membership are refreshed.</li>
+			<li>Each non-canvas output opens with a generated-by banner and flush-and-fill notice.</li>
+		</ul>
+		<p><strong>Will not touch:</strong></p>
+		<ul>
+			<li>Source files (read-only, always)</li>
+			<li>Any output file not declared in the output-contract</li>
+			<li>Canvas node positions or group structure in the composition-graph template</li>
+			<li>Deployment context files in <code>context/</code></li>
+		</ul>
+		<p><strong>Surfaces (notes inline, does not block):</strong></p>
+		<ul>
+			<li>A source file in scope whose purpose cannot be inferred — document the raw signal, note "purpose unclear — verify"</li>
+			<li>An api-surface module with no identifiable external calls — include the section header, note "no external calls identified — verify"</li>
+			<li>A domain-map class with no methods — include the class header, note "no methods defined"</li>
+			<li>A page/view in source with no corresponding group in the composition-graph template — note in run-report; do not silently omit from canvas output</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="do">
+		<h3>Do</h3>
+		<p><em>Pre-flight runs first per <code>_generator_base</code>: deployment check, requirement
+		resolution, modifier parse.</em></p>
+
+		<section data-kcd-section="phase-1">
+			<h4>Phase 1 — Contract Load</h4>
+			<p>Read <code>context/output-contract.md</code>. Validate:</p>
+			<ul>
+				<li><code>deployment-status</code> is <code>active</code> (warn if <code>draft</code> but do not fail)</li>
+				<li>Every enabled strategy has its required fields present and sources reachable</li>
+				<li>Composition-graph: <code>canvas-template</code> and <code>framework-context</code> paths resolve</li>
+			</ul>
+			<p>If any enabled strategy is missing a required field:</p>
+			<pre><code>FAILED — output-contract incomplete: {strategy} missing {field}</code></pre>
+			<p>Build the run plan: enabled strategies in canonical order (api-surface → route-map →
+			folder-index → domain-map → composition-graph), or in contract-declared order if present. Apply
+			modifier filtering.</p>
+		</section>
+
+		<section data-kcd-section="phase-2-n">
+			<h4>Phase 2–N — Strategy Execution</h4>
+			<p>Execute each strategy in run-plan order. Each is one phase in the run-report; phase number
+			reflects position in the run plan, not a fixed integer. A disabled strategy is not a phase.</p>
+			<ul>
+				<li><strong>api-surface:</strong> read each declared source file; extract all outbound calls; assemble the combined doc (flush-and-fill)</li>
+				<li><strong>route-map:</strong> read the routing layer; extract all routes and handler bindings; write the route-map doc (flush-and-fill)</li>
+				<li><strong>folder-index:</strong> for each glob entry, expand the glob, extract file list and infer purposes, write the index doc (flush-and-fill)</li>
+				<li><strong>domain-map:</strong> for each root, read the source glob; extract class and method tables per the access rules above; write the root's doc (flush-and-fill)</li>
+				<li><strong>composition-graph:</strong> read framework context file; read source; read canvas template; refresh edges and membership; write output canvas (template-applied)</li>
+			</ul>
+		</section>
+
+		<section data-kcd-section="phase-n-plus-1">
+			<h4>Phase N+1 — Run Log + Output Declaration</h4>
+			<p>Append one row to <code>run-log.md</code> in the deployed generator's folder (create if absent;
+			append-only, never flushed):</p>
+			<pre><code>| Date | Modifier | Strategies run | Confidence range | Notes |
+|---|---|---|---|---|</code></pre>
+			<p>Output Declaration: lists every file written this run.</p>
+			<p>After this phase, the <code>run-report</code> habit fires automatically (writes
+			<code>_Claude/audits/generate-codebase-docs-run.md</code>, flush-and-fill).</p>
+		</section>
+	</section>
+
+	<section data-kcd-section="design-notes">
+		<h3>Design Notes</h3>
+		<p><em>Open items carried forward from authoring. Resolved items removed.</em></p>
+		<ol>
+			<li><strong>Functional / non-OO modules in domain-map</strong> — the method-table format assumes a class. Purely functional modules (utility files, helper collections) have no class concept. The likely answer is a <code>## {module} (helpers)</code> section variant with the same table but organized by file rather than class. This produces its own question: where does helper output go — as part of domain-map, or as a separate strategy? Open question; punt for now. Instinct: a <code>helpers</code> block in the domain-map doc, assembled separately.</li>
+			<li><strong>Deployment automation tooling</strong> — the deployment steps are agentic today but designed to migrate to scripts. The boundary is clear (judgment steps stay AI; mechanics move to code). This is a future workstream, not a blocker for the canonical.</li>
+			<li><strong>api-surface / route-map cross-reference enrichment</strong> — now that api-surface runs first, the route-map could flag routes that have no corresponding frontend call in the api-surface doc. This would be a useful gap-identification feature. Requires the route-map phase to read the api-surface output. Not in scope for the initial canonical; worth noting as a future enhancement.</li>
+		</ol>
+	</section>
+
+</article>
+
+</body>
+</html>

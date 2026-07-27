@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>merge-todos — Generator</title>
+	<link rel="stylesheet" href="../../kcd.css">
+</head>
+<body>
+
+<article data-kcd="generator">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>        <dd data-kcd-field="name"        data-kcd-type="slug">merge-todos</dd>
+		<dt>description</dt> <dd data-kcd-field="description" data-kcd-type="text">Mechanical aggregation of unchecked todos across all active lenses — extracts, counts, and emits a dated digest. No interpretation.</dd>
+		<dt>type</dt>        <dd data-kcd-field="type"        data-kcd-type="enum">generator</dd>
+		<dt>status</dt>      <dd data-kcd-field="status"      data-kcd-type="enum">active</dd>
+		<dt>base</dt>        <dd data-kcd-field="base"        data-kcd-type="slug">_generator-base</dd>
+	</dl>
+
+	<h1>merge-todos — Generator</h1>
+
+	<p><em>Mechanical aggregation — extracts and counts verbatim, no interpretation — so this is
+	the textbook haiku case.</em></p>
+
+	<p>Base rules: <a href="_Claude/generators/_generator_base.html">_generator_base</a> —
+	composition model, requirement resolution, fail behavior, output conventions.</p>
+
+	<section data-kcd-section="parameters">
+		<h2 data-kcd-heading>Parameters</h2>
+		<p>Output: <code>_Claude/audits/merge-todos.md</code> — the aggregated todo digest,
+		flush-and-fill.</p>
+		<p><em><code>name</code> / <code>#{name}</code> derive from the filename;
+		<code>model</code> / <code>base</code> live in frontmatter.</em></p>
+	</section>
+
+	<section data-kcd-section="requirements">
+		<h2 data-kcd-heading>Requirements</h2>
+
+		<table>
+			<thead>
+				<tr><th>Name</th><th>Kind</th><th>Description</th><th>Value</th></tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td><code>lenses-index</code></td>
+					<td>Input</td>
+					<td>The lens roster (<code>lenses/nav-index.html</code>) — used to enumerate active
+					lenses.</td>
+					<td><code>_Claude/lenses/nav-index.html</code></td>
+				</tr>
+				<tr>
+					<td><code>todo-root</code></td>
+					<td>Input</td>
+					<td>Directory holding per-lens todo stores (each lens's <code>todo_path</code>,
+					e.g. <code>_Claude/logs/{lensname}/todo/</code>).</td>
+					<td><code>_Claude/logs</code></td>
+				</tr>
+				<tr>
+					<td><code>lenses-skip</code></td>
+					<td>Input</td>
+					<td>Lens names to exclude from the scan (typically <code>_lens_base</code>).</td>
+					<td><code>_lens_base</code></td>
+				</tr>
+			</tbody>
+		</table>
+	</section>
+
+	<section data-kcd-section="care">
+		<h2>Care</h2>
+		<p><strong>Defends:</strong></p>
+		<ul>
+			<li>Todo item text is reproduced verbatim — no rewording or interpretation.</li>
+			<li>Flush-and-fill — the prior digest is destroyed and recreated each run.</li>
+			<li>Only unchecked items (<code>- [ ]</code>) are aggregated — completed
+			(<code>- [x]</code>) items are excluded.</li>
+		</ul>
+		<p><strong>Will not touch:</strong></p>
+		<ul>
+			<li>Lens files or todo stores — read-only.</li>
+			<li>Completed logs.</li>
+		</ul>
+		<p><strong>Surfaces (notes inline, does not block):</strong></p>
+		<ul>
+			<li>A lens with no todos — include as a zero-todo entry, note the absence.</li>
+			<li>Todo items with no date prefix (<code>[YYYY-MM-DD]</code>) — include but mark
+			<code>undated</code>.</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="do">
+		<h2>Do</h2>
+		<p><em>Pre-flight runs first, per <code>_generator_base</code> — deployment check, then
+		requirement resolution.</em></p>
+
+		<section data-kcd-section="phase-1">
+			<h3 data-kcd-heading>Phase 1 — Todo Extraction</h3>
+			<p>Enumerate active lenses from
+			lenses/nav-index (excluding
+			<code>_lens_base</code>). For each lens, read its todo store under
+			<code>_Claude/logs/{lensname}/todo/</code>. Extract every unchecked item
+			<code>- [ ] [YYYY-MM-DD] {text}</code>. Record
+			<code>{date (parsed from the prefix, or undated), text, lens}</code>.</p>
+		</section>
+
+		<section data-kcd-section="phase-2">
+			<h3 data-kcd-heading>Phase 2 — Statistics</h3>
+			<p>Compute from the collected records:</p>
+			<ul>
+				<li>Total unchecked todos across all lenses</li>
+				<li>Count per lens</li>
+				<li>Age of the oldest todo in days (from today)</li>
+				<li>Average age in days</li>
+				<li>Most active lens (highest count)</li>
+			</ul>
+		</section>
+
+		<section data-kcd-section="phase-3">
+			<h3 data-kcd-heading>Phase 3 — Write Digest (flush-and-fill)</h3>
+			<p>Destroy and recreate <code>_Claude/audits/merge-todos.md</code>:</p>
+			<pre><code># Todos Digest — {YYYY-MM-DD}
+
+## Summary
+
+- **Total active todos**: N across all lenses
+- **Age of oldest todo**: X days
+
+## Active todos by lens
+
+### {LensName} (N todos)
+
+- YYYY-MM-DD :: [item text]
+
+## Statistics
+
+| Metric | Value |
+|---|---|
+| Total active todos | N |
+| Lenses with active work | N |
+| Most active lens | {lens} (N todos) |
+| Average todo age | X days |
+| Oldest active todo | YYYY-MM-DD |</code></pre>
+		</section>
+
+		<section data-kcd-section="phase-4">
+			<h3 data-kcd-heading>Phase 4 — Output Declaration</h3>
+			<p>Writes <code>_Claude/audits/merge-todos.md</code> (flush-and-fill). Modifies nothing
+			— todo stores are read-only. No console output, logs, or side effects outside the digest
+			path.</p>
+		</section>
+	</section>
+
+</article>
+
+</body>
+</html>

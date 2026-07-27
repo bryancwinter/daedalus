@@ -21,7 +21,7 @@ export function writeTools( chain: GuardChain ): ( ToolDefinition & { spec?: Tes
 				{ label: 'jails an out-of-vault path', input: { path: 'C:/Windows/x.html', artifact: { type: 'reference', frontmatter: {}, body: '' } }, assertions: [ { type: 'error_expected' } ] },
 				{ label: 'refuses an artifact that fails validation', input: { path: 'references/domain/x.html', artifact: { type: 'reference', frontmatter: {}, body: '' } }, assertions: [ { type: 'error_expected' } ] },
 			],
-			description: 'Write one KCD artifact to disk: emit HTML from its structured shape, validate, and save — a malformed artifact is refused, nothing written. Creates or overwrites. For several, sequence via kcd_batch.',
+			description: 'Write an artifact, validated first — a malformed one is refused and nothing lands.',
 			doc:
 				'Persist one artifact by vault-relative `path` from its `artifact` ( a SerializedArtifact — the ' +
 				'shape kcd_get returns ). Emits HTML with KcdEmit: frontmatter is rebuilt from `artifact.frontmatter`, ' +
@@ -82,7 +82,7 @@ export function writeTools( chain: GuardChain ): ( ToolDefinition & { spec?: Tes
 				{ label: 'jails an out-of-vault source', input: { from: 'C:/Windows/System32/drivers/etc/hosts', to: 'x.html' }, assertions: [ { type: 'error_expected' } ] },
 				{ label: 'missing source → structured error', input: { from: 'does-not-exist-xyz.html', to: 'work/mcp/AI/nope.html' }, assertions: [ { type: 'error_expected' } ] },
 			],
-			description: 'Move or rename a KCD artifact and heal every inbound link across the vault. Destructive: rewrites referrers and renames the file.',
+			description: 'Move or rename an artifact, healing every inbound link across the vault.',
 			doc:
 				'Rename or relocate one artifact by vault-relative `from` → `to`, then HEAL the graph: every ' +
 				'other file whose links resolve to `from` has that href rewritten to the new location, so no ' +
@@ -120,7 +120,7 @@ export function writeTools( chain: GuardChain ): ( ToolDefinition & { spec?: Tes
 				{ label: 'jails an out-of-vault path', input: { path: 'C:/Windows/System32/drivers/etc/hosts' }, assertions: [ { type: 'error_expected' } ] },
 				{ label: 'missing target → structured error', input: { path: 'does-not-exist-xyz.html' }, assertions: [ { type: 'error_expected' } ] },
 			],
-			description: 'Delete a KCD artifact and cascade the removal through every referrer. Destructive: strips inbound references and removes the file; blocks if the artifact is referenced by identity (base/lens).',
+			description: 'Delete an artifact, cascading the removal through every referrer.',
 			doc:
 				'Remove one artifact by vault-relative `path` and CASCADE the removal: every inbound reference ' +
 				'is excised from its referrer so the graph stays viable — a slot-field link takes its whole ' +

@@ -1,0 +1,337 @@
+{
+	"version": "0.1.0",
+	"tools": [
+		{
+			"name": "kcd_query",
+			"description": "Find artifacts by path glob, type, and body text — the place to start when you don't know the path.",
+			"inputSchema": {
+				"type": "object",
+				"properties": {
+					"glob": {
+						"type": "string",
+						"description": "Vault-relative path glob; * within a segment, ** across segments."
+					},
+					"type": {
+						"type": "string",
+						"enum": [
+							"lens",
+							"plan",
+							"habit",
+							"reference",
+							"contract",
+							"generator",
+							"analyzer",
+							"template",
+							"framework",
+							"nav-index"
+						],
+						"description": "Artifact-type filter."
+					},
+					"text": {
+						"type": "string",
+						"description": "Case-insensitive substring across body + serialized frontmatter."
+					},
+					"groupBy": {
+						"type": "string",
+						"enum": [
+							"type"
+						],
+						"description": "Return { type, count }[] instead of refs."
+					}
+				},
+				"required": []
+			},
+			"annotations": {
+				"readOnlyHint": true
+			},
+			"example": {
+				"type": "lens"
+			},
+			"doc": "The single read-query over the vault — subsumes the old glob/list/search/types tools. Any of `glob` ( vault-relative path pattern; `*` within a segment, `**` across ), `type` ( artifact classifier: lens, plan, habit, reference, contract, generator, analyzer, template, framework, nav-index ), and `text` ( case-insensitive substring across body + serialized frontmatter ) may be combined; they AND together. With no filter it returns the whole vault. Returns an array of refs ( path + type + name ) — read one with kcd_get, walk its edges with kcd_links. Pass `groupBy: \"type\"` to get `{ type, count }[]` ( sorted by count, descending ) instead of refs — the cheapest orientation call. Read-only."
+		},
+		{
+			"name": "kcd_get",
+			"description": "Load one artifact; for a lens, `depth` pulls in the context it always brings with it.",
+			"inputSchema": {
+				"type": "object",
+				"properties": {
+					"path": {
+						"type": "string",
+						"description": "Vault-relative path to the artifact."
+					},
+					"depth": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 4,
+						"default": 1,
+						"description": "Lens dredge depth; 1 = artifact only."
+					}
+				},
+				"required": [
+					"path"
+				]
+			},
+			"annotations": {
+				"readOnlyHint": true
+			},
+			"example": {
+				"path": "lenses/parser/parser.html"
+			},
+			"doc": "Load one artifact by vault-relative `path`, parse it, and return its serialized shape (frontmatter + sections + body + resolved links). For a lens, `depth` controls dredge: 1 (default) returns the lens alone; 2+ pulls its always-policy children that many levels deep, so the returned object carries the composed Know set. Non-lens types ignore `depth`. The path is PathGuard-jailed to the vault; an out-of-vault path returns a structured error. Use kcd_links instead when you only need the link graph, not the full body. Read-only."
+		},
+		{
+			"name": "kcd_links",
+			"description": "See an artifact's outbound links, and everything pointing back at it.",
+			"inputSchema": {
+				"type": "object",
+				"properties": {
+					"path": {
+						"type": "string",
+						"description": "Vault-relative path to the artifact."
+					}
+				},
+				"required": [
+					"path"
+				]
+			},
+			"annotations": {
+				"readOnlyHint": true
+			},
+			"example": {
+				"path": "lenses/parser/parser.html"
+			},
+			"doc": "Resolve the link graph around one artifact. Returns `{ outbound, inbound }`: outbound = the links the artifact itself declares (resolved to their targets); inbound = every other file in the vault whose links resolve TO this one (backlinks), found by scanning + resolving the whole vault. The graph primitive behind the editor's reference fan and the backlink panel. Cheaper than kcd_get when you only need edges, not the body. Read-only."
+		},
+		{
+			"name": "kcd_health",
+			"description": "Validate one artifact, or the whole vault, for dangling links and broken refs.",
+			"inputSchema": {
+				"type": "object",
+				"properties": {
+					"path": {
+						"type": "string",
+						"description": "Optional vault-relative path; omit to check the whole vault."
+					}
+				},
+				"required": []
+			},
+			"annotations": {
+				"readOnlyHint": true
+			},
+			"example": {},
+			"doc": "Validate artifacts on two axes. STRUCTURAL ( per file ): required frontmatter, sections, and type rules — a parse failure becomes an error issue rather than aborting the run. REFERENCE INTEGRITY ( cross-file, advisory warnings ): internal links whose target is missing on disk ( code-file links count; external URLs, #anchors, and {placeholder} hrefs are skipped ), and `base`/`lens` slugs that name no artifact ( the `cross` sentinel is skipped ). Pass `path` to check one file; omit it to sweep the whole vault. Returns `{ issues, summary }` — each issue carries its path, severity (error/warn), and message; the summary totals errors vs warnings. The pre-flight before a save or move sweep, and the observable form of the \"always viable\" invariant. Read-only."
+		},
+		{
+			"name": "kcd_compile",
+			"description": "Compile one or more lenses into one composed context string — first lens is primary.",
+			"inputSchema": {
+				"type": "object",
+				"properties": {
+					"lenses": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						},
+						"description": "Lens names or vault-relative paths to compile; the first is primary.",
+						"minItems": 1
+					}
+				},
+				"required": [
+					"lenses"
+				]
+			},
+			"annotations": {
+				"readOnlyHint": true
+			},
+			"example": {
+				"lenses": [
+					"lens_crafter"
+				]
+			},
+			"doc": "The LENS compiler — Daedalus's basic context-compilation surface. Give it lens names ( a bare `parser` maps to `lenses/parser/parser.html`; a vault path is used as-is ) and it dredges each lens to its OWN authored depth, folds their context blocks together, resolves habit-class contention, and assembles one context string ( Care-first, manifest tables ). For a single lens the output equals that lens's own compiled context; multiple lenses compose into one, first = primary. Returns `{ lenses, text, tokens }`. This is lens composition only — the live runtime layers ( model root context, active MCP tool schemas, session memory ) are Starmind's job, not the vault's. Read-only."
+		},
+		{
+			"name": "kcd_survey",
+			"description": "Reconnoitre the project beside the vault — a filename-level census of components, languages, and entry points.",
+			"inputSchema": {
+				"type": "object",
+				"properties": {
+					"full": {
+						"type": "boolean",
+						"default": false,
+						"description": "Return the full structured SurveyReport instead of the lean text projection."
+					}
+				},
+				"required": []
+			},
+			"annotations": {
+				"readOnlyHint": true
+			},
+			"example": {},
+			"doc": "Walk the configured project root and return a structured reconnaissance of it. This is a CENSUS: it reads filenames and small manifests only — no source is parsed and no model runs — so it produces a real answer on a Python, Go or C# project exactly as on TypeScript. The unit is the COMPONENT ( the root, plus every directory carrying its own package manifest ); each file is attributed to the deepest component containing it, so a monorepo reads as its real parts. By default returns the LEAN TEXT PROJECTION — the orientation read, geometry-free, the form a small model reasons over best. Pass `full: true` for the complete `SurveyReport` object ( components with languages, entryPoints, tests, contains, stats ). What a survey does NOT tell you: what the code does, which component matters, or that an absent thing is truly absent — treat it as orientation, not authority ( see the read-a-survey reference ). Read-only; surveys the project, writes nothing. The CLI `survey` command writes the same data as a JSON tree."
+		},
+		{
+			"name": "kcd_save",
+			"description": "Write an artifact, validated first — a malformed one is refused and nothing lands.",
+			"inputSchema": {
+				"type": "object",
+				"properties": {
+					"path": {
+						"type": "string",
+						"description": "Vault-relative destination path."
+					},
+					"artifact": {
+						"type": "object",
+						"description": "The SerializedArtifact to write.",
+						"properties": {
+							"type": {
+								"type": "string",
+								"description": "Artifact type (lens, plan, habit, reference, …) — must match the target directory."
+							},
+							"frontmatter": {
+								"type": "object",
+								"additionalProperties": true,
+								"description": "Frontmatter fields (name, description, status, …) — rebuilt into the HTML header block."
+							},
+							"body": {
+								"type": "string",
+								"description": "Body HTML, no frontmatter block. Omit only when creating from fields alone (not yet supported — supply body HTML)."
+							}
+						},
+						"required": [
+							"type",
+							"frontmatter",
+							"body"
+						]
+					}
+				},
+				"required": [
+					"path",
+					"artifact"
+				]
+			},
+			"annotations": {
+				"destructiveHint": true
+			},
+			"example": {
+				"path": "references/domain/my-note.html",
+				"artifact": {
+					"type": "reference",
+					"frontmatter": {
+						"name": "my-note",
+						"description": "A worked example.",
+						"type": "reference",
+						"status": "active"
+					},
+					"body": "<h1>My Note</h1>\n<p>The body content.</p>"
+				}
+			},
+			"doc": "Persist one artifact by vault-relative `path` from its `artifact` ( a SerializedArtifact — the shape kcd_get returns ). Emits HTML with KcdEmit: frontmatter is rebuilt from `artifact.frontmatter`, the `body` passes through — an existing body has its frontmatter block replaced ( the edit path: kcd_get → mutate → kcd_save ), a body with none gets one prepended ( the create path ). The result is validated with KcdValidate BEFORE any write: a structural failure returns a structured error and writes NOTHING ( the write-time gate — can't save a malformed artifact ). On success it writes and returns `{ saved, warnings }`. PathGuard jails the path and checks the declared type matches the target directory. NOTE: agent-authored body HTML is not yet sanitized here ( the render layer sanitizes on display; a save-time sanitize pass is a named deferral ), and structured section/region/slot synthesis ( create a lens from fields alone ) is not built — supply body HTML."
+		},
+		{
+			"name": "kcd_move",
+			"description": "Move or rename an artifact, healing every inbound link across the vault.",
+			"inputSchema": {
+				"type": "object",
+				"properties": {
+					"from": {
+						"type": "string",
+						"description": "Current vault-relative path."
+					},
+					"to": {
+						"type": "string",
+						"description": "Destination vault-relative path."
+					}
+				},
+				"required": [
+					"from",
+					"to"
+				]
+			},
+			"annotations": {
+				"destructiveHint": true
+			},
+			"example": {
+				"from": "references/domain/old-name.html",
+				"to": "references/domain/new-name.html"
+			},
+			"doc": "Rename or relocate one artifact by vault-relative `from` → `to`, then HEAL the graph: every other file whose links resolve to `from` has that href rewritten to the new location, so no backlink rots. Referrers are matched by RESOLVED identity ( not a text grep ), and the swap preserves their hand-authored formatting. Returns the HealPlan — `{ op, from, to, edits }`, where each edit is the referrer + old/new href. Refuses if `from` is missing or `to` already exists ( structured error ), and asserts afterward that no link still resolves to `from` — a residual fails loud rather than leaving the vault dangling. Both paths are PathGuard-jailed. Destructive: it writes referrers and renames the file."
+		},
+		{
+			"name": "kcd_delete",
+			"description": "Delete an artifact, cascading the removal through every referrer.",
+			"inputSchema": {
+				"type": "object",
+				"properties": {
+					"path": {
+						"type": "string",
+						"description": "Vault-relative path to the artifact to delete."
+					}
+				},
+				"required": [
+					"path"
+				]
+			},
+			"annotations": {
+				"destructiveHint": true
+			},
+			"example": {
+				"path": "references/domain/obsolete-note.html"
+			},
+			"doc": "Remove one artifact by vault-relative `path` and CASCADE the removal: every inbound reference is excised from its referrer so the graph stays viable — a slot-field link takes its whole record row, a bare prose <a> unwraps to its text, span-precise so surrounding formatting is untouched. BLOCKS ( structured error, nothing deleted ) if any artifact references the target by IDENTITY ( a base/lens slug naming it ) — those are not movable links and must be repointed or renamed first. Returns the HealPlan — `{ op:\"delete\", from, edits }`, each edit a referrer touched. Refuses a missing target, PathGuard-jails the path, and asserts afterward that no link still resolves to it ( a residual fails loud ). Destructive: it writes referrers and removes the file."
+		},
+		{
+			"name": "kcd_batch",
+			"description": "Run an ordered sequence of tool calls, stopping at the first failure.",
+			"inputSchema": {
+				"type": "object",
+				"properties": {
+					"calls": {
+						"type": "array",
+						"description": "Ordered tool calls; the batch stops at the first that fails.",
+						"items": {
+							"type": "object",
+							"properties": {
+								"tool": {
+									"type": "string",
+									"description": "Registered tool name to invoke."
+								},
+								"args": {
+									"type": "object",
+									"additionalProperties": true,
+									"description": "Arguments for that tool."
+								}
+							},
+							"required": [
+								"tool"
+							]
+						}
+					}
+				},
+				"required": [
+					"calls"
+				]
+			},
+			"annotations": {
+				"destructiveHint": true
+			},
+			"example": {
+				"calls": [
+					{
+						"tool": "kcd_query",
+						"args": {
+							"type": "lens"
+						}
+					},
+					{
+						"tool": "kcd_get",
+						"args": {
+							"path": "lenses/mcp/mcp.html"
+						}
+					}
+				]
+			},
+			"doc": "Execute `calls` — `[{ tool, args? }]` — IN ORDER through the server's internal dispatch, as a single tool call, so an agent that stacks a few operations gets one round-trip. Stops at the FIRST failure ( a step whose result is an error ). Returns `{ completed, failed, remaining }`: `completed` is `[{ tool, output }]` for every step that succeeded ( output is that tool's own result text ); `failed` is `{ index, tool, error }` or null; `remaining` is the tool names never reached. A nested `kcd_batch` is rejected. This tool is only as destructive as the tools it invokes — bundle heals ( move/delete ) and reads freely — but the sequence is NOT atomic: a mid-sequence failure leaves the earlier steps applied."
+		}
+	]
+}

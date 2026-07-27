@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Habit (template)</title>
+	<link rel="stylesheet" href="../kcd.css">
+</head>
+<body>
+
+<article data-kcd="template">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">_habit-template</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">Scaffold for authoring a habit — a four-field behavioral directive (why · action · explanation · rules) that projects to a dense two-line form for agents. Copy, fill, delete scaffold notes.</dd>
+		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">template</dd>
+		<!-- blank on a template; the authored habit gets a real status (disabled in canonical kcd/). -->
+		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum"></dd>
+		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
+		<dt>author</dt>        <dd data-kcd-field="author"         data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
+	</dl>
+
+	<h1>Habit (template)</h1>
+
+	<section data-kcd-section="scaffold-note" data-kcd-audience="human">
+		<h3>Scaffold note</h3>
+		<p>A <strong>habit</strong> is a tiny, composable unit of behavior — a fragment of <em>how</em>
+		an agent acts, not a task it performs. As of the four-field definition it is a fixed shape:
+		<strong>four sections, in this order</strong>, so the same code can project every habit into one
+		dense, instantly-recognizable form.</p>
+		<p><em>2026-07-13: this section was <code>when</code> until today — renamed to <code>why</code> to
+		match the canonical What|Where|Why convention. It is now the SAME prose a lens's own Why cell can
+		defer to by writing <code>mode:habit</code> instead of restating a condition — see the lens Care
+		table's Why-cell grammar (always / habit / hand-written override). Nothing else about this field
+		changed: it is still one terse trigger clause, still reads as "when {this}" in the projected
+		grammar below.</em></p>
+		<ul>
+			<li><strong><code>why</code></strong> — the trigger. ONE terse clause: the precise moment or
+			condition that fires this habit. Reads as "when {this}".</li>
+			<li><strong><code>action</code></strong> — the behavior. ONE terse clause: the single step to
+			take. Reads as "execute {this}". A <em>don't</em>-style habit omits this and leans on
+			<code>rules</code> instead.</li>
+			<li><strong><code>explanation</code></strong> — the rationale. The prose an agent gets when
+			this habit is <strong>suggested</strong> (promoted from the manifest deck into injected
+			context) — what makes the reflex worth following. Depth lives here; keep
+			<code>why</code>/<code>action</code> terse and let this carry the weight.</li>
+			<li><strong><code>rules</code></strong> — optional. Terse constraints, one per bullet. They
+			project joined onto the second line, so keep each short.</li>
+		</ul>
+		<p><strong>How it projects (code-derived — never author the dense form by hand):</strong></p>
+		<ul>
+			<li><strong>Deck (linked)</strong> — a terse manifest pointer: <code>- {name} — {why}
+			({path})</code>. By default this <code>{why}</code> IS this file's own <code>why</code> section
+			(a lens's Care-table Why cell defaults to <code>habit</code>, meaning "defer to the habit's own
+			why"); a lens may instead write hand-written prose in its own Why cell to override it for that
+			one use. This is the exploration surface; the habit body does not ride.</li>
+			<li><strong>Suggested (injected)</strong> — the dense two-liner from THIS file's four fields:</li>
+		</ul>
+		<pre><code>{name} — when {why}, execute {action}.
+↳ {explanation} · {rules; joined}</code></pre>
+		<p><em>Don't-style degrade (no <code>action</code>):</em>
+		<code>{name} — when {why}: {rules}.</code></p>
+		<p>Copy to <code>_Claude/kcd/habits/{class}/{verb-noun}.html</code> (or
+		<code>habits/unslotted/</code> for a classless habit) — the class folder is the habit's slot, and
+		deployment preserves it (<code>habits/{class}/{name}.html</code>, never flattened). Fill every
+		<code>{placeholder}</code>, delete these scaffold notes. Frontmatter: <code>type</code> → <code>habit</code>;
+		<code>status</code> → <code>disabled</code> (the deploy flips the copy to <code>active</code>);
+		<code>habit-class</code> — optional slug naming a mutual-exclusion group (protocol §6), empty for
+		an additive (classless) habit. Register it in
+		<a href="_Claude/habits/nav-index.html">habits/nav-index</a> and wire it into the lens (or
+		<code>_lens_base</code>) Do block that should inherit it — an unwired habit never runs.</p>
+		<p><em>Keep it atomic. If it needs phases, a human gate, or judgment, it is not a habit — it is a
+		contract or an analyzer.</em></p>
+	</section>
+
+	<!-- The four fields, in order. `why` + `action` are ONE terse clause each ( they project onto line
+	     one ); `explanation` carries the depth; `rules` is optional. -->
+	<section data-kcd-section="why">
+		<h3>Why</h3>
+		<p>{the trigger — one terse clause naming the precise moment or condition that fires this habit}</p>
+	</section>
+
+	<section data-kcd-section="action">
+		<h3>Action</h3>
+		<p>{the single step to take — one terse clause, concrete and mechanical, no deliberation. Name
+		exact paths (project-root-relative) where they matter. Omit this section entirely for a
+		don't-style habit.}</p>
+	</section>
+
+	<section data-kcd-section="explanation">
+		<h3>Explanation</h3>
+		<p>{the why — the rationale a suggested habit surfaces. What breaks without it, what it defends,
+		the reasoning that makes the reflex worth following. This is where prose is allowed; when/action
+		stay terse.}</p>
+	</section>
+
+	<section data-kcd-section="rules">
+		<h3>Rules</h3>
+		<ul>
+			<li>{optional — a terse constraint, one per bullet; delete this whole section if the habit has
+			no rules. Each bullet projects joined onto the second line, so keep it short}</li>
+		</ul>
+	</section>
+
+</article>
+
+</body>
+</html>

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>generate-swagger — Generator</title>
+	<link rel="stylesheet" href="../../kcd.css">
+</head>
+<body>
+
+<article data-kcd="generator">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">generate-swagger</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">Detects un-annotated API handler methods and emits paste-ready, compile-checked OpenAPI/swagger-php annotation candidates for human review. Run to close annotation gaps in a swagger-php project.</dd>
+		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">generator</dd>
+		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">disabled</dd>
+		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
+		<dt>author</dt>        <dd data-kcd-field="author"         data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
+		<dt>base</dt>          <dd data-kcd-field="base"           data-kcd-type="slug">_generator-base</dd>
+		<dt>updated</dt>       <dd data-kcd-field="updated"        data-kcd-type="date">2026-06-30</dd>
+	</dl>
+
+	<h1>generate-swagger — Generator</h1>
+
+	<p><em>Generic across any swagger-php-style PHP API project. The deployed copy solves the
+	requirements below with project-specific values.</em></p>
+
+	<p>Base rules: <a href="_Claude/generators/_generator_base.html">_generator_base</a> —
+	composition model, requirement resolution, fail behavior, output conventions.</p>
+
+	<section data-kcd-section="parameters">
+		<h3>Parameters</h3>
+		<div data-kcd-table data-kcd-params style="--kcd-cols: 1fr 1fr 1fr 2fr">
+			<div data-kcd-head><span>Name</span><span>Type</span><span>Default</span><span>Description</span></div>
+			<!-- model — default model seeding the work-graph node. Optional; NOT YET IMPLEMENTED. -->
+			<div data-kcd-param>
+				<span data-kcd-field="name"        data-kcd-type="slug">model</span>
+				<span data-kcd-field="type"        data-kcd-type="enum">model</span>
+				<span data-kcd-field="default"     data-kcd-type="text">claude-sonnet-5</span>
+				<span data-kcd-field="description" data-kcd-type="text">Default model that seeds this generator's work-graph node (not yet implemented).</span>
+			</div>
+		</div>
+		<p>Output: <code>_Claude/audits/swagger-candidates.md</code></p>
+		<p><em>Swagger candidates are a staging/review artifact for paste-in, not a durable reference —
+		so <code>Output</code> is the generator-output bucket <code>audits/</code>. The
+		<code>--test</code> redirect is defined in <code>_generator_base</code>. <code>name</code> and
+		<code>base</code> derive from the filename / frontmatter.</em></p>
+	</section>
+
+	<section data-kcd-section="requirements">
+		<h3>Requirements</h3>
+		<p><em>Declared generically here; solved in the deployed copy. See <code>_generator_base</code>
+		for pre-flight resolution and the fail rule.</em></p>
+		<ul>
+			<li><code>openapi-compiler</code> (Tooling) — An OpenAPI compiler that processes the
+			project's annotation source. Used in Phase 4 as a compile check — it catches annotations the
+			compiler cannot parse at all. It does not verify schema correctness.</li>
+			<li><code>controller-source</code> (Input) — Glob of API route-handler source files to scan
+			for annotation gaps.</li>
+			<li><code>route-map</code> (Input) — File registering HTTP routes against handler methods —
+			source of verb + full path per method.</li>
+			<li><code>security-scheme</code> (Input) — File defining the API security scheme — source of
+			the scheme name applied to every route.</li>
+			<li><code>openapi-version</code> (Input) — Target OpenAPI specification version (e.g.
+			<code>3.0.0</code>).</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="care">
+		<h3>Care</h3>
+		<p><strong>Defends:</strong></p>
+		<ul>
+			<li>The security scheme is declared on every generated route — no exceptions.</li>
+			<li>Detection is per-method, not per-handler — a handler with some annotated methods gets
+			candidates only for the unannotated ones.</li>
+			<li>Output is review-only — no source file is modified.</li>
+			<li>Every candidate is compile-checked (Phase 4) before it reaches the output file — a
+			backstop against catastrophic errors, not a correctness guarantee.</li>
+		</ul>
+		<p><strong>Will not touch:</strong></p>
+		<ul>
+			<li>Any method that already carries an OpenAPI operation annotation block.</li>
+			<li>Any non-handler file.</li>
+		</ul>
+		<p><strong>Surfaces (notes inline, does not block):</strong></p>
+		<ul>
+			<li>A route in <code>route-map</code> with no matching handler method — note as "unmatched
+			route".</li>
+			<li>Ambiguous response body (no visible return structure) — annotate with a bare JSON content
+			block, flag "shape inferred — verify".</li>
+			<li>A handler method absent from <code>route-map</code> — note as "unrouted method — skip or
+			verify".</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="do">
+		<h3>Do</h3>
+		<p><em>Pre-flight runs first, per <code>_generator_base</code> — deployment check, then
+		requirement resolution. Phases below assume the generator is deployed and all requirements are
+		solved.</em></p>
+
+		<section data-kcd-section="phase-1">
+			<h4>Phase 1 — Route Map</h4>
+			<p>Read <code>route-map</code>. Build a lookup:
+			<code>{HandlerClass}::{method} → {http_verb, full_path}</code>, including any group prefixes.
+			Read <code>security-scheme</code> to obtain the security scheme name.</p>
+		</section>
+
+		<section data-kcd-section="phase-2">
+			<h4>Phase 2 — Annotation Gap Detection</h4>
+			<p>For each file in <code>controller-source</code>:</p>
+			<ol>
+				<li>List all public methods.</li>
+				<li>For each method, check whether the annotation block immediately above it contains an
+				OpenAPI operation annotation (<code>@OA\Get</code>, <code>@OA\Post</code>,
+				<code>@OA\Patch</code>, <code>@OA\Put</code>, <code>@OA\Delete</code>).</li>
+				<li>Classify as <strong>annotated</strong> (skip) or <strong>candidate</strong>
+				(proceed).</li>
+			</ol>
+			<p>Produce a per-file summary: total public methods, annotated count, candidate count.</p>
+		</section>
+
+		<section data-kcd-section="phase-3">
+			<h4>Phase 3 — Annotation Generation</h4>
+			<p>For each candidate method, build a complete <code>@OA\{Verb}</code> block:</p>
+			<ul>
+				<li><strong>Path params</strong> — variables from the method's route arguments.</li>
+				<li><strong>Query params</strong> — keys read from the query string.</li>
+				<li><strong>Request body</strong> — keys read from the parsed body (write verbs only).</li>
+				<li><strong>Responses</strong> — status codes inferred from explicit response-status
+				calls; body properties inferred from response writes and visible SQL columns.</li>
+				<li><strong>Summary</strong> — one short phrase from existing comments or the method
+				name.</li>
+			</ul>
+			<p>Rules:</p>
+			<ul>
+				<li>The security scheme is declared on every route.</li>
+				<li>Query params <code>in="query"</code>, path params <code>in="path"</code>, body via
+				<code>@OA\RequestBody</code> + <code>@OA\JsonContent</code>.</li>
+				<li>200 responses include <code>@OA\JsonContent</code> with inferred properties.</li>
+				<li>Only response codes explicitly returned or clearly implied are included.</li>
+				<li>Generated annotations target the <code>openapi-version</code> spec.</li>
+			</ul>
+		</section>
+
+		<section data-kcd-section="phase-4">
+			<h4>Phase 4 — Compile Check</h4>
+			<p>Run the generated candidates through <code>openapi-compiler</code> to catch annotations it
+			cannot parse.</p>
+			<ol>
+				<li>Construct source stubs containing the candidate annotations. Candidates may be
+				<strong>batched</strong> into stub files (e.g. one per handler) rather than compiled one at
+				a time — a parse error still surfaces against the annotation that caused it.</li>
+				<li>Run <code>openapi-compiler</code> against the stub(s).</li>
+				<li>Record each candidate as <code>COMPILED</code> (the compiler parsed it) or
+				<code>COMPILE ERROR: {message}</code>.</li>
+			</ol>
+			<p><strong>Scope of this check:</strong> the compiler is lenient — it rejects only annotations
+			it genuinely cannot parse, not subtly malformed or schema-incorrect ones. <code>COMPILED</code>
+			means "well-formed enough to load", not "correct". The real correctness gate is human review
+			of the candidates file — which is why output is review-only.</p>
+			<p>A failing candidate is still written to output — flagged, not dropped — so it can be
+			corrected by hand.</p>
+		</section>
+
+		<section data-kcd-section="phase-5">
+			<h4>Phase 5 — Output Declaration</h4>
+			<p>Write <code>_Claude/audits/swagger-candidates.md</code> — flush-and-fill. Under
+			<code>--test</code>, the destination is redirected per <code>_generator_base</code>.</p>
+			<p><strong>Output format:</strong></p>
+<pre><code># Swagger Candidates — {date}
+
+Generated by generate-swagger. Each block is paste-ready above the named method.
+`[COMPILED]` blocks parsed cleanly; `[COMPILE ERROR]` blocks need correction first.
+Compiling is a backstop, not a correctness check — review every block before pasting.
+
+---
+
+## {HandlerName} ({candidate_count} candidates / {total} methods)
+
+#### {MethodName} — [COMPILED]
+**Route:** `{HTTP_VERB} {full_path}`
+
+```php
+/**
+ * @OA\{Verb}(
+ *   path="...",
+ *   summary="...",
+ *   security={{"bearerAuth":{}}},
+ *   ...
+ * )
+ */
+```
+
+#### {MethodName} — [COMPILE ERROR: {message}]
+...
+
+---
+
+## {FullyAnnotatedHandler} (0 candidates / {total} methods)
+
+*Fully annotated — no candidates.*
+
+---</code></pre>
+			<p>Handlers with zero candidates still appear with the "fully annotated" note, so the coverage
+			picture is complete.</p>
+			<p>This generator produces no other output.</p>
+		</section>
+	</section>
+
+</article>
+
+</body>
+</html>

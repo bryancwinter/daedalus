@@ -1,3 +1,4 @@
+import { VaultUtilities } from 'kcd_sdk';
 import { GuardChain } from '../guards';
 import { MCPUtils } from '../MCPUtils';
 
@@ -15,7 +16,7 @@ export function discoveryTools( chain: GuardChain ): ( ToolDefinition & { spec?:
 				{ label: 'finds a body/frontmatter term', input: { text: 'lens' },   assertions: [] },
 				{ label: 'censuses the vault by type',  input: { groupBy: 'type' },   assertions: [] },
 			],
-			description: 'Query artifacts by any combination of path glob, type, and body/frontmatter text (AND-combined). Returns matching refs, or { type, count }[] with groupBy:"type".',
+			description: 'Find artifacts by path glob, type, and body text — the place to start when you don\'t know the path.',
 			doc:
 				'The single read-query over the vault — subsumes the old glob/list/search/types tools. Any of ' +
 				'`glob` ( vault-relative path pattern; `*` within a segment, `**` across ), `type` ( artifact ' +
@@ -43,32 +44,15 @@ export function discoveryTools( chain: GuardChain ): ( ToolDefinition & { spec?:
 				try {
 					chain.run( { tool: 'kcd_query', params: args } );
 
-					const vault   = MCPUtils.vault;
-					const glob    = typeof args[ 'glob' ] === 'string' ? args[ 'glob' ] as string : undefined;
-					const type    = typeof args[ 'type' ] === 'string' ? args[ 'type' ] as string : undefined;
-					const text    = typeof args[ 'text' ] === 'string' ? args[ 'text' ] as string : undefined;
-					const groupBy = args[ 'groupBy' ] === 'type';
-					const needle  = text?.toLowerCase();
+					// One engine, two faces: this same call backs the CLI `query` command.
+					const result = VaultUtilities.query( MCPUtils.vault, {
+						glob:    typeof args[ 'glob' ] === 'string' ? args[ 'glob' ] as string : undefined,
+						type:    typeof args[ 'type' ] === 'string' ? args[ 'type' ] as string : undefined,
+						text:    typeof args[ 'text' ] === 'string' ? args[ 'text' ] as string : undefined,
+						groupBy: args[ 'groupBy' ] === 'type' ? 'type' : undefined,
+					} );
 
-					// AND-combine the filters over one scan. glob short-circuits through the Vault's own
-					// path filter; type + text narrow the survivors.
-					let files = glob ? vault.glob( glob ) : vault.scan();
-					if ( type )   files = files.filter( f => vault.classify( f.path ) === type );
-					if ( needle ) files = files.filter( f => ( f.body + '\n' + JSON.stringify( f.frontmatter ) ).toLowerCase().includes( needle ) );
-
-					if ( groupBy ) {
-						const counts: Record<string, number> = {};
-						for ( const f of files ) {
-							const t      = vault.classify( f.path );
-							counts[ t ]  = ( counts[ t ] ?? 0 ) + 1;
-						}
-						const census = Object.entries( counts )
-							.sort( ( a, b ) => b[ 1 ] - a[ 1 ] )
-							.map( ( [ type, count ] ) => ( { type, count } ) );
-						return MCPUtils.result( census );
-					}
-
-					return MCPUtils.result( files.map( f => vault.toRef( f ) ) );
+					return MCPUtils.result( result );
 				} catch ( e ) {
 					return MCPUtils.error( e instanceof Error ? e.message : String( e ) );
 				}

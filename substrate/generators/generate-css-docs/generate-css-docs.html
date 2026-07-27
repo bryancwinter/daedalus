@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<!-- ============================================================================
+     GENERATOR — generate-css-docs (canonical). Migrated from generate-css-docs.md.
+     Full format law: _Claude/kcd/references/kcd_sdk/kcd-document-protocol.html. Parameters §3.
+     ============================================================================ -->
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>generate-css-docs — Generator</title>
+	<link rel="stylesheet" href="../../kcd.css">
+</head>
+<body>
+
+<article data-kcd="generator">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">generate-css-docs</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">Documents a project's global CSS utility-class system into a flush-and-fill reference, then wires the lens(es) that need it. Run when the global CSS classes change or a lens needs the class reference.</dd>
+		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">generator</dd>
+		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">disabled</dd>
+		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
+		<dt>author</dt>        <dd data-kcd-field="author"         data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
+		<dt>base</dt>          <dd data-kcd-field="base"           data-kcd-type="slug">_generator-base</dd>
+	</dl>
+
+	<h1>generate-css-docs — Generator</h1>
+
+	<p><em>Generic across any project with a global CSS utility-class system. The deployed copy solves the
+	requirements below with project-specific values. Interpretive doc generator — sonnet, not
+	haiku.</em></p>
+
+	<p>Base rules: <a href="_Claude/generators/_generator_base.html">_generator_base</a> —
+	composition model, requirement resolution, fail behavior, output conventions, reference wiring.</p>
+
+	<section data-kcd-section="parameters">
+		<h3>Parameters</h3>
+		<div data-kcd-table data-kcd-params style="--kcd-cols: 1fr 1fr 1fr 2fr">
+			<div data-kcd-head><span>Name</span><span>Type</span><span>Default</span><span>Description</span></div>
+			<!-- model — default model seeding the work-graph node. Optional; NOT YET IMPLEMENTED. -->
+			<div data-kcd-param>
+				<span data-kcd-field="name"        data-kcd-type="slug">model</span>
+				<span data-kcd-field="type"        data-kcd-type="enum">model</span>
+				<span data-kcd-field="default"     data-kcd-type="text">claude-sonnet-5</span>
+				<span data-kcd-field="description" data-kcd-type="text">Default model that seeds this generator's work-graph node (not yet implemented).</span>
+			</div>
+		</div>
+		<p>Output: the <code>reference-target</code> requirement (solved in the deployed copy).</p>
+		<p><em><code>name</code> and <code>base</code> derive from the filename / frontmatter.</em></p>
+	</section>
+
+	<section data-kcd-section="requirements">
+		<h3>Requirements</h3>
+		<p><em>Declared generically here; solved in the deployed copy. See <code>_generator_base</code> for
+		pre-flight resolution and the fail rule.</em></p>
+		<ul>
+			<li><code>style-source</code> (Input) — Glob of the CSS files that define the global utility-class system.</li>
+			<li><code>class-prefix</code> (Input) — The prefix that marks a class as global (e.g. <code>g-</code>).</li>
+			<li><code>reference-target</code> (Input) — The reference file this generator writes — flush-and-fill.</li>
+			<li><code>reference-lenses</code> (Input) — The lens(es) whose Know table must point to the generated reference.</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="care">
+		<h3>Care</h3>
+		<p><strong>Defends:</strong></p>
+		<ul>
+			<li>The reference is flush-and-fill — fully regenerated each run, never hand-patched.</li>
+			<li>Documents only classes carrying <code>class-prefix</code> — scoped and component CSS is out of scope.</li>
+			<li>After a run, every lens in <code>reference-lenses</code> carries a correct Know-table entry for the reference.</li>
+		</ul>
+		<p><strong>Will not touch:</strong></p>
+		<ul>
+			<li>The source CSS files — read-only.</li>
+			<li>Component or scoped CSS, or any class without <code>class-prefix</code>.</li>
+			<li>Lens content other than the single Know-table row for this reference.</li>
+		</ul>
+		<p><strong>Surfaces (notes inline, does not block):</strong></p>
+		<ul>
+			<li>A prefixed class whose intent cannot be inferred from its CSS — document the raw declaration and flag "purpose unclear — verify".</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="do">
+		<h3>Do</h3>
+		<p><em>Pre-flight runs first, per <code>_generator_base</code> — deployment check, then requirement
+		resolution. Phases below assume the generator is deployed and all requirements are solved.</em></p>
+
+		<section data-kcd-section="phase-1">
+			<h4>Phase 1 — Source Load</h4>
+			<p>Read every file in <code>style-source</code>. Collect every class whose name begins with
+			<code>class-prefix</code>, with its full CSS declaration and the file it came from.</p>
+		</section>
+
+		<section data-kcd-section="phase-2">
+			<h4>Phase 2 — Reference Generation</h4>
+			<p>For each global class, produce an entry:</p>
+			<ul>
+				<li><strong>Does</strong> — one line: what the class is for.</li>
+				<li><strong>CSS</strong> — the declaration it applies.</li>
+				<li><strong>Use when</strong> — the situation that calls for it.</li>
+				<li><strong>Expects</strong> — the HTML structure it assumes.</li>
+				<li><strong>Composes with</strong> — related global classes commonly used alongside it.</li>
+			</ul>
+			<p>Group entries by source file. Write a short header naming the source glob and the generation
+			date.</p>
+		</section>
+
+		<section data-kcd-section="phase-3">
+			<h4>Phase 3 — Write Reference</h4>
+			<p>Flush-and-fill <code>reference-target</code> with the generated reference.</p>
+		</section>
+
+		<section data-kcd-section="phase-4">
+			<h4>Phase 4 — Lens Wiring</h4>
+			<p>For each lens in <code>reference-lenses</code>, ensure its Know table (References section) has a
+			row pointing to <code>reference-target</code>: <code>What | Where | Why</code>. Add the row if
+			missing; correct the path or Why text if stale. Touch nothing else in the lens.</p>
+			<p><em>Skipped under <code>--test</code>, per <code>_generator_base</code> — a test run produces
+			only the test artifact.</em></p>
+		</section>
+
+		<section data-kcd-section="phase-5">
+			<h4>Phase 5 — Output Declaration</h4>
+			<p>This generator writes <code>reference-target</code> (flush-and-fill) and edits the Know table
+			of each lens in <code>reference-lenses</code>. No other output.</p>
+			<p><strong>Reference format</strong> — follows the reference template
+			(_reference_template): frontmatter
+			(with <code>updated</code> set to the run date), then the body.</p>
+			<pre><code>---
+type: reference
+status: active
+name: {kebab-case reference name}
+description: "One line: the global CSS class system this documents"
+updated: {run date}
+---
+
+# {Title}
+
+*Generated by generate-css-docs from {style-source}. Documents the `{class-prefix}` global
+utility-class system. Flush-and-fill — do not hand-edit; rerun the generator.*
+
+## {Group — e.g. Layout (layout.css)}
+
+### `{class}`
+- **Does:** {one line}
+- **CSS:** `{declaration}`
+- **Use when:** {when to reach for it}
+- **Expects:** {HTML structure}
+- **Composes with:** {related global classes}</code></pre>
+		</section>
+	</section>
+
+</article>
+
+</body>
+</html>

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Lens Anatomy — Framework</title>
+	<link rel="stylesheet" href="../../kcd.css">
+</head>
+<body>
+
+<article data-kcd="framework">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">lens-anatomy</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">The three-and-only-three content categories of a lens (Know / Care / Do), the folder-is-a-lens invariant, and the import-block conventions. Read when building or auditing a lens.</dd>
+		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">framework</dd>
+		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">active</dd>
+		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
+		<dt>author</dt>        <dd data-kcd-field="author"         data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
+	</dl>
+
+	<h1>Lens Anatomy — Framework</h1>
+
+	<p>Generic framework meta-knowledge. A lens file has three categories of content, and only three:
+	<strong>Know</strong>, <strong>Care</strong>, <strong>Do</strong>. Anything that doesn't fit one
+	of those three is not part of the lens's anatomy.</p>
+
+	<blockquote>
+		<p><strong>One table format, everywhere.</strong> Every reference/import block in a lens —
+		<code>Know.References</code>, <code>Know.Domains</code>, <code>Do.Habits</code>,
+		<code>Do.Contracts</code>, and folder indexes — uses one header and only one:
+		<strong><code>What | Where | Why</code></strong>. There are no per-section variants. See
+		<a href="#import-block-conventions"><em>Import block conventions</em></a> below for column
+		semantics and the one permitted exception.</p>
+	</blockquote>
+
+	<p><strong>Structural invariant: a lens is a folder.</strong> <code>_Claude/lenses/{name}/</code>
+	contains <code>{name}.html</code> (the K/C/D body — the trunk) and a <code>context/</code> subfolder
+	for lens-specific Knows (material that travels only with this lens). On-disk this is the
+	trunk-and-branches model: the <code>.html</code> is the trunk, <code>context/</code> holds the
+	branches. Shared, cross-lens references live in the categorized <code>references/</code> store;
+	working output goes to <code>work/{name}/</code>; the completed log lives under
+	<code>logs/{name}/completed/</code>.</p>
+
+	<p><strong>Lens locations.</strong> Most lenses are <strong>drafted in place</strong> at
+	<code>_Claude/lenses/{name}/{name}.html</code> — <code>status: active</code>, project-specific,
+	never round-tripped through <code>kcd/</code>. A small set are <strong>deployable</strong>: they
+	live at <code>_Claude/kcd/lenses/{name}/{name}.html</code> with <code>status: disabled</code>, must
+	be project-agnostic (no hardcoded paths or domain vocabulary specific to one project), and are
+	copied into <code>_Claude/lenses/</code> via the
+	<a href="_Claude/contracts/deploy-lens.html">deploy-lens</a> contract. The schema is identical
+	in both locations — what differs is provenance and portability constraints. If a draft in
+	<code>kcd/lenses/</code> carries project-specific content, it does not belong there; move it to
+	<code>_Claude/lenses/</code>.</p>
+
+	<section data-kcd-section="know">
+		<h3>Know</h3>
+		<p><em>Read-only inputs. What this lens loads from the knowledge store.</em></p>
+		<p>Two layers. Both are input-only — never write to these locations from inside a session.</p>
+		<table>
+			<thead><tr><th>Layer</th><th>Purpose</th></tr></thead>
+			<tbody>
+				<tr><td><strong>References</strong></td><td>Specific named files the lens loads explicitly. Precise and intentional — you know exactly what you're getting. Lens-specific references live in the lens's own <code>context/</code>; shared ones in <code>references/</code>.</td></tr>
+				<tr><td><strong>Domains</strong></td><td>Topic-area folders the lens can trawl for inference. Read-only. Promoted or demoted by explicit command only — never written to during normal session work.</td></tr>
+			</tbody>
+		</table>
+	</section>
+
+	<section data-kcd-section="care">
+		<h3>Care</h3>
+		<p><em>Personality. Who this lens is and what it defends.</em></p>
+		<p><strong>Verbose form</strong> (new lenses, lenses where the Care is still being
+		discovered):</p>
+		<table>
+			<thead><tr><th>Layer</th><th>Purpose</th></tr></thead>
+			<tbody>
+				<tr><td><strong>Purpose</strong></td><td>What this lens activates — the kind of thinking it summons, and how it frames problems in its domain.</td></tr>
+				<tr><td><strong>Philosophy &amp; Prerogatives</strong></td><td>What it defends. Push-back style. What it flags. What it does not do.</td></tr>
+			</tbody>
+		</table>
+		<p><strong>Compact form — Surface/Suppress</strong> (mature lenses, stable well-understood
+		domains):</p>
+		<p>Two flat lists. Use when the Care is settled enough that prose would just be padding.</p>
+		<pre><code>**Suppress** — looks wrong but is intentional:
+- {item}: {why it is intentional}
+
+**Surface** — flag when touched:
+- {item}: {why it warrants attention}</code></pre>
+		<p>Surface/Suppress is not a degraded form — it is the correct form once a domain is
+		understood. Verbose form is for exploration; compact form is for execution. A lens may carry
+		both: verbose Purpose for orientation, compact Surface/Suppress for flagging
+		behavior.</p>
+	</section>
+
+	<section data-kcd-section="do">
+		<h3>Do</h3>
+		<p><em>Execution layer. How this lens operates and where its work goes.</em></p>
+		<p>Three layers.</p>
+		<table>
+			<thead><tr><th>Layer</th><th>Purpose</th></tr></thead>
+			<tbody>
+				<tr><td><strong>Habits</strong></td><td>Atomic single-step behaviors. Source lives in <code>_Claude/kcd/habits/{class}/</code>; the Where column in a deployed lens links to the deployed copy at <code>_Claude/habits/{class}/</code> — the class subfolder (the habit's slot) is preserved on deploy, never flattened. <code>_lens_base</code> supplies the universal ones (write-approval, work-routing, session/completed logging, no-subagents); a lens lists only what it adds. <code>_lens_base</code> is the one exception — its links stay at <code>_Claude/kcd/</code> because it is the canonical floor.</td></tr>
+				<tr><td><strong>Contracts</strong></td><td>Behavioral agreements this lens follows. Source lives in <code>_Claude/kcd/contracts/</code>; the Where column in a deployed lens links to the deployed copy at <code>_Claude/contracts/</code>.</td></tr>
+				<tr><td><strong>Working Space</strong></td><td>Where this lens drops output. Inherited from the <code>work-routing</code> habit in <code>_lens_base</code>. All work goes to <code>_Claude/work/{name}/</code> (<code>AI/</code>, <code>human/</code>, <code>plans/</code>). Never promoted without the user's explicit direction.</td></tr>
+			</tbody>
+		</table>
+		<p>A lens does <strong>not</strong> carry a list of generators or analyzers — those are
+		referenced by name and registered centrally, not enumerated per lens. The
+		<code>work-routing</code> habit is inherited from <code>_lens_base</code> and applies
+		automatically; lenses do not redeclare it unless they need a domain-specific override.</p>
+	</section>
+
+	<section data-kcd-section="core-principle">
+		<h3>Core principle</h3>
+		<p>A lens is a personality brief, not a reference document. The reader should be able to load
+		it and feel oriented in seconds. If a Care section grows past the point where it can be read at
+		a glance, extract its facts into a domain document (the lens's <code>context/</code> or the
+		shared <code>references/</code>) and reference them from the Know block instead. If procedural
+		guidance accumulates in Care, factor it into a habit and inherit it from Do.</p>
+		<p><strong>Optimize for: tightness, clarity, usefulness.</strong><br>
+		Prune first, then add.</p>
+		<p><strong>File routing is load-bearing.</strong> Misplaced files break references across
+		sessions. Know is read-only. Work output goes to <code>work/{name}/</code>. Promotion to
+		permanent locations is always manual. When in doubt, drop it in <code>work/{name}/AI/</code>
+		and flag it.</p>
+	</section>
+
+	<section data-kcd-section="import-block-conventions" id="import-block-conventions">
+		<h3>Import block conventions</h3>
+		<p><strong>Mandatory, no exceptions.</strong> Every reference/import block — any table whose
+		rows point at an artifact (a file, folder, habit, contract, or index) — uses one header:
+		<strong><code>What | Where | Why</code></strong>. This holds across <code>Know.References</code>,
+		<code>Know.Domains</code>, <code>Do.Habits</code>, <code>Do.Contracts</code>, and folder
+		indexes alike. There are no per-section header variants.</p>
+		<p>Every other header is out of spec and must be normalized on sight: <code>Trigger | Path |
+		When</code>, <code>What | Path | Use When</code>, <code>Contract | Covers</code>, and any
+		other historical variant. (Content tables that do <em>not</em> point at artifacts — e.g. a
+		<code>Layer | Purpose</code> table explaining the anatomy — are not import blocks and keep
+		their own descriptive headers.)</p>
+		<p>A 4th column is permitted when an extra dimension is load-bearing for a specific table —
+		e.g. <code>What | Where | Why | Lens</code> for cross-cutting audit tables. The first three
+		columns and their semantics never change; only the trailing column is variable. Use sparingly
+		— if the 4th column isn't carrying real signal, fold it into Why.</p>
+		<ul>
+			<li><strong>What</strong> — a short label naming the artifact.</li>
+			<li><strong>Where</strong> — a real <code>&lt;a&gt;</code> to the file or folder whose
+			<code>href</code> is both the value and the navigation. Path is
+			<strong>vault-root-relative</strong> — written from the project root with no leading slash
+			(e.g. <code>_Claude/kcd/...</code>), not relative to the lens file. The link must be a true
+			<code>&lt;a href&gt;</code>, never a bare code span, so the cross-link is followable.</li>
+			<li><strong>Why</strong> — when to load this reference / what role it plays.</li>
+		</ul>
+		<p><strong>Every row is a <code>&lt;div data-kcd-slot="&lt;kind&gt;"&gt;</code> — the kind is
+		mandatory and set by POSITION.</strong> A slot inherits the role of the block it sits in, never the
+		type of what its <code>Where</code> points at: a row in a <code>References</code> or
+		<code>Domains</code> block is a <code>reference</code>, in a <code>Habits</code> block a
+		<code>habit</code>, in a <code>Contracts</code> block a <code>contract</code>, in a
+		<code>Tools</code> block a <code>tool</code>. So a habit-artifact linked from a References block is a
+		<code>reference</code> (a read-only input), not an accessible habit — "if it's not in the habit
+		block, it's not an accessible habit." The closed kind set is
+		<strong><code>reference · habit · contract · tool · rule</code></strong> (dredge roles) plus
+		<code>link · table-data</code> (non-dredge rows: a nav link, a plain tabular cell). Domains fold into
+		<code>reference</code> — a domain folder is a read-only reference input. A bare
+		<code>data-kcd-slot</code> with no kind is <strong>invalid</strong>; the validator rejects it.</p>
+		<pre><code>&lt;section data-kcd-region="know"&gt;
+  &lt;h2&gt;Know&lt;/h2&gt;
+  &lt;p&gt;&lt;em&gt;Read-only inputs. What this lens loads from the knowledge store.&lt;/em&gt;&lt;/p&gt;
+
+  &lt;section data-kcd-section="references"&gt;
+    &lt;h3&gt;References&lt;/h3&gt;
+    &lt;p&gt;&lt;em&gt;Specific named files. Load explicitly by path.&lt;/em&gt;&lt;/p&gt;
+    &lt;div data-kcd-table&gt;
+      &lt;div data-kcd-head&gt;&lt;span&gt;What&lt;/span&gt;&lt;span&gt;Where&lt;/span&gt;&lt;span&gt;Why&lt;/span&gt;&lt;/div&gt;
+      &lt;div data-kcd-slot="reference" data-kcd-mode="on"&gt;
+        &lt;span data-kcd-field="what"  data-kcd-type="text"&gt;Framework concepts&lt;/span&gt;
+        &lt;a    data-kcd-field="where" data-kcd-type="path" href="_Claude/kcd/kcd_framework.html"&gt;kcd_framework&lt;/a&gt;
+        &lt;span data-kcd-field="why"   data-kcd-type="text"&gt;When designing or reviewing the system&lt;/span&gt;
+      &lt;/div&gt;
+      &lt;div data-kcd-slot="reference"&gt;
+        &lt;span data-kcd-field="what"  data-kcd-type="text"&gt;Lens anatomy&lt;/span&gt;
+        &lt;a    data-kcd-field="where" data-kcd-type="path" href="_Claude/kcd/docs/lens_anatomy.html"&gt;lens_anatomy&lt;/a&gt;
+        &lt;span data-kcd-field="why"   data-kcd-type="text"&gt;When building or auditing a lens&lt;/span&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/section&gt;
+
+  &lt;section data-kcd-section="domains"&gt;
+    &lt;h3&gt;Domains&lt;/h3&gt;
+    &lt;p&gt;&lt;em&gt;Topic-area folders. Read-only. Trawlable for inference.&lt;/em&gt;&lt;/p&gt;
+    &lt;div data-kcd-table&gt;
+      &lt;div data-kcd-head&gt;&lt;span&gt;What&lt;/span&gt;&lt;span&gt;Where&lt;/span&gt;&lt;span&gt;Why&lt;/span&gt;&lt;/div&gt;
+      &lt;div data-kcd-slot="reference"&gt;
+        &lt;span data-kcd-field="what"  data-kcd-type="text"&gt;Thinkers&lt;/span&gt;
+        &lt;a    data-kcd-field="where" data-kcd-type="path" href="_Claude/references/thinkers/"&gt;thinkers/&lt;/a&gt;
+        &lt;span data-kcd-field="why"   data-kcd-type="text"&gt;When routing a philosophical or rhetorical question&lt;/span&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/section&gt;
+&lt;/section&gt;
+
+&lt;section data-kcd-region="care"&gt;
+  &lt;h2&gt;Care&lt;/h2&gt;
+  &lt;p&gt;&lt;em&gt;Personality. Who this lens is and what it defends.&lt;/em&gt;&lt;/p&gt;
+  (Purpose, Philosophy &amp;amp; Prerogatives — written inline)
+&lt;/section&gt;
+
+&lt;section data-kcd-region="do"&gt;
+  &lt;h2&gt;Do&lt;/h2&gt;
+  &lt;p&gt;&lt;em&gt;Execution layer. How this lens operates and where its work goes.&lt;/em&gt;&lt;/p&gt;
+
+  &lt;section data-kcd-section="habits"&gt;
+    &lt;h3&gt;Habits&lt;/h3&gt;
+    &lt;p&gt;&lt;em&gt;Atomic single-step behaviors. &lt;code&gt;_lens_base&lt;/code&gt; supplies the universal ones; list only additions.&lt;/em&gt;&lt;/p&gt;
+    &lt;div data-kcd-table&gt;
+      &lt;div data-kcd-head&gt;&lt;span&gt;What&lt;/span&gt;&lt;span&gt;Where&lt;/span&gt;&lt;span&gt;Why&lt;/span&gt;&lt;/div&gt;
+      &lt;div data-kcd-slot="habit" data-kcd-mode="on"&gt;
+        &lt;span data-kcd-field="what"  data-kcd-type="text"&gt;add-todo&lt;/span&gt;
+        &lt;a    data-kcd-field="where" data-kcd-type="path" href="_Claude/kcd/habits/todo-policy/add-todo.html"&gt;add-todo&lt;/a&gt;
+        &lt;span data-kcd-field="why"   data-kcd-type="text"&gt;When a deferred item surfaces&lt;/span&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/section&gt;
+
+  &lt;section data-kcd-section="contracts"&gt;
+    &lt;h3&gt;Contracts&lt;/h3&gt;
+    &lt;p&gt;&lt;em&gt;Behavioral agreements this lens follows.&lt;/em&gt;&lt;/p&gt;
+    &lt;div data-kcd-table&gt;
+      &lt;div data-kcd-head&gt;&lt;span&gt;What&lt;/span&gt;&lt;span&gt;Where&lt;/span&gt;&lt;span&gt;Why&lt;/span&gt;&lt;/div&gt;
+      &lt;div data-kcd-slot="contract" data-kcd-mode="on"&gt;
+        &lt;span data-kcd-field="what"  data-kcd-type="text"&gt;Deploy lens&lt;/span&gt;
+        &lt;a    data-kcd-field="where" data-kcd-type="path" href="_Claude/contracts/deploy-lens.html"&gt;deploy-lens&lt;/a&gt;
+        &lt;span data-kcd-field="why"   data-kcd-type="text"&gt;When deploying a lens from kcd to a project&lt;/span&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/section&gt;
+&lt;/section&gt;</code></pre>
+		<p>Working space is inherited from <code>_lens_base</code> via <code>work-routing</code>.
+		Output goes to <code>_Claude/work/{name}/</code>. No table needed in individual lenses unless
+		overriding the default.</p>
+	</section>
+
+	<section data-kcd-section="stacking">
+		<h3>Stacking</h3>
+		<p>When multiple lenses are active simultaneously, treat them as a single conceptual
+		personality. References merge into one Know graph. Care sections fold together. Habits combine.
+		The reader doesn't experience N lenses — they experience one composite.</p>
+		<p>The base lens at <code>_Claude/lenses/_lens_base.html</code> is stacked on every session
+		without explicit invocation. It carries Care (project-wide stance) and the standing Do habits
+		(<code>write-approval</code>, <code>work-routing</code>, <code>session-log-aggressive</code>,
+		<code>completed-log-aggressive</code>). Specific lenses extend it; they do not replace it.</p>
+	</section>
+
+	<section data-kcd-section="operational-appendages">
+		<h3>Operational appendages (not part of K/C/D)</h3>
+		<p>Every lens carries two operational artifacts that aren't classified as content. They do
+		<strong>not</strong> live in the lens body — they live in referenced files, declared by the
+		lens's frontmatter:</p>
+		<ul>
+			<li><strong>TODO</strong> — date-stamped open items at the lens's <code>todo_path</code>
+			(<code>_Claude/logs/{name}/todo/</code>).</li>
+			<li><strong>Completed</strong> — the completed log at the lens's <code>completed_path</code>
+			(<code>_Claude/logs/{name}/completed/</code>).</li>
+		</ul>
+		<p>The agent knows where these are but does not read them unless asked. They exist for
+		record-keeping — structural, not anatomical.</p>
+	</section>
+
+</article>
+
+</body>
+</html>

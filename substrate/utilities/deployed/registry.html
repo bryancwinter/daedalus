@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Utilities — Deployed Registry</title>
+	<link rel="stylesheet" href="../../kcd.css">
+</head>
+<body>
+
+<article data-kcd="nav-index">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">utilities-deployed-registry</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">Allowlist of human-approved, runnable utilities in the deployed/ folder. A tool runs only if listed here and lives in deployed/.</dd>
+		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">nav-index</dd>
+		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">active</dd>
+		<dt>updated</dt>       <dd data-kcd-field="updated"        data-kcd-type="date">2026-06-11</dd>
+	</dl>
+
+	<h1>Utilities — Deployed Registry</h1>
+
+	<p>
+		The allowlist of human-approved, runnable utilities. A tool runs only if it is listed here
+		<strong>and</strong> lives in
+		<a href="_Claude/utilities/deployed/">deployed/</a>. Proposed tools wait in
+		draft/ until approved and promoted.
+	</p>
+
+	<p>
+		Content-addressing (hash + invalidate-on-change + re-approval) is <strong>deferred</strong>
+		— for now this is a manual allowlist. See <em>Still evolving → Utility tier</em> in
+		<a href="_Claude/kcd_framework.html">kcd_framework</a>.
+	</p>
+
+	<table>
+		<thead>
+			<tr><th>Utility</th><th>File</th><th>What</th><th>Approved</th></tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>auto-repair</td>
+				<td><a href="_Claude/utilities/deployed/auto-repair.js">auto-repair</a></td>
+				<td>Runs the repair-docs cycle end-to-end — detect structural drift, then apply the mechanical fixes. Currently a reporting stub.</td>
+				<td>2026-06-11</td>
+			</tr>
+			<tr>
+				<td>boolean_tester</td>
+				<td>boolean_tester</td>
+				<td>A dumb test utility — fails ~60% of the time (or always, via the <code>alwaysFails</code> flag). For wiring + input tests on the Constellation board.</td>
+				<td>2026-06-26</td>
+			</tr>
+		</tbody>
+	</table>
+
+</article>
+
+</body>
+</html>

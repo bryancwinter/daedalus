@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Root Context — Seed Source</title>
+	<link rel="stylesheet" href="kcd.css">
+</head>
+<body>
+
+<article data-kcd="framework">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">root-context</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">The seed source for a project's agent entry file — one payload block per agent host (CLAUDE.md, AGENTS.md, GEMINI.md), each carrying the bare minimum: how to reach the KCD Model Context Protocol server and where the entry document lives. This artifact is never copied; a deploy extracts the block matching the host and writes it into a managed region at the top of that file. Read or edit when changing what a cold agent is told before it has read anything else.</dd>
+		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">framework</dd>
+		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">active</dd>
+		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
+		<dt>author</dt>        <dd data-kcd-field="author"         data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
+		<dt>updated</dt>       <dd data-kcd-field="updated"        data-kcd-type="date">2026-07-25</dd>
+	</dl>
+
+	<h1>Root Context — Seed Source</h1>
+
+	<section data-kcd-section="why">
+		<h2 data-kcd-heading>Why</h2>
+		<p>changing what an agent is told before it has read anything else, or adding support for a new
+		agent host</p>
+	</section>
+
+	<section data-kcd-section="what-this-is">
+		<p>Every agent host reads a differently-named file at the project root before it does anything
+		else — <code>CLAUDE.md</code>, <code>AGENTS.md</code>, <code>GEMINI.md</code>. Those files are
+		owned by conventions outside KCD (protocol
+		<a href="_Claude/references/kcd_sdk/kcd-document-protocol.html">§9</a>), so KCD does not
+		reformat them. It authors them instead: this document carries one
+		<a href="_Claude/references/kcd_sdk/kcd-document-protocol.html">§10 seed</a> per host, and
+		a deploy extracts the one that matches and writes it into a managed block at the top of that
+		host's file.</p>
+		<p><strong>This artifact is never copied.</strong> Only its payloads travel, and only into the
+		file each payload names. Everything below a target's <code>&lt;!-- kcd:end --&gt;</code> marker
+		belongs to the project and is never touched.</p>
+		<p><strong>The payloads are deliberately thin.</strong> An entry file's whole job is to get an
+		agent to the real context in one step and then get out of the way. Anything that is not "here
+		is how you reach the vault" belongs in the entry document, not here — the entry file is a
+		pointer, and a pointer that grows into a manual has failed at being a pointer.</p>
+	</section>
+
+	<section data-kcd-section="hosts">
+		<h2 data-kcd-heading>Hosts</h2>
+		<p>Adding a host is adding a block — no schema change. The three below differ only in the file
+		they name and in whether they carry the <code>!lens</code> shorthand, which is a Claude-level
+		hook and not a KCD mechanism (protocol §7).</p>
+		<table>
+			<thead><tr><th>Host key</th><th>Target</th><th>Mode</th></tr></thead>
+			<tbody>
+				<tr><td><code>claude</code></td><td><code>CLAUDE.md</code></td><td><code>prepend</code></td></tr>
+				<tr><td><code>codex</code></td><td><code>AGENTS.md</code></td><td><code>prepend</code></td></tr>
+				<tr><td><code>gemini</code></td><td><code>GEMINI.md</code></td><td><code>prepend</code></td></tr>
+			</tbody>
+		</table>
+	</section>
+
+	<section data-kcd-section="seed-claude">
+		<h2 data-kcd-heading>Seed — claude</h2>
+<script type="text/kcd-md" data-kcd-seed="claude" data-kcd-target="CLAUDE.md" data-kcd-mode="prepend">
+# This Project
+
+A KCD-equipped project. **This file is not your context** — it is the pointer to it.
+
+## Read this first
+
+The entry document carries the hard rules, the lens roster, and the map of everything
+else. Load it before doing anything else:
+
+    kcd_get { path: "root.html" }
+
+KCD tool paths are **vault-relative** — they resolve against `_Claude/`, not the project
+root. If the KCD Model Context Protocol server is unavailable, read `_Claude/root.html` directly instead.
+
+## The KCD Model Context Protocol server
+
+Every governed document in this project is reachable through the `daedalus` server.
+Prefer it over raw file reads anywhere under `_Claude/`: it returns parsed artifacts,
+validates writes, and heals links.
+
+| Tool | Use it to |
+|---|---|
+| `kcd_query` | find artifacts by path glob, type, and body text — start here when you don't know the path |
+| `kcd_get` | load one artifact; for a lens, `depth` pulls in the context it always brings with it |
+| `kcd_links` | see an artifact's outbound links, and everything pointing back at it |
+| `kcd_health` | validate one artifact, or the whole vault, for dangling links and broken refs |
+| `kcd_compile` | compile one or more lenses into one composed context string — pass lens names, first is primary; this is what `!name` calls |
+| `kcd_survey` | reconnoitre the project beside the vault — a filename-level census of components, languages, and entry points; orient without exploring |
+| `kcd_save` | write an artifact — validated first; a malformed one is refused and nothing lands |
+| `kcd_move` | move or rename, healing every inbound link across the vault |
+| `kcd_delete` | delete, cascading the removal through every referrer |
+| `kcd_batch` | run an ordered sequence of the above, stopping at the first failure |
+
+Validation is file-level and all-or-nothing: a document that fails is discarded whole,
+never partially parsed. A refused `kcd_save` is the system working, not an obstacle to
+route around.
+
+**If the KCD Model Context Protocol server is unavailable for any reason, say so to the user before continuing.**
+Name the tool as missing rather than quietly routing around it, and warn that editing or
+modifying KCD artifacts will be considerably harder without it.
+
+You are still **permitted to edit artifacts directly** with ordinary file tools. But a
+direct edit is not acceptable until it has been **validated against the KCD Document
+Protocol** — the same all-or-nothing rules apply whether or not a tool enforced them, and
+an unvalidated hand-edit is exactly how a malformed document enters the system. Prefer
+the Model Context Protocol server heavily: editing by hand is the fallback, not an equivalent path.
+
+## Lenses
+
+`!name` at the start of a session compiles that lens's context — `!render`, `!main`,
+`!mcp` — via `kcd_compile { lenses: ["name"] }`, rather than opening the lens file
+directly. Stack them as `!render !mcp`: pass every active lens in one ordered array,
+first is primary and overrules on conflict — that ordering rule belongs to the tool
+itself, not a convention layered on top of it. The roster is in the entry document.
+</script>
+	</section>
+
+	<section data-kcd-section="seed-codex">
+		<h2 data-kcd-heading>Seed — codex</h2>
+<script type="text/kcd-md" data-kcd-seed="codex" data-kcd-target="AGENTS.md" data-kcd-mode="prepend">
+# This Project
+
+A KCD-equipped project. **This file is not your context** — it is the pointer to it.
+
+## Read this first
+
+The entry document carries the hard rules, the lens roster, and the map of everything
+else. Load it before doing anything else:
+
+    kcd_get { path: "root.html" }
+
+KCD tool paths are **vault-relative** — they resolve against `_Claude/`, not the project
+root. If the KCD Model Context Protocol server is unavailable, read `_Claude/root.html` directly instead.
+
+## The KCD Model Context Protocol server
+
+Every governed document in this project is reachable through the `daedalus` server.
+Prefer it over raw file reads anywhere under `_Claude/`: it returns parsed artifacts,
+validates writes, and heals links.
+
+| Tool | Use it to |
+|---|---|
+| `kcd_query` | find artifacts by path glob, type, and body text — start here when you don't know the path |
+| `kcd_get` | load one artifact; for a lens, `depth` pulls in the context it always brings with it |
+| `kcd_links` | see an artifact's outbound links, and everything pointing back at it |
+| `kcd_health` | validate one artifact, or the whole vault, for dangling links and broken refs |
+| `kcd_compile` | compile one or more lenses into one composed context string — pass lens names, first is primary |
+| `kcd_survey` | reconnoitre the project beside the vault — a filename-level census of components, languages, and entry points; orient without exploring |
+| `kcd_save` | write an artifact — validated first; a malformed one is refused and nothing lands |
+| `kcd_move` | move or rename, healing every inbound link across the vault |
+| `kcd_delete` | delete, cascading the removal through every referrer |
+| `kcd_batch` | run an ordered sequence of the above, stopping at the first failure |
+
+Validation is file-level and all-or-nothing: a document that fails is discarded whole,
+never partially parsed. A refused `kcd_save` is the system working, not an obstacle to
+route around.
+
+**If the KCD Model Context Protocol server is unavailable for any reason, say so to the user before continuing.**
+Name the tool as missing rather than quietly routing around it, and warn that editing or
+modifying KCD artifacts will be considerably harder without it.
+
+You are still **permitted to edit artifacts directly** with ordinary file tools. But a
+direct edit is not acceptable until it has been **validated against the KCD Document
+Protocol** — the same all-or-nothing rules apply whether or not a tool enforced them, and
+an unvalidated hand-edit is exactly how a malformed document enters the system. Prefer
+the Model Context Protocol server heavily: editing by hand is the fallback, not an equivalent path.
+
+## Lenses
+
+The entry document lists the project's lenses — Know/Care personalities you adopt for a
+task. Compile the one matching the work before starting it:
+
+    kcd_compile { lenses: ["name"] }
+
+Pass more than one to stack — the first in the array is primary and overrules on
+conflict.
+</script>
+	</section>
+
+	<section data-kcd-section="seed-gemini">
+		<h2 data-kcd-heading>Seed — gemini</h2>
+<script type="text/kcd-md" data-kcd-seed="gemini" data-kcd-target="GEMINI.md" data-kcd-mode="prepend">
+# This Project
+
+A KCD-equipped project. **This file is not your context** — it is the pointer to it.
+
+## Read this first
+
+The entry document carries the hard rules, the lens roster, and the map of everything
+else. Load it before doing anything else:
+
+    kcd_get { path: "root.html" }
+
+KCD tool paths are **vault-relative** — they resolve against `_Claude/`, not the project
+root. If the KCD Model Context Protocol server is unavailable, read `_Claude/root.html` directly instead.
+
+## The KCD Model Context Protocol server
+
+Every governed document in this project is reachable through the `daedalus` server.
+Prefer it over raw file reads anywhere under `_Claude/`: it returns parsed artifacts,
+validates writes, and heals links.
+
+| Tool | Use it to |
+|---|---|
+| `kcd_query` | find artifacts by path glob, type, and body text — start here when you don't know the path |
+| `kcd_get` | load one artifact; for a lens, `depth` pulls in the context it always brings with it |
+| `kcd_links` | see an artifact's outbound links, and everything pointing back at it |
+| `kcd_health` | validate one artifact, or the whole vault, for dangling links and broken refs |
+| `kcd_compile` | compile one or more lenses into one composed context string — pass lens names, first is primary |
+| `kcd_survey` | reconnoitre the project beside the vault — a filename-level census of components, languages, and entry points; orient without exploring |
+| `kcd_save` | write an artifact — validated first; a malformed one is refused and nothing lands |
+| `kcd_move` | move or rename, healing every inbound link across the vault |
+| `kcd_delete` | delete, cascading the removal through every referrer |
+| `kcd_batch` | run an ordered sequence of the above, stopping at the first failure |
+
+Validation is file-level and all-or-nothing: a document that fails is discarded whole,
+never partially parsed. A refused `kcd_save` is the system working, not an obstacle to
+route around.
+
+**If the KCD Model Context Protocol server is unavailable for any reason, say so to the user before continuing.**
+Name the tool as missing rather than quietly routing around it, and warn that editing or
+modifying KCD artifacts will be considerably harder without it.
+
+You are still **permitted to edit artifacts directly** with ordinary file tools. But a
+direct edit is not acceptable until it has been **validated against the KCD Document
+Protocol** — the same all-or-nothing rules apply whether or not a tool enforced them, and
+an unvalidated hand-edit is exactly how a malformed document enters the system. Prefer
+the Model Context Protocol server heavily: editing by hand is the fallback, not an equivalent path.
+
+## Lenses
+
+The entry document lists the project's lenses — Know/Care personalities you adopt for a
+task. Compile the one matching the work before starting it:
+
+    kcd_compile { lenses: ["name"] }
+
+Pass more than one to stack — the first in the array is primary and overrules on
+conflict.
+</script>
+	</section>
+
+	<section data-kcd-section="references" data-kcd-merge="union">
+		<h2>References</h2>
+		<div data-kcd-table>
+			<div data-kcd-head><span>What</span><span>Where</span><span>Why</span></div>
+			<div data-kcd-slot="reference" data-kcd-mode="on">
+				<span data-kcd-field="what"  data-kcd-type="text">KCD Document Protocol</span>
+				<a    data-kcd-field="where" data-kcd-type="path" href="_Claude/references/kcd_sdk/kcd-document-protocol.html">kcd-document-protocol</a>
+				<span data-kcd-field="why"   data-kcd-type="text">§10 defines the seed component this document is built from; §9 defines the boundary it bridges.</span>
+			</div>
+			<div data-kcd-slot="reference" data-kcd-mode="on">
+				<span data-kcd-field="what"  data-kcd-type="text">Entry document (deployed)</span>
+				<a    data-kcd-field="where" data-kcd-type="path" href="_Claude/root.html">starmind</a>
+				<span data-kcd-field="why"   data-kcd-type="text">What every payload here points at — the real root context, and the thing that should grow instead of these seeds.</span>
+			</div>
+		</div>
+	</section>
+
+</article>
+
+</body>
+</html>

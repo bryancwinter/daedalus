@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Entry Document</title>
+	<link rel="stylesheet" href="kcd.css">
+</head>
+<body>
+
+<article data-kcd="framework">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">root</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">The root context for every agent session in this project, on any host — the hard rules, the lens roster, and the map of everything else. Load this first, before any work; CLAUDE.md and its siblings exist only to point here. Shipped by the installer as a starting point and meant to be edited: the hard rules below are defaults, not doctrine.</dd>
+		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">framework</dd>
+		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">active</dd>
+		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
+		<dt>updated</dt>       <dd data-kcd-field="updated"        data-kcd-type="date">2026-07-26</dd>
+	</dl>
+
+	<h1>Entry Document</h1>
+
+	<section data-kcd-section="why">
+		<h2 data-kcd-heading>Why</h2>
+		<p>Starting any session in this project, on any agent host — this is the first thing to read, and
+		the thing every entry file points at.</p>
+	</section>
+
+	<section data-kcd-section="orientation">
+		<h2 data-kcd-heading>Where you are</h2>
+		<p>This project uses <strong>KCD</strong> — a meta-cognition layer that splits an agent's context
+		into three parts assembled at runtime: <strong>Know</strong> (what you need to know),
+		<strong>Care</strong> (what you defend), and <strong>Do</strong> (what you are doing this session).
+		A <strong>lens</strong> is a Know + Care pair — a personality with no actions. A session is a lens,
+		or a stack of them, plus a Do.</p>
+		<p>The point of all this: an agent that loads a lens does not have to rediscover the project. The
+		things a newcomer would take a week to learn — why a thing is done the odd way, what must never be
+		changed, which decisions are already settled — are written down once and loaded on demand.</p>
+		<p>The vault is <a href="_Claude/">_Claude/</a>. Everything governed lives there, authored as
+		standards-valid HTML that opens in any browser and is read mechanically by the tools. The
+		<code>CLAUDE.md</code> / <code>AGENTS.md</code> / <code>GEMINI.md</code> file at the project root
+		is a <strong>pointer to this document and nothing more</strong>. It is generated from
+		<a href="_Claude/root-context.html">root-context</a>, so edit that rather than the emitted file.</p>
+		<p><a href="_Claude/lenses/_lens_base.html">_lens_base</a> is the auto-loaded floor. It carries the
+		project-wide stance and the universal habits every other lens extends. No lens replaces it.</p>
+	</section>
+
+	<section data-kcd-section="new-vault">
+		<h2 data-kcd-heading>If this vault is new</h2>
+		<p>A freshly installed vault has the framework's floor and <em>nothing about this project</em>. It
+		is structurally valid and not yet worth much. Three things turn that around, in order:</p>
+		<ol>
+			<li><strong>Run <code>daedalus get-started</code></strong> if you have not. It surveys the
+			project and hands you a prompt to verify the tools actually work against your own code.</li>
+			<li><strong>Author the first lens.</strong> The <code>kcd-onboard</code> skill installed
+			alongside this vault walks it: read the survey, agree the boundaries with whoever owns the
+			project, write one lens rather than five. A lens that is honestly about one component beats a
+			survey of everything.</li>
+			<li><strong>Edit this document.</strong> The hard rules below are the installer's defaults and
+			are almost certainly wrong for you in at least one place. Replacing them is the point — this
+			file is yours now.</li>
+		</ol>
+		<p>Delete this section once the vault has a lens or two. It has done its job.</p>
+	</section>
+
+	<section data-kcd-section="hard-rules">
+		<h2 data-kcd-heading>Hard rules</h2>
+		<p>These apply in every session, under every lens. A fresh agent reading this document should treat
+		them as non-negotiable defaults. <strong>They are also a starting set</strong> — the rules that
+		matter most in a given project are the ones its owner adds here.</p>
+		<ol>
+			<li><strong>Draft and explain before executing on code.</strong> For any code change, describe
+			what you intend to do and why before writing a line. Give the user a chance to redirect.
+			Execution follows explanation, never the other way around.</li>
+
+			<li><strong>Ask before editing the entry files.</strong> <code>CLAUDE.md</code> and its
+			siblings, and this document, are the session entry point for the whole project. Do not modify
+			them unless asked. If you think one needs updating, say so and wait.</li>
+
+			<li><strong>Vault writes are permitted and encouraged.</strong> Updating the vault — session
+			logs, references, lens bodies, todos — is part of the work, not a side effect of it, and needs
+			no special approval. The exception is the entry files above.</li>
+
+			<li><strong>Never claim something about this project you did not read.</strong> Every statement
+			written into the vault should trace to a file, a command's output, or something the user said.
+			A plausible invention is worse than a gap, because a gap is visible.</li>
+
+			<li><strong>An artifact is done when it validates, not when it is written.</strong> Run
+			<code>kcd_health</code> against what you just saved and fix every error before moving on.
+			Warnings are advisory; errors are not.</li>
+		</ol>
+	</section>
+
+	<section data-kcd-section="lenses">
+		<h2 data-kcd-heading>Lenses</h2>
+		<p>Compile the lens matching the work before starting it — call
+		<code>kcd_compile { lenses: ["name"] }</code> and read the composed Know/Care back, rather than
+		opening the lens file directly. Lenses are description-triggered: match the task against the
+		<em>Why</em> column and pick the name. Under Claude Code the <code>!name</code> shorthand resolves
+		to that same call, not a separate mechanism.</p>
+		<p>This table is generated. After adding or removing a lens, run
+		<code>daedalus lens-index confirm</code> rather than editing the rows by hand — each row's text is
+		read from the lens's own frontmatter, so a hand-edited copy silently drifts from the real thing.</p>
+		<div data-kcd-table>
+			<div data-kcd-head><span>What</span><span>Where</span><span>Why</span></div>
+			<div data-kcd-slot="reference" data-kcd-mode="on">
+				<span data-kcd-field="what"  data-kcd-type="text">lens_crafter</span>
+				<a    data-kcd-field="where" data-kcd-type="path" href="_Claude/lenses/lens_crafter/lens_crafter.html">lens_crafter</a>
+				<span data-kcd-field="why"   data-kcd-type="text">Designs and deploys KCD artifacts — lenses, generators, analyzers, and habits. Use when authoring, restructuring, or auditing a lens or other KCD artifact, or restoring a deployed artifact from the installed bundle.</span>
+			</div>
+		</div>
+	</section>
+
+	<section data-kcd-section="stacking">
+		<h2 data-kcd-heading>Stacking</h2>
+		<p>Multiple lenses can apply at once. <strong>Precedence is declaration order</strong> — the first
+		is <strong>primary</strong> and overrules on conflict; the rest contribute their Know and Care to
+		the composite. This is not a convention layered over compilation, it is
+		<code>kcd_compile</code>'s own rule: pass every active lens as one ordered <code>lenses</code>
+		array, index 0 wins ties.</p>
+		<p>Stacking is for human-driven sessions, because the human is the conflict resolver in real time.
+		Lenses are deliberately <em>inclusive</em> — overlapping domains are a feature, not a modelling
+		error to be normalised away.</p>
+	</section>
+
+	<section data-kcd-section="framework-reference" data-kcd-merge="union">
+		<h2 data-kcd-heading>The framework itself</h2>
+		<div data-kcd-table>
+			<div data-kcd-head><span>What</span><span>Where</span><span>Why</span></div>
+			<div data-kcd-slot="reference" data-kcd-mode="on">
+				<span data-kcd-field="what"  data-kcd-type="text">KCD framework</span>
+				<a    data-kcd-field="where" data-kcd-type="path" href="_Claude/kcd_framework.html">kcd_framework</a>
+				<span data-kcd-field="why"   data-kcd-type="text">The primitives, the two-agent model, composition, and the principles the rest of the system refers to. Read when working on the framework itself.</span>
+			</div>
+			<div data-kcd-slot="reference" data-kcd-mode="on">
+				<span data-kcd-field="what"  data-kcd-type="text">KCD Document Protocol</span>
+				<a    data-kcd-field="where" data-kcd-type="path" href="_Claude/references/kcd_sdk/kcd-document-protocol.html">kcd-document-protocol</a>
+				<span data-kcd-field="why"   data-kcd-type="text">The locked HTML format every artifact is authored in — addressing contract, component vocabulary, frontmatter, validation. Read before authoring or parsing any document.</span>
+			</div>
+			<div data-kcd-slot="reference" data-kcd-mode="on">
+				<span data-kcd-field="what"  data-kcd-type="text">KCD primitives</span>
+				<a    data-kcd-field="where" data-kcd-type="path" href="_Claude/references/kcd_sdk/kcd-primitives.html">kcd-primitives</a>
+				<span data-kcd-field="why"   data-kcd-type="text">Each artifact type's required frontmatter, sections, and role. Read when authoring or validating an artifact.</span>
+			</div>
+			<div data-kcd-slot="reference" data-kcd-mode="on">
+				<span data-kcd-field="what"  data-kcd-type="text">Read a survey</span>
+				<a    data-kcd-field="where" data-kcd-type="path" href="_Claude/references/how-to/read-a-survey.html">read-a-survey</a>
+				<span data-kcd-field="why"   data-kcd-type="text">How to read the survey census under audits/survey/, and what it deliberately does not claim. Read it INSTEAD of exploring an unfamiliar codebase.</span>
+			</div>
+			<div data-kcd-slot="reference" data-kcd-mode="on">
+				<span data-kcd-field="what"  data-kcd-type="text">Vault map</span>
+				<a    data-kcd-field="where" data-kcd-type="path" href="_Claude/nav-index.html">nav-index</a>
+				<span data-kcd-field="why"   data-kcd-type="text">Every top-level directory in the vault and what belongs in it. Where a new artifact goes.</span>
+			</div>
+			<div data-kcd-slot="reference" data-kcd-mode="on">
+				<span data-kcd-field="what"  data-kcd-type="text">Session log</span>
+				<span data-kcd-field="where" data-kcd-type="address">_Claude/logs/</span>
+				<span data-kcd-field="why"   data-kcd-type="text">Where sessions are recorded, plus per-lens todo and completed entries.</span>
+			</div>
+		</div>
+	</section>
+
+</article>
+
+</body>
+</html>

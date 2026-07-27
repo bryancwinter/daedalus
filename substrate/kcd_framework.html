@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>KCD Framework — Framework</title>
+	<link rel="stylesheet" href="kcd.css">
+</head>
+<body>
+
+<article data-kcd="framework">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">kcd-framework</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">The meta-cognition layer for organizing AI-assisted work: the Know/Care/Do model, the agent model, composition, and the conventions that define KCD. Pulled into context only when working on the framework itself.</dd>
+		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">framework</dd>
+		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">active</dd>
+		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
+		<dt>author</dt>        <dd data-kcd-field="author"         data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
+		<dt>updated</dt>       <dd data-kcd-field="updated"        data-kcd-type="date">2026-07-01</dd>
+	</dl>
+
+	<h1>KCD Framework — Framework</h1>
+
+	<p>A meta-cognition layer for organizing AI-assisted work. The framework is <strong>defined by
+	its file structure</strong> — the canvas is the lock, this doc is the explanation. It is not
+	auto-loaded; it is pulled into context only when working on the framework itself.</p>
+
+	<section data-kcd-section="core-idea">
+		<h3>Core idea</h3>
+		<p>Every AI task is supported by some context. KCD breaks context into three conceptual
+		components, assembled at runtime:</p>
+		<ul>
+			<li><strong>Know</strong> — what the AI needs to know to perform the task (facts,
+			vocabulary, system knowledge, prior decisions)</li>
+			<li><strong>Care</strong> — what the AI defends (failure modes, architectural vision,
+			push-back style, what to flag)</li>
+			<li><strong>Do</strong> — what the agent is going to do this session (the task itself, or a
+			procedure or habit slotted in)</li>
+		</ul>
+		<p>A <strong>lens</strong> is a Know + Care pair. Lenses have no actions — they are
+		personalities. A <strong>session</strong> or <strong>agent</strong> is a lens (or stack) + a
+		Do.</p>
+	</section>
+
+	<section data-kcd-section="why-it-matters">
+		<h3>Why it matters</h3>
+		<p>The human bottleneck in AI-assisted work is no longer the capacity to write code or
+		boilerplate. It is the capacity to fully clarify a set of concepts. KCD is the structural
+		expression of that thesis: <strong>every artifact is a clarified concept</strong>, and the
+		human's job is to author and compose those, not write the connecting tissue.</p>
+		<p>Empirical claim under test: a KCD-equipped codebase lets Claude plan substantive work
+		without crawling the codebase. Context tightness becomes measurable as the ratio of
+		lens-tokens to investigation-tokens for a given task quality.</p>
+	</section>
+
+	<section data-kcd-section="the-structure-is-the-framework">
+		<h3>The structure is the framework</h3>
+		<p>The framework used to be a thesis with a loose folder convention attached. It is now the
+		other way around: <strong>the deployed file structure is the canonical definition</strong>,
+		and this doc explains why it is shaped the way it is. The authoritative enumeration is the
+		<code>VaultLayout</code> table in the SDK — one table in code that classification, the library
+		index whitelist, and the deploy scaffold all read, so the structure cannot drift between them.
+		Its published, human-readable face is
+		<a href="_Claude/references/kcd_sdk/vault-layout.html">vault-layout</a>. Paths are what drift
+		the most, so the paths are what we lock — in code, where the lock is executable.</p>
+		<p>A deployed project lives under <code>_Claude/</code> at the project root (with
+		<code>CLAUDE.md</code> at the root as the entry map). Every directory carries a
+		<strong>layer</strong> in the table, and the tree falls into <strong>three</strong> of them:</p>
+
+		<h4>1. Agent layer — the things that compose</h4>
+		<p><code>lenses/</code> · <code>analyzers/</code> · <code>generators/</code> ·
+		<code>habits/</code>, each a <strong>direct child of
+		<code>_Claude/</code></strong>. There is no <code>procedures/</code> wrapper: the family
+		folder is the only level of nesting, because a wrapper buys nothing and makes the tree more
+		semantically dense than it needs to be. Reducing primitives is a goal, not an accident. Each
+		family folder holds its base, its template, and its instances.</p>
+		<p><strong>An instance is a folder, not a file.</strong> A lens is <code>lenses/{lensname}/</code>
+		containing <code>{lensname}.html</code> (the K/C/D body) and a <code>context/</code> subfolder.
+		Same shape for <code>analyzers/{analyzername}/</code> and <code>generators/{generatorname}/</code>.
+		This is the on-disk form of the trunk-and-branches model: the <code>.html</code> file is the
+		trunk, <code>context/</code> holds the branches.</p>
+		<p><code>context/</code> is a <strong>local store for context specific to that
+		instance.</strong> It lets the lens body stay thin while keeping lens-specific material close
+		— e.g. an art lens whose reference material is only ever relevant to that lens keeps it in its
+		own <code>context/</code>, not in the shared <code>references/</code> library.</p>
+
+		<h4>2. Canonical + tool layer — the immutable substrate</h4>
+		<ul>
+			<li><code>kcd/</code> — the canonical framework library. <strong>Shouldn't change
+			ever</strong> in a deployed instance: it is the normalization reference the project is
+			checked against, edited only at the framework's own home. All artifacts are in
+			<code>.html</code> format per the <a href="_Claude/references/kcd_sdk/kcd-document-protocol.html">KCD Document Protocol</a>.</li>
+			<li><code>utilities/</code> — the registered tool tier (see <em>The agent model</em>).
+			Structurally carries its own security gate: <code>draft/</code> (agent- or human-proposed,
+			<strong>not yet runnable</strong>), <code>deployed/</code> (<strong>human-approved,
+			runnable</strong>), and <code>registry.html</code> (the allowlist record). The
+			author→approve→execute boundary is a folder boundary.</li>
+		</ul>
+
+		<h4>3. Data + instance layer — outputs and authored documents</h4>
+		<p><code>work/{lensname}/</code> (per-lens working area: <code>AI/</code>, <code>human/</code>,
+		<code>plans/</code>) · <code>logs/</code> (<code>session.md</code> + per-lens
+		<code>completed/</code>, <code>todo/</code>, <code>agent-status/</code>) ·
+		<code>references/</code> · <code>reports/</code> (analyzer output) · <code>audits/</code>
+		(generator raw output) · <code>contracts/</code> · <code>plans/</code>. The retired
+		<code>automation/</code> wrapper is gone — <code>reports/</code> and <code>audits/</code> are
+		top-level.</p>
+		<p><strong>Folders exist even when empty.</strong> The structure itself is the contract, so a
+		deploy lays down the full tree regardless of current contents. <strong><code>work/</code> is a
+		messy draft workbench and is never canonical</strong> — provenance under it is split
+		<code>AI/</code> vs <code>human/</code> by who authored the material.</p>
+	</section>
+
+	<section data-kcd-section="the-agent-model">
+		<h3>The agent model — two agents + one tool tier</h3>
+		<p>There is one axis that matters: <strong>judgment vs. mechanical.</strong> Three roles fall
+		out of it, <strong>not symmetric</strong> — two are AI agents, one is the tool layer beneath
+		them.</p>
+		<ul>
+			<li><strong>Generator</strong> <em>(agent · mechanical · no lens).</em> Deterministic,
+			<strong>manifest-driven</strong>. Builds and modifies artifacts flush-and-fill; broad
+			write authority. Runs on a cheap model or shells out to a registered utility (automate the
+			automators). A generator <strong>executes a spec, it does not improvise</strong> — broad
+			write is only safe because it is mechanically specified.</li>
+			<li><strong>Analyzer</strong> <em>(agent · insight · carries a lens).</em> Reads
+			<strong>anywhere</strong>, writes <strong>one place</strong> (its report). Moves across
+			the codebase, surfaces opportunities — including <em>"this could be made mechanical"</em> →
+			hands a manifest to a generator. Full reasoning model.</li>
+			<li><strong>Utility</strong> <em>(tool tier · not AI).</em> The project's <strong>shared
+			tool-surface</strong> — a service that exposes many deterministic scripts, same mental
+			bucket as Model Context Protocol tools. Unlike the agent families, a utility has <strong>no
+			base/template/instance pattern</strong>: the tier is one service that registers many
+			tools, not a family with a shared base. Agent- or human-authored; once <strong>registered
+			and approved</strong>, a tool is something a <strong>user can run</strong> (e.g.
+			<code>help</code> lists the available lenses, commands, and tools) and an <strong>agent can
+			call</strong> in-session — also a natural demo/teaching surface, where the agent performs a
+			tool call and educates the user on it. Generators invoke utilities as their internal
+			black-box scripts.</li>
+		</ul>
+		<p><strong>The tiers compose.</strong> Utilities are the deterministic substrate; the two
+		agent types stand on top and call into them. Analyzers feed generators (insight →
+		mechanizable spec); generators feed analyzers (raw data → interpretation).</p>
+		<p><strong>The blast-radius invariant.</strong> The agent <em>with</em> judgment and a lens
+		(Analyzer) has the <em>narrowest</em> write authority — report-only, can't wreck the tree. The
+		agent <em>with</em> broad write authority (Generator) has <em>no</em> judgment — it's
+		predictable and spec-driven. <strong>High autonomy ⇒ narrow write; broad write ⇒ low
+		autonomy.</strong> An explicit rule, not an accident.</p>
+		<p><strong>Why the split — the constraint is the point.</strong> The Analyzer→Generator
+		handoff is not merely division of labor; it is a <strong>forcing function.</strong> An
+		Analyzer reasons freely, but it is then <em>required</em> to compose its conclusion as a
+		manifest a Generator can execute <strong>without further instruction.</strong> That
+		requirement forces it to think every consequence through in advance — "produce something
+		executable without judgment" pushes the reasoning to completeness. The bet: <strong>constrained
+		output is more reliable and repeatable than free output</strong> — a painter cannot paint
+		without constraints. Architecturally this is a <strong>meta-loop wrapped around the agent's
+		ordinary thinking loop</strong>, and it is potentially iterable (analyzer → generator →
+		analyzer …). The build strategy follows directly: make the Generators boringly reliable, then
+		tune the Analyzer hard against the hardest problems.</p>
+		<p><strong>Classification default: Generator.</strong> When a unit of work is borderline,
+		narrow its scope until it's genuinely mechanical rather than promoting it to Analyzer. Analyzer
+		is reserved for work that genuinely cannot be made mechanical.</p>
+		<p><strong>A sub-agent is just a lens, run unsupervised.</strong> Dispatching a sub-agent is
+		not a new primitive — it is composing a lens around a task and running it without a human in
+		the loop. A generator is the common case: dispatched by an analyzer or lens-equipped session
+		carrying a manifest. The composing-side rule ("delegations to a generator are manifests, not
+		briefs") lives in <code>_base</code> so every session inherits it.</p>
+	</section>
+
+	<section data-kcd-section="habits">
+		<h3>Habits</h3>
+		<p>A <strong>habit</strong> is a tiny, composable unit of behavior — a fragment of <em>how</em>
+		an agent should act, not a task it performs. Examples: log a session before it compacts; add a
+		todo in a specific place. Habits also express <strong>don'ts</strong> — negative constraints
+		like <em>don't write to this file</em> or <em>don't edit without write approval</em>. They are
+		normally attached to lenses, but in principle attach to anything. Like all context, a habit is
+		compressed into the compiled K/C/D block for a session turn — the on-disk structure is
+		irrelevant to the dispatched output.</p>
+	</section>
+
+	<section data-kcd-section="composition">
+		<h3>Composition</h3>
+		<ul>
+			<li><strong>Lens stacking</strong> — multiple lenses applied at once. Precedence is
+			declaration order: stacking <code>render</code> then <code>mcp</code> makes render
+			<strong>primary</strong> and overruling on conflict; mcp is secondary and contributes its
+			Know and Care to the composite. Reserved for human-driven sessions — the human is the
+			conflict resolver in real time. A pairwise lens-conflict resolution agent (auditing lenses
+			for contradictions, overlap, and loops) is a pending tool; until it exists, stacking is a
+			human-supervised operation. A natural example: <code>render</code> as primary for domain
+			work that touches the UI — the stacked session holds rendering conventions and domain data
+			contract simultaneously rather than context-switching.</li>
+			<li><strong>Lens swapping</strong> — sequential single-lens passes. Default for automated
+			agents. Each pass is monomorphic: one lens, one Do, dump, next. Debuggable like a Unix
+			pipe.</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="principles">
+		<h3>Principles</h3>
+		<p>Named so the rest of the system can refer to them.</p>
+		<ul>
+			<li><strong>Code where executable, HTML where authored.</strong> The framework's
+			executable parts (parse, validate, deploy, dispatch, flush) live in code; its authored
+			parts (lenses, references, plans, docs) live in HTML per the <a href="_Claude/references/kcd_sdk/kcd-document-protocol.html">KCD Document Protocol</a>.
+			HTML is the schema-conformant authoring surface that code reads, writes, and round-trips.</li>
+			<li><strong>Shared tool bucket.</strong> The Utility tier is a <em>single</em> registered
+			API surface shared by the human and the AI: the same script the engineer runs from a
+			terminal is the one an agent calls in-session is the one an analyzer hands a generator.
+			Registered once, one approve/revoke gate.</li>
+			<li><strong>Compilation strips scaffolding.</strong> On-disk ≠ dispatched. When context is
+			compiled into a bundle, frontmatter and section scaffolding are stripped and Know/Care/Do
+			merge into one prompt block. Frontmatter is authoring/tooling metadata — its byte cost is
+			paid only when an agent reads the raw file, never in the dispatched prompt.</li>
+			<li><strong>Disabled = ignored twice.</strong> A <code>status: disabled</code> artifact is
+			skipped behaviorally (lenses skip it) <em>and</em> mechanically (the compiler excludes it).
+			Defense in depth. <code>composed</code> shares the <em>mechanical</em> half (the compiler
+			excludes it from standalone loading too) but <strong>not</strong> the behavioral half: a
+			<code>composed</code> artifact is live and meant to be read in place — it is the status the
+			type-bases carry (<code>_generator_base</code>, etc.), composed into siblings, never run
+			alone. The split keeps a link-follower from mistaking a live base for an ignored seed.</li>
+			<li><strong>Aggressive over passive.</strong> AI generates volume; default to retiring
+			AI-authored artifacts rather than accumulating them. Explicit human action is the
+			opt-out.</li>
+			<li><strong>Links are wires.</strong> AI systems and humans are connected through
+			conceptual wires, and in a document-driven project those wires are hyperlinks. Links are
+			cheap; routing around them is expensive. Leave a breadcrumb wherever it helps a human or a
+			system find its way. Optimal document-driven development is massively hyperlinked.</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="conventions">
+		<h3>Conventions</h3>
+		<ul>
+			<li><strong>Frontmatter</strong> — no universal schema; <strong>each type's template is
+			its schema.</strong> Two fields are universal: <code>type</code> (self-describing + a drift
+			guard — a <code>type</code>↔location mismatch is a signal) and <code>status</code>
+			(<code>active | disabled | composed</code>). An optional <code>kcd:</code> block is the one
+			shared escape hatch for layer-specific keys and deviations. kebab-case, lowercase keys
+			(e.g. <code>schema-version</code>, <code>habit-class</code>).
+			Full model: <a href="_Claude/references/kcd_sdk/frontmatter_schema.html">frontmatter_schema</a>.</li>
+			<li><strong>Links</strong> — bare vault-root-relative, no leading slash, no
+			<code>../</code>. The same string resolves in canonical and deployed copies, so deployment
+			rarely rewrites paths.</li>
+			<li><strong>Indexes — store once, index many ways.</strong> Duplicate indexes are <em>by
+			design</em>, not drift: <code>CLAUDE.md</code>'s lens-roster index and a family's
+			file-roster index are both legitimate projections over one store (the artifact files).
+			Robust indexes are a feature.</li>
+			<li><strong>Naming</strong> — kebab/lowercase for instance and report filenames;
+			<code>_</code>-prefixed bases and templates (<code>_lens_base.html</code>,
+			<code>_lens_template.html</code>).</li>
+			<li><strong>Verb-first names from a fixed vocabulary.</strong> Every agent name
+			<strong>leads with a verb</strong> drawn from a small canonical set, so names sort by
+			broad function rather than by topic. The starter vocabulary (extend deliberately, not
+			ad-hoc):</li>
+		</ul>
+		<table>
+			<thead><tr><th>Verb</th><th>Means</th><th>Examples</th></tr></thead>
+			<tbody>
+				<tr><td><code>generate-</code></td><td>build a new artifact</td><td><code>generate-swagger</code>, <code>generate-postman</code>, <code>generate-css-docs</code></td></tr>
+				<tr><td><code>audit-</code></td><td>inspect &amp; surface (detect, never repair)</td><td><code>audit-structure</code>, <code>audit-consistency</code></td></tr>
+				<tr><td><code>apply-</code></td><td>execute a manifest in-place</td><td><code>apply-repairs</code></td></tr>
+				<tr><td><code>merge-</code></td><td>aggregate existing data</td><td><code>merge-todos</code></td></tr>
+			</tbody>
+		</table>
+		<p>Adding a verb is a deliberate vocabulary change — prefer reusing an existing one. A name
+		that does not lead with a registered verb is a drift signal, caught on the next structural
+		audit.</p>
+	</section>
+
+	<section data-kcd-section="portability-boundary">
+		<h3>Portability boundary</h3>
+		<p><code>kcd/</code> is the portable, project-agnostic layer: framework meta-docs, templates,
+		bases, habits, and the generator/analyzer definitions that apply to any KCD-equipped project
+		without modification.</p>
+		<p><strong>Rule:</strong> if writing or editing a <code>kcd/</code> file requires knowing
+		anything about a specific project — its paths, domain vocabulary, toolchain, or conventions —
+		that artifact does not belong in <code>kcd/</code>. Project-specific agents belong outside
+		it.</p>
+		<p><strong>Lenses are a two-tier exception.</strong> Most lenses are drafted in place and are
+		project-specific by design. A small minority are <em>deployable templates</em> (e.g.
+		<code>_base</code>, <code>lens_crafter</code>) that live in <code>kcd/lenses/</code> with
+		<code>status: disabled</code> and are copied into the deployed <code>lenses/</code> via the
+		deploy contract. Same schema; the portability constraint is what gates entry to
+		<code>kcd/</code>.</p>
+	</section>
+
+	<section data-kcd-section="reference-categories">
+		<h3>Reference categories</h3>
+		<p>Lenses point at a project-level store of truth, kept categorized, not flat. The category
+		scheme and the references-vs-<code>kcd/</code> boundary are specified in
+		<a href="_Claude/references/kcd_sdk/reference_categories.html">reference_categories</a>. References live
+		in <code>references/</code> only — it's a library; findability is the point.</p>
+	</section>
+
+	<section data-kcd-section="still-evolving">
+		<h3>Still evolving</h3>
+		<p>Locked enough to build on, not yet finalized:</p>
+		<ul>
+			<li><strong>The map primitive.</strong> <code>CLAUDE.md</code>, the family indexes, and the
+			master registry are looking like <em>one</em> conceptual primitive — a "map" — currently a
+			singleton, nestable in theory. Whether to formalize it (schema, nesting rule) is deferred
+			until nesting earns its keep.</li>
+			<li><strong>Utility tier — deferred pending architecture.</strong> It is a shared
+			tool-surface <em>service</em> (above), not a base-having family, so it builds once Starmind
+			has architecture to host it. Two open pieces: <strong>signaling</strong> (how a tool
+			invocation is dispatched and its result returned, for both a user and an in-session agent),
+			and the <strong>security model</strong> — the <code>draft/</code>→<code>deployed/</code>
+			gate + <code>registry.html</code> is the structural half; the content-addressed allowlist
+			(hash, invalidate-on-change, re-approval) and per-utility capability scope are still being
+			designed.</li>
+			<li><strong>Procedure as a named primitive — downregulated.</strong> A generator or
+			analyzer is conceptually a "slim skill" (a Do plus task-specific Know). But with only two
+			agent types, a separate "procedure" primitive adds little and risks distracting from the
+			generator–analyzer model. Low priority; may be dropped from the final product entirely.</li>
+			<li><strong>Value attribution.</strong> How much of the observed lift is KCD-specific vs.
+			"any structured context vs. none"? Measure before productizing.</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="customer">
+		<h3>Customer</h3>
+		<p>An engineer who already has taste and wants to deploy that judgment more efficiently. Not a
+		tool that makes non-engineers into engineers. Lowers the threshold; does not remove it.</p>
+	</section>
+
+	<section data-kcd-section="status">
+		<h3>Status</h3>
+		<p>The framework is in active use and is the substrate for Starmind (the visual control
+		surface being built on it). The deployed structure is locked in the canvas; this doc and the
+		base/template layer are being brought into sync with it. Productization (a deployable framework
+		kit) is a separate workstream from any specific codebase.</p>
+	</section>
+
+</article>
+
+</body>
+</html>

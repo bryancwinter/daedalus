@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Generator (template)</title>
+	<link rel="stylesheet" href="../kcd.css">
+</head>
+<body>
+
+<article data-kcd="template">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">_generator-template</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">Scaffold for authoring a generator — a mechanical, manifest-driven builder. Copy, fill placeholders, delete scaffold notes.</dd>
+		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">template</dd>
+		<!-- blank on a template; the authored generator gets active|disabled. -->
+		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum"></dd>
+		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
+		<dt>author</dt>        <dd data-kcd-field="author"         data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
+	</dl>
+
+	<h1>Generator (template)</h1>
+
+	<section data-kcd-section="scaffold-note" data-kcd-audience="human">
+		<h3>Scaffold note</h3>
+		<p>Scaffold for authoring a canonical generator. Copy to
+		<code>_Claude/kcd/generators/{name}/{name}.html</code> (a generator is a folder: the
+		<code>.html</code> trunk plus a <code>context/</code> subfolder). Holds all generic logic;
+		<strong>declares — never solves — its requirements</strong>, and names no project-specific path
+		or value. Fill every <code>{placeholder}</code> and delete these scaffold notes.</p>
+		<p>The authored generator's frontmatter replaces this template's identity fields:</p>
+		<ul>
+			<li><code>type</code> → <code>generator</code></li>
+			<li><code>status</code> → <code>active</code> or <code>disabled</code></li>
+			<li><code>base</code> → <code>_generator-base</code></li>
+		</ul>
+		<p><em>(<code>model</code> is no longer frontmatter — it is the <code>model</code> parameter
+		below.)</em></p>
+		<p>Base rules:
+		<a href="_Claude/generators/_generator_base.html">_generator_base</a> — composition model,
+		requirement resolution, fail behavior, output conventions.</p>
+	</section>
+
+	<!-- Parameters — typed, user-set inputs (each a SettingField). Faux-table; each cell addressable.
+	     Optional: zero params → omit the section. -->
+	<section data-kcd-section="parameters">
+		<h3>Parameters</h3>
+		<div data-kcd-table data-kcd-params style="--kcd-cols: 1fr 1fr 1fr 2fr">
+			<div data-kcd-head><span>Name</span><span>Type</span><span>Default</span><span>Description</span></div>
+			<!-- model — the default model that seeds this agent's node in the work graph. Optional.
+			     NOT YET IMPLEMENTED: no runtime reads it; declared now so authoring can start. Leave
+			     the default `null` in the template; an authored generator sets it to a model id. -->
+			<div data-kcd-param>
+				<span data-kcd-field="name"        data-kcd-type="slug">model</span>
+				<span data-kcd-field="type"        data-kcd-type="enum">model</span>
+				<span data-kcd-field="default"     data-kcd-type="text">null</span>
+				<span data-kcd-field="description" data-kcd-type="text">Default model that seeds this generator's work-graph node (not yet implemented).</span>
+			</div>
+			<div data-kcd-param>
+				<span data-kcd-field="name"        data-kcd-type="slug">{param-name}</span>
+				<span data-kcd-field="type"        data-kcd-type="enum">text</span>
+				<span data-kcd-field="default"     data-kcd-type="text">{default}</span>
+				<span data-kcd-field="description" data-kcd-type="text">{what it tunes}</span>
+			</div>
+		</div>
+		<p>Output: <a href="_Claude/references/style-guides/{name}.html">{the artifact's real home — e.g. references/style-guides/{name}.html}</a></p>
+		<p data-kcd-audience="human"><em>Each parameter is a <strong>name / type / default</strong>
+		triple — the typed-field vocabulary the app's setting fields use. <code>model</code> is one such
+		parameter (the default model that seeds the work-graph node; not yet implemented). <code>name</code>
+		is the folder/file name and is not retyped here. <code>Output</code> is the artifact's destination;
+		if it is project-specific, declare it as an Input requirement and solve it in the deployed copy.</em></p>
+	</section>
+
+	<!-- Requirements — declared generically, solved in the deployed copy. Prose the base resolves
+	     pre-flight, not addressed fields. -->
+	<section data-kcd-section="requirements">
+		<h3>Requirements</h3>
+		<p data-kcd-audience="human"><em>Declared generically; solved in the deployed copy. See
+		<code>_generator_base</code> for pre-flight resolution and the fail rule.</em></p>
+		<ul>
+			<li><code>{requirement-name}</code> (Tooling | Input) — {what it is, generically — no
+			concrete path or value}</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="care">
+		<h3>Care</h3>
+		<p><strong>Defends:</strong></p>
+		<ul><li>{invariant the generator enforces}</li></ul>
+		<p><strong>Will not touch:</strong></p>
+		<ul><li>{out-of-scope files or paths}</li></ul>
+		<p><strong>Surfaces (notes inline, does not block):</strong></p>
+		<ul><li>{ambiguous case} — note inline; do not silently skip or invent</li></ul>
+	</section>
+
+	<section data-kcd-section="do">
+		<h3>Do</h3>
+		<p>Pre-flight requirement resolution runs first, per <code>_generator_base</code>. Phases below
+		assume all requirements are solved and reachable.</p>
+		<section data-kcd-section="phase-1">
+			<h4>Phase 1 — Source load</h4>
+			<p>{What to read, by requirement name. What signal to extract from each.}</p>
+		</section>
+		<section data-kcd-section="phase-2">
+			<h4>Phase 2 — Generation</h4>
+			<p>{What to produce. Structure and content rules for the artifact.}</p>
+		</section>
+		<section data-kcd-section="phase-3">
+			<h4>Phase 3 — Lens wiring <em>(reference-producing generators only)</em></h4>
+			<p>For each lens in the <code>reference-lenses</code> requirement, ensure its Know table has a
+			What / Where / Why row pointing to the reference — add if missing, correct if stale.</p>
+		</section>
+		<section data-kcd-section="phase-n">
+			<h4>Phase N — Output declaration</h4>
+			<p>Write <code>{Output path}</code> — flush-and-fill. {Output format — be specific.} This
+			generator produces no other output.</p>
+		</section>
+	</section>
+
+	<section data-kcd-section="deployed-copy" data-kcd-audience="human">
+		<h3>Deployed copy</h3>
+		<p>Not hand-authored. The deploy script produces it: a full copy of this canonical with
+		requirements solved to project values, <code>status: active</code>, and a
+		<code>kcd: { canonical: … }</code> pointer for provenance. Project-specific quirks, if any, go in
+		a <code>Project Notes</code> section there.</p>
+	</section>
+
+</article>
+
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Plan (template)</title>
+	<link rel="stylesheet" href="../kcd.css">
+</head>
+<body>
+
+<article data-kcd="template">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">_plan-template</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">Scaffold for authoring a plan. Copy, fill placeholders, delete scaffold notes; promote per the plan contract.</dd>
+		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">template</dd>
+		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum"></dd>
+		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
+		<dt>author</dt>        <dd data-kcd-field="author"         data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
+	</dl>
+
+	<h1>Plan (template)</h1>
+
+	<section data-kcd-section="scaffold-note" data-kcd-audience="human">
+		<h3>Scaffold note</h3>
+		<p>Copy to a plan location — <code>_Claude/work/{lens}/plans/{name}.html</code> while drafting;
+		promote per the plan contract. Fill placeholders and delete this note.</p>
+		<p>The authored plan replaces this template's identity fields with the plan type's own
+		frontmatter (per the plan exemplar):
+		<code>name</code>, <code>description</code>, <code>type: plan</code>, <code>status</code>
+		(<code>draft | active | paused | complete | retired</code>; new plans start <code>draft</code>),
+		<code>lens</code> (<code>{lens-name | cross}</code>), <code>created</code>,
+		<code>updated</code>.</p>
+	</section>
+
+	<section data-kcd-section="goal">
+		<h3>Goal</h3>
+		<p>{What problem does this solve or what does it deliver. One paragraph max.}</p>
+	</section>
+
+	<section data-kcd-section="approach">
+		<h3>Approach</h3>
+		<p>{High-level strategy. How the phases connect. Why this sequence.}</p>
+	</section>
+
+	<section data-kcd-section="phases">
+		<h3>Phases</h3>
+
+		<section data-kcd-section="phase-0">
+			<h4>Phase 0 — {Name}</h4>
+			<p><strong>Purpose:</strong> {Why this phase exists — what problem it solves or what it
+			unblocks.}</p>
+			<p><strong>End state:</strong> {What will be true when this phase is done. One sentence —
+			concrete enough to verify.}</p>
+			<ul>
+				<li><input type="checkbox"> {Task}</li>
+				<li><input type="checkbox"> {Task}</li>
+			</ul>
+		</section>
+
+		<section data-kcd-section="phase-1">
+			<h4>Phase 1 — {Name}</h4>
+			<p><strong>Purpose:</strong> {Why this phase exists — what problem it solves or what it
+			unblocks.}</p>
+			<p><strong>End state:</strong> {What will be true when this phase is done. One sentence —
+			concrete enough to verify.}</p>
+			<ul>
+				<li><input type="checkbox"> {Task}</li>
+				<li><input type="checkbox"> {Task}</li>
+			</ul>
+		</section>
+
+		<p><em>(Add or remove phases as needed. Mark a task's checkbox when complete.)</em></p>
+	</section>
+
+	<section data-kcd-section="files-affected">
+		<h3>Files Affected</h3>
+		<p>{Which files or domains will change. A faux-table is fine for large plans.}</p>
+	</section>
+
+	<section data-kcd-section="open-questions">
+		<h3>Open Questions</h3>
+		<p>{Unknowns or decisions pending resolution. Remove entries as they are resolved — or inline
+		the resolution as a struck-through note.}</p>
+	</section>
+
+	<section data-kcd-section="notes">
+		<h3>Notes</h3>
+		<p>{Intermediate thinking, research findings, decisions already made.}</p>
+	</section>
+
+	<section data-kcd-section="current-state">
+		<h3>Current State</h3>
+		<p>{Updated as work progresses; rewritten at retirement.}</p>
+		<p><em>Active:</em> one sentence on where things stand and what's next.</p>
+		<p><em>Completed form:</em></p>
+		<p><strong>Complete — {date}.</strong> {One-line summary of what was delivered.}</p>
+		<ul>
+			<li><strong>Phase N:</strong> {What it actually delivered — not what it planned to
+			deliver.}</li>
+		</ul>
+		<p><strong>Active deferrals:</strong> {Items intentionally carried forward, and where they
+		landed — lens TODO, future plan, or deferred decision. Omit if none.}</p>
+	</section>
+
+</article>
+
+</body>
+</html>

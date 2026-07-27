@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>plan — Contract</title>
+	<link rel="stylesheet" href="../kcd.css">
+</head>
+<body>
+
+<article data-kcd="contract">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>        <dd data-kcd-field="name"        data-kcd-type="slug">plan</dd>
+		<dt>description</dt> <dd data-kcd-field="description" data-kcd-type="text">Lifecycle and format agreement for every plan in the project — what a plan is, where it lives, and how it changes state.</dd>
+		<dt>type</dt>        <dd data-kcd-field="type"        data-kcd-type="enum">contract</dd>
+		<dt>status</dt>      <dd data-kcd-field="status"      data-kcd-type="enum">active</dd>
+		<dt>scope</dt>       <dd data-kcd-field="scope"       data-kcd-type="enum">universal</dd>
+	</dl>
+
+	<h1>Plan — Contract</h1>
+
+	<p>Lifecycle and format agreement for every plan in the project. Plans are durable design
+	artifacts; this contract is how a session knows what a plan is, where it lives, and how it
+	changes state.</p>
+
+	<aside>
+		<p><strong>Note — every plan is HTML, at every stage.</strong> A <code>work/</code> draft plan
+		is authored as <code>.html</code> from the start, as is the research and scratch that feeds it.
+		Markdown is no longer used for governed artifacts. A draft still carries no governance weight —
+		<code>work/</code> is a thinking space, not authorization — but the substrate is HTML throughout.
+		Promotion (Phase 2) is a move plus a governance change, <em>not</em> a format conversion: only
+		promoted, governed plans live in <code>plans/</code>.</p>
+	</aside>
+
+	<section data-kcd-section="when">
+		<h2 data-kcd-heading>When</h2>
+		<p>This contract activates whenever a session:</p>
+		<ul>
+			<li>Creates a new plan (<code>#write-plan</code>, "draft a plan", "let's plan this")</li>
+			<li>Promotes a plan from draft to canonical (<code>#promote-plan</code>)</li>
+			<li>Closes out a completed plan (<code>#retire-plan</code>)</li>
+			<li>References or invokes an existing plan in any state</li>
+		</ul>
+		<p>If a session is about to start non-trivial implementation work without an active plan,
+		surface that and consult Phase 1 below.</p>
+	</section>
+
+	<section data-kcd-section="artifact-format">
+		<h2 data-kcd-heading>Artifact Format</h2>
+		<p>A plan is a single HTML file. Working scaffold:
+		_plan_template.</p>
+		<p><strong>Frontmatter (mandatory):</strong></p>
+		<pre><code>---
+type: plan
+status: draft | active | paused | complete | retired
+lens: {lens-name | cross}
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
+---</code></pre>
+		<p><strong>Body sections</strong> (in order; optional sections may be omitted entirely):</p>
+		<ul>
+			<li><strong>Title + one-line purpose</strong> — blockquote under the H1</li>
+			<li><strong>Goal</strong> — one paragraph</li>
+			<li><strong>Approach</strong> — high-level strategy, why this sequence</li>
+			<li><strong>Phases</strong> — each numbered, with Purpose, End state, and number-letter checkbox tasks. The phases are the plan's spine.</li>
+			<li><strong>Files Affected</strong> — optional; a table of which files or domains will change</li>
+			<li><strong>Open Questions</strong> — optional; unknowns blocking specific phases</li>
+			<li><strong>Notes</strong> — optional; intermediate thinking, prior decisions</li>
+			<li><strong>Current State</strong> — one sentence (Active) or a completion record (Complete)</li>
+		</ul>
+		<p><strong>Naming:</strong></p>
+		<ul>
+			<li>In <code>work/</code>: <code>_Claude/work/{lens}/plans/YYYY-MM-DD_{description}.html</code> — dated, kebab-case description.</li>
+			<li>In <code>plans/</code>: <code>_Claude/plans/{description}.html</code> — no date, no lens prefix, kebab-case (the lens lives in frontmatter + the nav-index). Date and lens prefix are stripped at promotion.</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="lifecycle">
+		<h2 data-kcd-heading>Lifecycle</h2>
+
+		<section data-kcd-section="phase-1">
+			<h3 data-kcd-heading>Phase 1 — Write</h3>
+			<p><strong>Trigger:</strong> A new plan is being authored — from scratch or from a design
+			discussion.</p>
+			<p><strong>Together:</strong> The session and the user shape the plan into the Artifact
+			Format above. The session does the writing; the user resolves design questions as they
+			surface. The plan goes to <code>_Claude/work/{lens}/plans/YYYY-MM-DD_{description}.html</code>
+			— never directly to <code>_Claude/plans/</code>. A plan in <code>work/</code> is a thinking
+			tool, not authorization to act. Register the new plan as a row under
+			<code>## In Progress</code> in <code>plans/nav-index.html</code> (see the Index section below).</p>
+			<p><strong>Standard:</strong> Every phase has a concrete End state (no <code>TBD</code> left
+			as the plan stabilizes). The goal fits in one sentence. Action items carry number-letter IDs
+			(<code>1.a</code>, <code>1.b</code>) with checkboxes. Phases sequence such that each unlocks
+			the next. Phase names describe outputs, not methods ("Inventory", not "Walk the tree").
+			Micro-decisions defer to the session that does the work — no method names, SQL fragments, or
+			exact component props in the plan.</p>
+		</section>
+
+		<section data-kcd-section="phase-2">
+			<h3 data-kcd-heading>Phase 2 — Promote</h3>
+			<p><strong>Trigger:</strong> User explicitly directs that a <code>work/</code> plan is ready
+			to become canonical. Sessions do not self-promote.</p>
+			<p><strong>Together:</strong> The session runs the quality gate (see Standards below). If the
+			gate passes, move the file from
+			<code>work/{lens}/plans/YYYY-MM-DD_{description}.html</code> to
+			<code>plans/{description}.html</code> (strip date + lens prefix), set
+			<code>status: active</code>, move the plan's row from <code>## In Progress</code> to
+			<code>## Active</code> in <code>plans/nav-index.html</code>, verify path references still resolve,
+			and delete the original <code>work/</code> file. Plans are living documents — once promoted,
+			the canonical <code>plans/</code> file is authoritative and the <code>work/</code> draft has
+			no further role.</p>
+			<p><strong>Standard:</strong> The quality gate is hard. A plan that fails any check goes back
+			to the user for revision — not forward to <code>plans/</code>. After promotion, the canonical
+			file is authoritative. Strip all <code>work/</code>-framing language ("this is a draft",
+			"exploratory", "TBD once we decide X") — replace with neutral present-tense statements of
+			scope.</p>
+		</section>
+
+		<section data-kcd-section="phase-3">
+			<h3 data-kcd-heading>Phase 3 — Retire</h3>
+			<p><strong>Trigger:</strong> A plan in <code>plans/</code> has been delivered.</p>
+			<p><strong>Together:</strong> The session audits the plan against reality — unchecked tasks,
+			stale forward-looking language, divergences between plan and outcome, debug artifacts in
+			touched files. Each is a hard gate (see Standards). Once cleared: set
+			<code>status: complete</code>, rewrite Current State as a completion record, sync logging
+			hygiene (lens todos, completed log, session log), move the plan's row from
+			<code>## Active</code> to <code>## Completed</code> in <code>plans/nav-index.html</code> (and
+			update the lens), move the file to <code>plans/plans_complete/{filename}</code>.</p>
+			<p><strong>Capture the durable artifact (judgment call, done with the user).</strong>
+			<code>plans_complete/</code> is a holding pen, not a resting place — retirement is the moment to ask
+			whether the plan produced <em>settled knowledge</em> worth keeping past it, and if so, distill that
+			knowledge into a <a href="_Claude/references/">reference</a> rather than let it rot in the pen. Scale
+			the capture to the work: a subsystem may earn a whole new reference; a one-off may need nothing more
+			than a row added to an existing catalogue (a shipped widget lands as a roster row in
+			widget-library). When you capture, file
+			it in the matching <code>references/&lt;category&gt;/</code> folder — <strong>the folder is the
+			category</strong> (per <a href="_Claude/habits/unslotted/author-reference.html">author-reference</a>);
+			never the flat root. Name the surviving reference in the plan's Current State and in the nav-index's
+			"where it lives on" column. <em>Nothing durable to capture</em> is a valid, common outcome — say so
+			plainly rather than manufacture an artifact.</p>
+			<p><strong>Standard:</strong> The retired plan is a historical record — accuracy over
+			kindness. Do not invent outcomes or smooth over divergences. Per-phase bullets in Current
+			State describe what each phase <em>actually</em> delivered, not what it planned to deliver.
+			Active deferrals (items carried forward) name their landing spot — lens todo, future plan,
+			deferred decision.</p>
+		</section>
+	</section>
+
+	<section data-kcd-section="index">
+		<h2 data-kcd-heading>Index</h2>
+		<p><code>plans/nav-index.html</code> is the registry of every plan and its state — a first-class
+		<code>nav-index</code> artifact and the single navigable surface over the plan corpus.</p>
+		<p><strong>Structure — three status sections</strong> (per the
+		<a href="_Claude/habits/unslotted/index-format.html">index-format habit</a>):</p>
+		<ul>
+			<li><code>## Active</code> — canonical plans in <code>plans/</code> that authorize action. Columns: Plan · Lens · Status · What.</li>
+			<li><code>## In Progress (drafts)</code> — plans still in <code>work/{lens}/plans/</code>. They do <strong>not</strong> authorize action. Columns: Plan · Lens · Status · What.</li>
+			<li><code>## Completed</code> — retired plans in <code>plans/plans_complete/</code>. Columns: Plan · Lens · What.</li>
+		</ul>
+		<p><strong>The rule — the index moves with the plan.</strong> Any operation that changes a
+		plan's state updates <code>plans/nav-index.html</code> in the <strong>same action</strong>, never as
+		a deferred follow-up:</p>
+		<ul>
+			<li><strong>Write</strong> → add a row to <code>## In Progress</code>.</li>
+			<li><strong>Promote</strong> → move the row from <code>## In Progress</code> to <code>## Active</code>.</li>
+			<li><strong>Retire</strong> → move the row from <code>## Active</code> to <code>## Completed</code>.</li>
+		</ul>
+		<p>An agent that creates, promotes, or retires a plan without updating the index has not
+		finished the job — this is what keeps the index from drifting.</p>
+	</section>
+
+	<section data-kcd-section="standards">
+		<h2 data-kcd-heading>Standards</h2>
+		<p><strong>A plan is:</strong></p>
+		<ul>
+			<li>Readable cold — a reader can grasp scope and sequence with no prior context.</li>
+			<li>Spined by its Phases; every phase has a concrete, verifiable End state.</li>
+			<li>Bounded — more than 5 top-level phases suggests two plans hiding in one.</li>
+		</ul>
+		<p><strong>A plan is not:</strong></p>
+		<ul>
+			<li>A commit to every implementation detail (method names, SQL, exact props belong in implementation sessions).</li>
+			<li>A task list to execute from <code>work/</code> — only <code>plans/</code> authorizes action.</li>
+			<li>Self-promoting — promotion is always explicit and always by the user.</li>
+		</ul>
+		<p><strong>Promotion quality gate</strong> (all must pass):</p>
+		<ol>
+			<li>Frontmatter present and complete (<code>type</code>, <code>status</code>, <code>lens</code>, <code>created</code>).</li>
+			<li>One-sentence goal present.</li>
+			<li>Every phase has a concrete End state — no <code>TBD</code> placeholders.</li>
+			<li>Every action item has a number-letter ID and a checkbox.</li>
+			<li>Phases logically sequenced — each phase's output is the input for the next.</li>
+		</ol>
+		<p><strong>Retirement gates:</strong></p>
+		<ol>
+			<li><strong>Unchecked checkboxes</strong> — <em>hard, blocks archive.</em> Confirm per item: resolved, deferred, or out of scope.</li>
+			<li><strong>Debug artifacts in files touched this session</strong> — <em>advisory; surface and narrate, do not block on quantity.</em> Grep the session's diff (not the full "Files Affected" list — that history may span many sessions) for: <code>dd(</code>, <code>dump(</code>, <code>var_dump(</code>, <code>print_r(</code>, bare <code>die(</code>/<code>exit(</code>, <code>console.log(</code>, <code>console.error(</code>, <code>console.warn(</code>, <code>debugger</code>, commented-out blocks of &gt;2 lines, <code>TODO</code>/<code>FIXME</code>/<code>HACK</code> inline comments. Use judgment: <strong>operational logging</strong> (boot banners, structured <code>console.warn</code>/<code>error</code> in handlers, labeled error reporting) is not a debug artifact. Only genuine leftovers get surfaced in the retirement narrative.</li>
+			<li><strong>Stale lens todos</strong> — <em>hard, blocks archive.</em> Tasks completed during the plan but never checked off — sweep into Completed before archive.</li>
+		</ol>
+	</section>
+
+	<section data-kcd-section="edge-cases">
+		<h2 data-kcd-heading>Edge Cases</h2>
+		<ul>
+			<li><strong>Multi-lens plan:</strong> <code>lens: cross</code> in frontmatter. Surfaces in every relevant lens's Active Plans, registered once in <code>plans/nav-index.html</code>.</li>
+			<li><strong>Abandoned <code>work/</code> plan:</strong> No promotion path; delete the file or leave with <code>status: retired</code> and a Notes entry explaining why.</li>
+			<li><strong>Scope creep mid-execution:</strong> Stop, surface to user. Either revise the plan in place (update phases and re-confirm) or split off a new plan. Do not silently extend.</li>
+			<li><strong>Plan superseded by another:</strong> Old plan gets <code>status: retired</code>, new plan's Notes references the predecessor. Both archive to <code>plans/plans_complete/</code> at retirement.</li>
+			<li><strong>Plan in <code>work/</code> invoked as authorization to act:</strong> Hard stop. Surface the rule: the plan must be promoted first. Do not execute.</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="scope-values">
+		<h2 data-kcd-heading>Scope Values</h2>
+		<ul>
+			<li><code>universal</code> — referenced from <code>_base</code>; loaded into every session.</li>
+			<li><code>lens:{lens-name}</code> — referenced from a single lens's Know block; loaded when that lens activates.</li>
+		</ul>
+		<p>The <code>scope:</code> frontmatter field declares one of the above. Contracts are loose —
+		the structural audit does not chain-conform them; the <code>scope</code> field is
+		self-documenting for human readers.</p>
+	</section>
+
+</article>
+
+</body>
+</html>

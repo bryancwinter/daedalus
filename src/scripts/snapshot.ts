@@ -51,7 +51,7 @@ function priorTools( path: string ): Record<string, unknown>[] | null {
 }
 
 function main(): void {
-	const out     = resolve( process.argv[ 2 ] ?? resolve( __dirname, '..', 'tools.snapshot.json' ) );
+	const out     = resolve( process.argv[ 2 ] ?? resolve( __dirname, '..', '..', 'tools.snapshot.json' ) );
 	const payload = snapshotPayload();
 	const prior   = priorTools( out );
 

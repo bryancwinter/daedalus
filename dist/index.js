@@ -427,30 +427,12 @@ var require_VaultLayout = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.VaultLayout = void 0;
     var LAYOUT = [
-      // ── Canonical substrate — the locked framework library, copied in at deploy ──
-      {
-        dir: "kcd",
-        type: "framework",
-        layer: "substrate",
-        indexed: true,
-        scaffold: "copy",
-        purpose: "The locked canonical framework library. Never edited in a deployed instance \u2014 changes belong in the framework's own repo."
-      },
-      {
-        dir: "kcd/templates",
-        type: "template",
-        layer: "substrate",
-        indexed: true,
-        scaffold: "copy",
-        purpose: "Authoring scaffolds \u2014 copy one, fill the placeholders, delete the scaffold note."
-      },
       // ── Agent layer — the Know + Care + Do artifacts an agent is composed from ──
       {
         dir: "lenses",
         type: "lens",
         layer: "agent",
         indexed: true,
-        scaffold: "mkdir",
         purpose: "Know+Care personalities. One folder per lens, each holding its lens file and a context/ of support material."
       },
       {
@@ -458,7 +440,6 @@ var require_VaultLayout = __commonJS({
         type: "analyzer",
         layer: "agent",
         indexed: true,
-        scaffold: "mkdir",
         purpose: "Read-anywhere, write-one-report agents."
       },
       {
@@ -466,7 +447,6 @@ var require_VaultLayout = __commonJS({
         type: "generator",
         layer: "agent",
         indexed: true,
-        scaffold: "mkdir",
         purpose: "Manifest-driven write agents \u2014 broad write authority, no judgment of their own."
       },
       {
@@ -474,7 +454,6 @@ var require_VaultLayout = __commonJS({
         type: "habit",
         layer: "agent",
         indexed: true,
-        scaffold: "mkdir",
         purpose: "Atomic behavior fragments. Flat files, no subfolders."
       },
       // ── Data / output layer — what a project accumulates as it runs ──
@@ -483,7 +462,6 @@ var require_VaultLayout = __commonJS({
         type: "reference",
         layer: "data",
         indexed: true,
-        scaffold: "mkdir",
         purpose: "The project knowledge store, categorized by folder \u2014 the folder IS the category."
       },
       {
@@ -491,7 +469,6 @@ var require_VaultLayout = __commonJS({
         type: "contract",
         layer: "data",
         indexed: true,
-        scaffold: "mkdir",
         purpose: "Behavioral agreements \u2014 composable prose a third party can evaluate against."
       },
       {
@@ -499,7 +476,6 @@ var require_VaultLayout = __commonJS({
         type: "utility",
         layer: "data",
         indexed: true,
-        scaffold: "mkdir",
         purpose: "The registered tool tier \u2014 draft/ (unapproved) and deployed/ (approved), with a registry."
       },
       {
@@ -507,7 +483,6 @@ var require_VaultLayout = __commonJS({
         type: "plan",
         layer: "data",
         indexed: true,
-        scaffold: "mkdir",
         purpose: "Promoted plans that authorize action, plus the plans_complete/ and plans_deferred/ buckets beneath."
       },
       // ── Data / output layer, untyped ──
@@ -520,7 +495,6 @@ var require_VaultLayout = __commonJS({
         type: "unknown",
         layer: "data",
         indexed: false,
-        scaffold: "mkdir",
         purpose: "Per-lens scratch space (AI/, human/, plans/). Cheap and discardable until something is promoted out of it."
       },
       {
@@ -528,7 +502,6 @@ var require_VaultLayout = __commonJS({
         type: "unknown",
         layer: "data",
         indexed: false,
-        scaffold: "mkdir",
         purpose: "Session log plus per-lens completed/, todo/, and agent-status/."
       },
       {
@@ -536,7 +509,6 @@ var require_VaultLayout = __commonJS({
         type: "unknown",
         layer: "data",
         indexed: false,
-        scaffold: "mkdir",
         purpose: "Analyzer output."
       },
       {
@@ -544,7 +516,6 @@ var require_VaultLayout = __commonJS({
         type: "unknown",
         layer: "data",
         indexed: false,
-        scaffold: "mkdir",
         purpose: "Generator raw output and vault backups. Deliberately unindexed \u2014 backup copies here are what made the library accrue duplicate references."
       },
       {
@@ -552,7 +523,6 @@ var require_VaultLayout = __commonJS({
         type: "unknown",
         layer: "data",
         indexed: false,
-        scaffold: "mkdir",
         purpose: "Free scratch space with no per-lens structure."
       },
       {
@@ -560,11 +530,11 @@ var require_VaultLayout = __commonJS({
         type: "unknown",
         layer: "data",
         indexed: false,
-        scaffold: "mkdir",
         purpose: "The dev command deck \u2014 JSON-declared scripts run against the project, not governed artifacts."
       }
     ];
     var NAV_INDEX_FILE = "nav-index.html";
+    var FRAMEWORK_ROOT_FILES = ["root.html", "root-context.html", "kcd_framework.html"];
     var LENS_MAX_DEPTH = 3;
     var VaultLayout = class _VaultLayout {
       /** Every row, in table order — for the doc generator and anything enumerating the structure. */
@@ -573,8 +543,8 @@ var require_VaultLayout = __commonJS({
       }
       /**
        * The row governing a vault-relative path ( the part BELOW the doc root ), or null when nothing
-       * owns it. Longest matching directory prefix wins, so `kcd/templates/x.html` resolves to the
-       * templates row and not the `kcd` row it also sits under.
+       * owns it. Longest matching directory prefix wins, so a more specific row always beats a shorter
+       * one it also sits under.
        */
       static entryFor(sub) {
         const norm = sub.replace(/\\/g, "/");
@@ -591,10 +561,10 @@ var require_VaultLayout = __commonJS({
       /**
        * A vault-root-relative path ( `_Claude/...` ) to its artifact type — the one path taxonomy.
        *
-       * Three rules run before the table, because none of them is decided by which folder a file sits
-       * in: a nav-index is a nav-index anywhere; a `context/` descendant is support material for
-       * whatever owns it; and inside `lenses/`, only the lens's own file is the lens. Everything else
-       * is the table.
+       * Four rules run before the table, because none of them is decided by which folder a file sits
+       * in: a nav-index is a nav-index anywhere; a root-level framework file is `framework` regardless
+       * of the table; a `context/` descendant is support material for whatever owns it; and inside
+       * `lenses/`, only the lens's own file is the lens. Everything else is the table.
        */
       static classify(relPath, docRoot = "_Claude") {
         const norm = relPath.replace(/\\/g, "/");
@@ -603,6 +573,8 @@ var require_VaultLayout = __commonJS({
         if (norm.endsWith("/" + NAV_INDEX_FILE))
           return "nav-index";
         const sub = norm.slice(docRoot.length + 1);
+        if (FRAMEWORK_ROOT_FILES.includes(sub))
+          return "framework";
         if (sub.includes("/context/"))
           return "reference";
         const entry = _VaultLayout.entryFor(sub);
@@ -2154,7 +2126,7 @@ var require_SlotResolver = __commonJS({
 var require_LensObject = __commonJS({
   "../kcd_sdk/dist/primitives/framework/LensObject.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -2163,16 +2135,16 @@ var require_LensObject = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    }) : (function(o, m, k, k2) {
+    } : function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    }));
-    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
+    });
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    }) : function(o, v) {
+    } : function(o, v) {
       o["default"] = v;
     });
-    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ (function() {
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ function() {
       var ownKeys = function(o) {
         ownKeys = Object.getOwnPropertyNames || function(o2) {
           var ar = [];
@@ -2190,7 +2162,7 @@ var require_LensObject = __commonJS({
         __setModuleDefault(result, mod);
         return result;
       };
-    })();
+    }();
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.LensObject = void 0;
     var path2 = __importStar(require("path"));
@@ -2806,7 +2778,7 @@ var require_types = __commonJS({
 var require_primitives = __commonJS({
   "../kcd_sdk/dist/primitives/index.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -2815,10 +2787,10 @@ var require_primitives = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    }) : (function(o, m, k, k2) {
+    } : function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    }));
+    });
     var __exportStar = exports2 && exports2.__exportStar || function(m, exports3) {
       for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p)) __createBinding(exports3, m, p);
     };
@@ -2870,7 +2842,7 @@ var require_Model = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.DEFAULT_MODEL_KEY = void 0;
-    exports2.DEFAULT_MODEL_KEY = "local.gemma";
+    exports2.DEFAULT_MODEL_KEY = "test.lorem";
   }
 });
 
@@ -3753,7 +3725,7 @@ var require_ToolDef = __commonJS({
 var require_agent = __commonJS({
   "../kcd_sdk/dist/agent/index.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -3762,10 +3734,10 @@ var require_agent = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    }) : (function(o, m, k, k2) {
+    } : function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    }));
+    });
     var __exportStar = exports2 && exports2.__exportStar || function(m, exports3) {
       for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p)) __createBinding(exports3, m, p);
     };
@@ -3869,7 +3841,7 @@ ${text}`;
        * scratchpad never rides the wire.
        *
        * No windowing here: it projects whatever turns are bound. The policy that decides WHICH turns ride
-       * ( ContextPolicy ) is applied by the caller binding only the in-window set — a Phase 3 seam.
+       * ( RetentionPolicy ) is applied by the caller binding only the in-window set — a Phase 3 seam.
        *
        * `opts.clearToolResultsBefore` ( ms ) stubs any tool-result older than the cutoff — the cheapest
        * context-engineering lever ( operate on the transcript, don't just append ); the full text stays on
@@ -4038,7 +4010,10 @@ var require_Session = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.Session = void 0;
     var TurnEntry_1 = require_TurnEntry();
-    var DEFAULT_POLICY = { kind: "all" };
+    var DEFAULT_POLICIES = {
+      retention: { kind: "all" },
+      compaction: { enabled: false, threshold: 12e4 }
+    };
     var Session = class _Session {
       id;
       /** Mutable now ( was readonly ) — a draft session is born agentless ('') and reassigned once the
@@ -4053,11 +4028,11 @@ var require_Session = __commonJS({
       status;
       zoom;
       fontFamily;
-      /** Which turns of the transcript ride the next request. PERSISTED session configuration — the
+      /** Every POLICY acting on this session's context, by name. PERSISTED session configuration — the
        *  deliberate counterpart to the non-persisted `transcript` below: the transcript is the durable
-       *  account of what happened, this is the lens over it. Changing it NEVER edits history; it only
+       *  account of what happened, these are the lenses over it. Changing one NEVER edits history; it only
        *  changes what the next `wireMessages()` projects. */
-      policy;
+      policies;
       /** Is a turn in flight right now — the run-state that used to live ( wrongly, and dead ) on the
        *  Agent. See `TurnStatus` for the full reasoning. Runtime-only: born 'idle', never persisted, so a
        *  crash mid-turn can never leave a session stuck 'thinking'. */
@@ -4068,7 +4043,7 @@ var require_Session = __commonJS({
        *  Its home of record is the DB `entries` rows ( hydrated on load — see bindTranscript ). Empty until
        *  bound, so it is never null. */
       transcript = TurnEntry_1.Transcript.empty();
-      constructor(id, agentId, title, folder, tags, createdAt, lastActive, status, zoom, fontFamily, policy) {
+      constructor(id, agentId, title, folder, tags, createdAt, lastActive, status, zoom, fontFamily, policies) {
         this.id = id;
         this.agentId = agentId;
         this.title = title;
@@ -4079,18 +4054,39 @@ var require_Session = __commonJS({
         this.status = status;
         this.zoom = zoom;
         this.fontFamily = fontFamily;
-        this.policy = policy;
+        this.policies = policies;
       }
       // ── Static entry points ──────────────────────────────────────────────────
       /** Spawn a fresh session. `agentId` may be omitted / '' for a DRAFT (agentless) session — it's inert
        *  until reassign() binds it to an agent. */
       static create(opts) {
         const now = Date.now();
-        return new _Session(opts.id ?? crypto.randomUUID(), opts.agentId ?? "", opts.title ?? null, opts.folder ?? null, opts.tags ?? [], opts.createdAt ?? now, opts.lastActive ?? now, opts.status ?? "active", opts.zoom ?? null, opts.fontFamily ?? null, opts.policy ?? DEFAULT_POLICY);
+        return new _Session(opts.id ?? crypto.randomUUID(), opts.agentId ?? "", opts.title ?? null, opts.folder ?? null, opts.tags ?? [], opts.createdAt ?? now, opts.lastActive ?? now, opts.status ?? "active", opts.zoom ?? null, opts.fontFamily ?? null, _Session.policiesFrom(opts.policies));
       }
       /** Rebuild from the wire / DB seed. */
       static fromSerialized(json) {
-        return new _Session(json.id, json.agentId ?? "", json.title ?? null, json.folder ?? null, json.tags ?? [], json.createdAt, json.lastActive ?? json.createdAt, json.status ?? "active", json.zoom ?? null, json.fontFamily ?? null, json.policy ?? DEFAULT_POLICY);
+        return new _Session(json.id, json.agentId ?? "", json.title ?? null, json.folder ?? null, json.tags ?? [], json.createdAt, json.lastActive ?? json.createdAt, json.status ?? "active", json.zoom ?? null, json.fontFamily ?? null, _Session.policiesFrom(json.policies));
+      }
+      /**
+       * Hydrate a policy bag from anything a wire / row might hold — the ONE place the legacy shape is
+       * understood, so every other reader can assume the container.
+       *
+       * Three inputs land here: the container itself, a BARE legacy retention policy ( `{ kind: … }`, what
+       * sessions stored before compaction existed — it becomes the `retention` entry ), and nothing at all.
+       * Deliberately forgiving in the same spirit as the service-side parse: an unreadable policy must never
+       * make a session's history unreachable, and every default is inert.
+       */
+      static policiesFrom(raw) {
+        const v = raw ?? null;
+        if (!v || typeof v !== "object")
+          return { ...DEFAULT_POLICIES };
+        if (typeof v["kind"] === "string") {
+          return { retention: v, compaction: { ...DEFAULT_POLICIES.compaction } };
+        }
+        return {
+          retention: v["retention"] ?? { ...DEFAULT_POLICIES.retention },
+          compaction: v["compaction"] ?? { ...DEFAULT_POLICIES.compaction }
+        };
       }
       /** The bridge wire form, the save form, the reconstruction source — one function, many purposes. */
       serializeForWire() {
@@ -4105,7 +4101,7 @@ var require_Session = __commonJS({
           status: this.status,
           zoom: this.zoom,
           fontFamily: this.fontFamily,
-          policy: this.policy,
+          policies: this.policies,
           turnStatus: this.turnStatus
         };
       }
@@ -4156,11 +4152,15 @@ var require_Session = __commonJS({
       bindTranscript(turns) {
         this.transcript = new TurnEntry_1.Transcript(turns);
       }
-      /** Narrow ( or widen ) which turns ride the next request. Pure configuration: it does NOT touch the
-       *  transcript, so nothing is ever lost by changing the window. The caller persists ( DB
-       *  update_session_policy ). */
-      setPolicy(policy) {
-        this.policy = policy;
+      /** Set ONE named policy, leaving its siblings alone. Pure configuration: no policy touches the
+       *  transcript, so nothing is ever lost by changing one. The caller persists the whole bag ( DB
+       *  update_session_policy ).
+       *
+       *  Named rather than whole-bag ( `setPolicies( bag )` ) because every real caller is a single control
+       *  changing a single lever — a whole-bag setter would make each of them read, spread, and write back
+       *  the others, which is exactly how one control silently reverts another. */
+      setPolicy(name, policy) {
+        this.policies = { ...this.policies, [name]: policy };
       }
       /** Flip the run state around a turn. Deliberately has NO persistence counterpart — the caller
        *  broadcasts it and nothing writes it ( see `TurnStatus` ). Bracket every turn idle → thinking →
@@ -4173,7 +4173,7 @@ var require_Session = __commonJS({
        *  send: the whole request is { system: agent.wireSystem(), messages: session.wireMessages() }. The
        *  policy is applied HERE, at the projection — the transcript itself is never edited. */
       wireMessages() {
-        return this.transcript.windowed(this.policy).wireMessages();
+        return this.transcript.windowed(this.policies.retention).wireMessages();
       }
       /** The inspector itinerary — one BLOCK per turn, each carrying the entries that happened inside it
        *  ( thinking included ). DELIBERATELY UNWINDOWED: the Turns folder is the account of what actually
@@ -4187,13 +4187,21 @@ var require_Session = __commonJS({
        *  entry ), so it prices what will actually ride rather than everything ever said. The whole-context
        *  estimate folds this onto agent.estimateTokens(); a caller sums the two halves. */
       estimateTokens() {
-        return this.transcript.windowed(this.policy).estimateTokens();
+        return this.transcript.windowed(this.policies.retention).estimateTokens();
       }
-      /** A display title even when none was set — the explicit title, else a stamp-derived fallback. */
+      /**
+       * A display title even when none was set. An untitled session is a session whose first prompt has not
+       * been named yet — either it has not taken a turn, or the house agent's naming pass is still thinking —
+       * so the placeholder says exactly that and nothing more.
+       *
+       * It used to be a creation timestamp, back when a titleless session was a permanent state. It isn't
+       * one any more: a title arrives on its own within a turn, and a stamp would have read like a real name
+       * that just happened to be useless.
+       */
       displayTitle() {
         if (this.title)
           return this.title;
-        return "Session " + new Date(this.createdAt).toISOString().slice(0, 16).replace("T", " ");
+        return "New session";
       }
     };
     exports2.Session = Session;
@@ -4341,7 +4349,7 @@ var require_RoomSession = __commonJS({
 var require_session = __commonJS({
   "../kcd_sdk/dist/session/index.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -4350,10 +4358,10 @@ var require_session = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    }) : (function(o, m, k, k2) {
+    } : function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    }));
+    });
     var __exportStar = exports2 && exports2.__exportStar || function(m, exports3) {
       for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p)) __createBinding(exports3, m, p);
     };
@@ -4584,7 +4592,7 @@ var require_types2 = __commonJS({
 var require_constellation = __commonJS({
   "../kcd_sdk/dist/constellation/index.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -4593,10 +4601,10 @@ var require_constellation = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    }) : (function(o, m, k, k2) {
+    } : function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    }));
+    });
     var __exportStar = exports2 && exports2.__exportStar || function(m, exports3) {
       for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p)) __createBinding(exports3, m, p);
     };
@@ -4604,6 +4612,119 @@ var require_constellation = __commonJS({
     __exportStar(require_Constellation(), exports2);
     __exportStar(require_types2(), exports2);
     __exportStar(require_Validation(), exports2);
+  }
+});
+
+// ../kcd_sdk/dist/core/InstallManifest.js
+var require_InstallManifest = __commonJS({
+  "../kcd_sdk/dist/core/InstallManifest.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.InstallManifest = void 0;
+    var MANIFEST = [
+      {
+        bundleSource: "lenses/_lens_base.html",
+        vaultHome: "lenses/_lens_base.html",
+        required: true,
+        purpose: "The base lens, auto-loaded into every session. A vault without it has no floor to stand on."
+      },
+      {
+        bundleSource: "lenses/lens_crafter",
+        vaultHome: "lenses/lens_crafter",
+        required: true,
+        purpose: 'The authoring lens. REQUIRED, not a nicety: the bundled kcd-onboard skill defers all lens-authoring taste to it ( `kcd_compile { lenses: ["lens_crafter"] }` ) before writing anything, so a vault without it leaves the only shipped skill compiling nothing at the exact step where it starts producing value. Shipped as a directory so the lens keeps its `{name}/{name}.html` + `context/` anatomy.'
+      },
+      {
+        bundleSource: "habits",
+        vaultHome: "habits",
+        required: true,
+        purpose: "Atomic behavior fragments the base lens and every domain lens link into."
+      },
+      {
+        bundleSource: "analyzers/_analyzer_base.html",
+        vaultHome: "analyzers/_analyzer_base.html",
+        required: true,
+        purpose: "The shared analyzer contract every read-anywhere, write-one-report agent extends."
+      },
+      {
+        bundleSource: "generators",
+        vaultHome: "generators",
+        required: true,
+        purpose: "The base generator contract plus the bundled manifest-driven write agents."
+      },
+      {
+        bundleSource: "contracts",
+        vaultHome: "contracts",
+        required: true,
+        purpose: "The behavioral agreements the bundled lenses and generators are evaluated against."
+      },
+      {
+        bundleSource: "references/kcd_sdk",
+        vaultHome: "references/kcd_sdk",
+        required: true,
+        purpose: "The protocol and primitives references the framework itself assumes a vault can link to."
+      },
+      {
+        bundleSource: "references/how-to",
+        vaultHome: "references/how-to",
+        required: true,
+        purpose: 'Procedural references the bundled lenses link into by path. Currently read-a-survey, which lens_crafter loads when proposing artifacts for an unfamiliar codebase \u2014 the "read this INSTEAD of exploring" instruction that the whole survey-as-anchor design rests on.'
+      },
+      {
+        bundleSource: "utilities/deployed",
+        vaultHome: "utilities/deployed",
+        required: false,
+        purpose: "Bundled example utilities for the registered tool tier \u2014 a starting point, not a requirement."
+      },
+      {
+        bundleSource: "root.html",
+        vaultHome: "root.html",
+        required: true,
+        purpose: "THE ENTRY DOCUMENT \u2014 the first thing every session reads, and what the generated CLAUDE.md points at. Required in the strongest sense: `root-context.html` instructs the agent to open it three times over, so a vault without it hands every new user a broken first instruction. It was missing entirely until 2026-07-26. Shipped as a starting point and meant to be edited; `lens-index` splices its Lenses table."
+      },
+      {
+        bundleSource: "root-context.html",
+        vaultHome: "root-context.html",
+        required: true,
+        purpose: "The host-seed carrier \u2014 CLAUDE.md / AGENTS.md / GEMINI.md are generated from this."
+      },
+      {
+        bundleSource: "kcd.css",
+        vaultHome: "kcd.css",
+        required: true,
+        purpose: "The vault-wide stylesheet every governed document links."
+      },
+      {
+        bundleSource: "kcd_framework.html",
+        vaultHome: "kcd_framework.html",
+        required: false,
+        purpose: "The framework's own self-description \u2014 useful context, not load-bearing."
+      }
+    ];
+    var InstallManifest = class {
+      /** Every row, in table order. */
+      static all() {
+        return MANIFEST;
+      }
+      /**
+       * The row governing a vault-relative deployed path, or null when nothing in the manifest owns
+       * it. Longest matching `vaultHome` prefix wins, mirroring `VaultLayout.entryFor` — a specific row
+       * ( `references/kcd_sdk` ) can sit inside a directory this table does not otherwise cover.
+       */
+      static entryFor(vaultRelPath) {
+        const norm = vaultRelPath.replace(/\\/g, "/");
+        let best = null;
+        for (const entry of MANIFEST) {
+          if (norm !== entry.vaultHome && !norm.startsWith(entry.vaultHome + "/"))
+            continue;
+          if (best && best.vaultHome.length >= entry.vaultHome.length)
+            continue;
+          best = entry;
+        }
+        return best;
+      }
+    };
+    exports2.InstallManifest = InstallManifest;
   }
 });
 
@@ -5201,7 +5322,7 @@ var require_html = __commonJS({
 var require_core = __commonJS({
   "../kcd_sdk/dist/core/index.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -5210,10 +5331,10 @@ var require_core = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    }) : (function(o, m, k, k2) {
+    } : function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    }));
+    });
     var __exportStar = exports2 && exports2.__exportStar || function(m, exports3) {
       for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p)) __createBinding(exports3, m, p);
     };
@@ -5224,6 +5345,7 @@ var require_core = __commonJS({
     __exportStar(require_constellation(), exports2);
     __exportStar(require_Assert(), exports2);
     __exportStar(require_VaultLayout(), exports2);
+    __exportStar(require_InstallManifest(), exports2);
     __exportStar(require_FileTypes(), exports2);
     __exportStar(require_TextTypes(), exports2);
     __exportStar(require_Glob(), exports2);
@@ -7842,7 +7964,7 @@ var require_dumper = __commonJS({
       return quotingType === QUOTING_TYPE_DOUBLE ? STYLE_DOUBLE : STYLE_SINGLE;
     }
     function writeScalar(state, string, level, iskey, inblock) {
-      state.dump = (function() {
+      state.dump = function() {
         if (string.length === 0) {
           return state.quotingType === QUOTING_TYPE_DOUBLE ? '""' : "''";
         }
@@ -7881,7 +8003,7 @@ var require_dumper = __commonJS({
           default:
             throw new YAMLException("impossible error: invalid scalar style");
         }
-      })();
+      }();
     }
     function blockHeader(string, indentPerLevel) {
       const indentIndicator = needIndentIndicator(string) ? String(indentPerLevel) : "";
@@ -7895,12 +8017,12 @@ var require_dumper = __commonJS({
     }
     function foldString(string, width) {
       const lineRe = /(\n+)([^\n]*)/g;
-      let result = (function() {
+      let result = function() {
         let nextLF = string.indexOf("\n");
         nextLF = nextLF !== -1 ? nextLF : string.length;
         lineRe.lastIndex = nextLF;
         return foldLine(string.slice(0, nextLF), width);
-      })();
+      }();
       let prevMoreIndented = string[0] === "\n" || string[0] === " ";
       let moreIndented;
       let match;
@@ -8275,7 +8397,7 @@ var require_js_yaml = __commonJS({
 var require_scanner = __commonJS({
   "../kcd_sdk/dist/scanner/scanner.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -8284,16 +8406,16 @@ var require_scanner = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    }) : (function(o, m, k, k2) {
+    } : function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    }));
-    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
+    });
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    }) : function(o, v) {
+    } : function(o, v) {
       o["default"] = v;
     });
-    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ (function() {
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ function() {
       var ownKeys = function(o) {
         ownKeys = Object.getOwnPropertyNames || function(o2) {
           var ar = [];
@@ -8311,7 +8433,7 @@ var require_scanner = __commonJS({
         __setModuleDefault(result, mod);
         return result;
       };
-    })();
+    }();
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.scan = scan;
     var fs = __importStar(require("fs"));
@@ -8409,7 +8531,7 @@ var require_scanner2 = __commonJS({
 var require_McpServer = __commonJS({
   "../kcd_sdk/dist/server/McpServer.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -8418,16 +8540,16 @@ var require_McpServer = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    }) : (function(o, m, k, k2) {
+    } : function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    }));
-    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
+    });
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    }) : function(o, v) {
+    } : function(o, v) {
       o["default"] = v;
     });
-    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ (function() {
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ function() {
       var ownKeys = function(o) {
         ownKeys = Object.getOwnPropertyNames || function(o2) {
           var ar = [];
@@ -8445,7 +8567,7 @@ var require_McpServer = __commonJS({
         __setModuleDefault(result, mod);
         return result;
       };
-    })();
+    }();
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.McpServer = void 0;
     var readline2 = __importStar(require("readline"));
@@ -8632,11 +8754,13 @@ var require_verify = __commonJS({
       if (result.isError) {
         return { pass: false, detail: `unexpected error: ${textOf2(result)}` };
       }
+      if (assertions.length === 0)
+        return { pass: true };
       let data;
       try {
         data = JSON.parse(textOf2(result));
       } catch {
-        return { pass: false, detail: "result payload was not JSON" };
+        return { pass: false, detail: "result payload was not JSON, but assertions require a JSON object" };
       }
       for (const a of assertions) {
         const detail = checkOne2(a, data);
@@ -8784,7 +8908,7 @@ var require_server = __commonJS({
 var require_io = __commonJS({
   "../kcd_sdk/dist/node/io.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -8793,16 +8917,16 @@ var require_io = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    }) : (function(o, m, k, k2) {
+    } : function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    }));
-    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
+    });
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    }) : function(o, v) {
+    } : function(o, v) {
       o["default"] = v;
     });
-    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ (function() {
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ function() {
       var ownKeys = function(o) {
         ownKeys = Object.getOwnPropertyNames || function(o2) {
           var ar = [];
@@ -8820,7 +8944,7 @@ var require_io = __commonJS({
         __setModuleDefault(result, mod);
         return result;
       };
-    })();
+    }();
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.fsReader = void 0;
     exports2.inferProjectRoot = inferProjectRoot2;
@@ -8853,7 +8977,7 @@ var require_io = __commonJS({
 var require_Vault = __commonJS({
   "../kcd_sdk/dist/node/Vault.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -8862,16 +8986,16 @@ var require_Vault = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    }) : (function(o, m, k, k2) {
+    } : function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    }));
-    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
+    });
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    }) : function(o, v) {
+    } : function(o, v) {
       o["default"] = v;
     });
-    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ (function() {
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ function() {
       var ownKeys = function(o) {
         ownKeys = Object.getOwnPropertyNames || function(o2) {
           var ar = [];
@@ -8889,7 +9013,7 @@ var require_Vault = __commonJS({
         __setModuleDefault(result, mod);
         return result;
       };
-    })();
+    }();
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.Vault = void 0;
     var fs = __importStar(require("fs"));
@@ -9235,7 +9359,7 @@ var require_Vault = __commonJS({
 var require_VaultUtilities = __commonJS({
   "../kcd_sdk/dist/node/VaultUtilities.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -9244,16 +9368,16 @@ var require_VaultUtilities = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    }) : (function(o, m, k, k2) {
+    } : function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    }));
-    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
+    });
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    }) : function(o, v) {
+    } : function(o, v) {
       o["default"] = v;
     });
-    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ (function() {
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ function() {
       var ownKeys = function(o) {
         ownKeys = Object.getOwnPropertyNames || function(o2) {
           var ar = [];
@@ -9271,12 +9395,16 @@ var require_VaultUtilities = __commonJS({
         __setModuleDefault(result, mod);
         return result;
       };
-    })();
+    }();
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.VaultUtilities = void 0;
     var fs = __importStar(require("fs"));
+    var path2 = __importStar(require("path"));
     var primitives_1 = require_primitives();
-    var VaultUtilities2 = class {
+    var core_1 = require_core();
+    var ROOT_CONTEXT_PATH = "root-context.html";
+    var DOC_ROOT_PREFIX = "_Claude";
+    var VaultUtilities3 = class _VaultUtilities {
       /**
        * Validate one artifact ( `onlyFile` given ) or the whole vault ( omitted ) on two axes:
        *
@@ -9427,8 +9555,410 @@ var require_VaultUtilities = __commonJS({
           return nameOrPath;
         return `lenses/${nameOrPath}/${nameOrPath}.html`;
       }
+      /**
+       * The single read-query over a vault — glob, type, and text, AND-combined over one scan.
+       * `glob` short-circuits through the Vault's own path filter; `type`/`text` narrow the
+       * survivors. `groupBy: 'type'` returns a census instead of refs — the cheapest orientation
+       * call, and how `kcd_query`'s inspector example works. Moved out of the MCP handler ( 1.i ):
+       * this was the one tool whose filtering logic lived only on one face.
+       */
+      static query(vault, opts = {}) {
+        const needle = opts.text?.toLowerCase();
+        let files = opts.glob ? vault.glob(opts.glob) : vault.scan();
+        if (opts.type)
+          files = files.filter((f) => vault.classify(f.path) === opts.type);
+        if (needle)
+          files = files.filter((f) => (f.body + "\n" + JSON.stringify(f.frontmatter)).toLowerCase().includes(needle));
+        if (opts.groupBy === "type") {
+          const counts = {};
+          for (const f of files) {
+            const t = vault.classify(f.path);
+            counts[t] = (counts[t] ?? 0) + 1;
+          }
+          return Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([type, count]) => ({ type, count }));
+        }
+        return files.map((f) => vault.toRef(f));
+      }
+      /**
+       * The link graph around one artifact: `outbound` ( what it declares, resolved ), `addresses`
+       * ( its own, each flagged `occupied` — a fact, never a verdict, protocol §1.1 ), and `inbound`
+       * ( every other file whose links resolve here, found by scanning + resolving the whole vault ).
+       * Moved out of the MCP handler ( 1.i ), same reason as `query`.
+       */
+      static links(vault, path3) {
+        const abs = vault.toAbs(path3);
+        const artifact = primitives_1.KCDPrimitive.fromHtml(vault.read(path3), abs);
+        const outbound = artifact.getLinks();
+        const names = new Set(vault.scan().map((f) => typeof f.frontmatter["name"] === "string" ? f.frontmatter["name"] : "").filter((n) => n !== ""));
+        const addresses = (artifact.serialize().addresses ?? []).map((a) => ({
+          ...a,
+          occupied: names.has(a.value) || vault.exists(a.value)
+        }));
+        const inbound = vault.scan().filter((f) => f.rawLinks.some((l) => vault.resolveHref(l.href) === abs)).map((f) => ({ path: f.relativePath, relativePath: f.relativePath }));
+        return { outbound, addresses, inbound };
+      }
+      /**
+       * Parse every §10 seed payload out of the seed source. A seed is the "§5 non-executing script
+       * idiom with a markdown type" — `<script type="text/kcd-md" data-kcd-seed="host"
+       * data-kcd-target="…" data-kcd-mode="…">payload</script>` — one block per agent host. Attribute
+       * order is NOT assumed ( each is matched independently within the captured tag ), so a document
+       * author reordering them cannot silently break extraction. A `<script>` without
+       * `type="text/kcd-md"` is skipped, not an error — root-context may grow other script content
+       * later.
+       */
+      static parseSeeds(vault) {
+        return _VaultUtilities.parseSeedsFrom(vault.read(ROOT_CONTEXT_PATH));
+      }
+      /**
+       * The same parse, against raw HTML rather than a deployed vault.
+       *
+       * The two currencies are genuinely different, not a convenience wrapper: at INSTALL time there is
+       * no vault yet, and the caller needs the seed declarations out of the BUNDLE's `root-context.html`
+       * — which is the only place the set of agent entry-point filenames is written down. Anchoring an
+       * install on "the folder containing CLAUDE.md" without this would mean hardcoding that filename in
+       * the CLI, and there would then be two lists of host targets that could disagree.
+       */
+      static parseSeedsFrom(html) {
+        const out = [];
+        const scriptRe = /<script\s+([^>]*?)>([\s\S]*?)<\/script>/g;
+        let m;
+        while ((m = scriptRe.exec(html)) !== null) {
+          const [, attrs, body] = m;
+          if (!/type="text\/kcd-md"/.test(attrs))
+            continue;
+          const host = /data-kcd-seed="([^"]+)"/.exec(attrs)?.[1];
+          const target = /data-kcd-target="([^"]+)"/.exec(attrs)?.[1];
+          const mode = /data-kcd-mode="([^"]+)"/.exec(attrs)?.[1];
+          if (!host || !target)
+            continue;
+          out.push({ host, target, mode: mode ?? "prepend", payload: body.trim() });
+        }
+        return out;
+      }
+      /**
+       * Apply one seed to its target, confirm-gated like `reset`: no `confirm` only reports what
+       * would change, nothing on disk moves.
+       *
+       * `create-only` writes the whole file, and only when nothing is there yet — re-running this
+       * against an existing target is always a no-op by design (`changed: false`), never a silent
+       * overwrite of a project's own content.
+       *
+       * `prepend` maintains a MANAGED BLOCK at the top of the target, delimited by
+       * `<!-- kcd:begin -->` / `<!-- kcd:end -->` — re-extraction replaces only what lies between the
+       * markers and leaves everything below them alone, which is what lets a vault deploy over a
+       * project whose `CLAUDE.md` already says things of its own. First extraction ( no markers yet )
+       * PREPENDS the block above whatever the file already held; a target that does not exist yet gets
+       * just the block.
+       */
+      static applySeed(projectRoot, seed, opts) {
+        const targetAbs = path2.resolve(projectRoot, seed.target);
+        const existed = fs.existsSync(targetAbs);
+        if (seed.mode === "create-only") {
+          const changed2 = !existed;
+          if (changed2 && opts?.confirm) {
+            fs.mkdirSync(path2.dirname(targetAbs), { recursive: true });
+            fs.writeFileSync(targetAbs, seed.payload + "\n", "utf-8");
+          }
+          return { host: seed.host, target: seed.target, mode: seed.mode, targetExisted: existed, hadManagedBlock: false, changed: changed2, applied: !!opts?.confirm && changed2 };
+        }
+        const current = existed ? fs.readFileSync(targetAbs, "utf-8") : "";
+        const blockRe = /<!--\s*kcd:begin\s*-->[\s\S]*?<!--\s*kcd:end\s*-->/;
+        const hadBlock = blockRe.test(current);
+        const block = `<!-- kcd:begin -->
+${seed.payload}
+<!-- kcd:end -->`;
+        const next = hadBlock ? current.replace(blockRe, block) : block + (current ? "\n\n" + current : "\n");
+        const changed = next !== current;
+        if (changed && opts?.confirm) {
+          fs.mkdirSync(path2.dirname(targetAbs), { recursive: true });
+          fs.writeFileSync(targetAbs, next, "utf-8");
+        }
+        return { host: seed.host, target: seed.target, mode: seed.mode, targetExisted: existed, hadManagedBlock: hadBlock, changed, applied: !!opts?.confirm && changed };
+      }
+      /**
+       * The inverse of `applySeed` — take OUR managed block back out of a host entry file, leaving
+       * everything the project wrote itself exactly where it was.
+       *
+       * The uninstall half of the seed contract, and the reason `clear` can be offered at all: because
+       * `applySeed` never owned more than the region between its markers, removal is subtraction rather
+       * than deletion. The file survives with the user's own instructions intact. It is deleted ONLY
+       * when our block was the entire content — i.e. we created it and nobody added anything since —
+       * which is the one case where leaving an empty file behind would be litter rather than courtesy.
+       *
+       * `create-only` seeds are never removed: that mode writes a whole file and then never touches it
+       * again, so after the first install the content is indistinguishable from the project's own.
+       * Guessing there would mean deleting something we cannot prove we wrote.
+       */
+      static removeSeed(projectRoot, seed, opts) {
+        const targetAbs = path2.resolve(projectRoot, seed.target);
+        const existed = fs.existsSync(targetAbs);
+        const base = { host: seed.host, target: seed.target, targetExisted: existed };
+        if (!existed || seed.mode === "create-only") {
+          return { ...base, hadManagedBlock: false, fileRemoved: false, changed: false, applied: false };
+        }
+        const current = fs.readFileSync(targetAbs, "utf-8");
+        const blockRe = /<!--\s*kcd:begin\s*-->[\s\S]*?<!--\s*kcd:end\s*-->\r?\n?/;
+        const hadBlock = blockRe.test(current);
+        if (!hadBlock)
+          return { ...base, hadManagedBlock: false, fileRemoved: false, changed: false, applied: false };
+        const next = current.replace(blockRe, "").replace(/^\s+/, "");
+        const fileRemoved = next.trim().length === 0;
+        if (opts?.confirm) {
+          if (fileRemoved)
+            fs.rmSync(targetAbs);
+          else
+            fs.writeFileSync(targetAbs, next, "utf-8");
+        }
+        return { ...base, hadManagedBlock: true, fileRemoved, changed: true, applied: !!opts?.confirm };
+      }
+      /**
+       * Maintain a managed block in the project's `.gitignore`, confirm-gated like every other write.
+       *
+       * WHY THIS IS A FUNCTION AND NOT A PARAGRAPH OF ADVICE: an install writes six paths into a
+       * version-controlled repository, and "I do not want this in my git history" is the one objection
+       * a cautious developer actually has. It was previously answered with prose telling them to edit
+       * `.gitignore` themselves — which is a chore attached to the least confident moment of the
+       * install. It also replaces "workspace mode" outright ( ruled 2026-07-26 ): a vault outside the
+       * repository breaks `inferProjectRoot`'s upward walk and is an alternate topology, whereas the
+       * concern behind it is fully served by three lines in a file.
+       *
+       * The three scopes are the three honest answers, and `none` exists so the choice is reversible:
+       *
+       *   scratch  the default recommendation — `audits/` and `work/` are regenerable churn; the rest
+       *            of the vault is project knowledge and belongs in history
+       *   vault    the whole vault, for someone who wants to try this without touching their repo
+       *   none     remove the managed block entirely, restoring whatever they had before
+       *
+       * Managed-block idiom deliberately mirrors `applySeed`'s ( `# kcd:begin` / `# kcd:end`, comment
+       * syntax swapped for the file format ) so there is ONE mechanism for "a file we co-own with the
+       * user" rather than two that drift. The block is APPENDED, not prepended — a `.gitignore`'s own
+       * rules should stay where its author put them.
+       */
+      static gitignore(projectRoot, docRoot, scope, opts) {
+        const targetAbs = path2.resolve(projectRoot, ".gitignore");
+        const existed = fs.existsSync(targetAbs);
+        const current = existed ? fs.readFileSync(targetAbs, "utf-8") : "";
+        const entries = scope === "vault" ? [`${docRoot}/`] : scope === "scratch" ? [`${docRoot}/audits/`, `${docRoot}/work/`, `${docRoot}/scratch/`] : [];
+        const blockRe = /#\s*kcd:begin\s*[\s\S]*?#\s*kcd:end\s*\n?/;
+        const hadBlock = blockRe.test(current);
+        let next;
+        if (entries.length === 0) {
+          next = hadBlock ? current.replace(blockRe, "").replace(/\n{3,}$/, "\n") : current;
+        } else {
+          const block = `# kcd:begin
+${entries.join("\n")}
+# kcd:end
+`;
+          next = hadBlock ? current.replace(blockRe, block) : current + (current && !current.endsWith("\n") ? "\n" : "") + (current ? "\n" : "") + block;
+        }
+        const changed = next !== current;
+        if (changed && opts?.confirm)
+          fs.writeFileSync(targetAbs, next, "utf-8");
+        return { target: ".gitignore", scope, entries, targetExisted: existed, hadManagedBlock: hadBlock, changed, applied: !!opts?.confirm && changed };
+      }
+      /**
+       * The entry document's Lenses table, freshly computed from the vault's real lens files —
+       * `what`/`where`/`why` sourced from each lens's OWN frontmatter, never hand-copied. This is
+       * deliberately authoritative-over-editorial: a lens's description is the one place its pitch is
+       * written, and a curated-but-separate copy in the entry document is exactly the kind of thing
+       * that drifts silently. `_lens-base` ( and any other `_`-prefixed, auto-loaded infrastructure
+       * lens ) is excluded — it is never picked, it is automatic.
+       */
+      static lensIndex(vault) {
+        return vault.scan().filter((f) => vault.classify(f.path) === "lens").filter((f) => !path2.basename(f.relativePath).startsWith("_")).map((f) => ({
+          // The FOLDER name, not frontmatter.name — this is the slug `!name` and
+          // `kcd_compile`'s own `lenses/{name}/{name}.html` convention actually resolve. At
+          // least three lenses' authored `name` disagrees with their folder ( hyphen vs.
+          // underscore ) — using frontmatter here would put an unresolvable slug in the one
+          // table whose whole job is telling an agent what to type.
+          what: path2.basename(path2.dirname(f.relativePath)),
+          where: `${DOC_ROOT_PREFIX}/${f.relativePath}`.replace(/\\/g, "/"),
+          why: typeof f.frontmatter["description"] === "string" ? f.frontmatter["description"] : ""
+        })).sort((a, b) => a.what.localeCompare(b.what));
+      }
+      /**
+       * Splice freshly-computed rows into the entry document's `data-kcd-section="lenses"` table,
+       * leaving every other section — hard rules, stacking, framework reference, all hand-authored
+       * prose — untouched. Locates the table by its OWN structural markers ( the section id, the
+       * head row, the section's own closing tag ), not a line-number or whitespace assumption, so a
+       * human editing prose elsewhere in the document cannot break the splice. Throws rather than
+       * guessing if the section is not found in the expected shape — a silent wrong-place write to a
+       * hard-rule-protected document is worse than a loud refusal.
+       */
+      static spliceLensIndex(rootHtml, rows) {
+        const sectionRe = /<section data-kcd-section="lenses">[\s\S]*?<\/section>/;
+        const section = sectionRe.exec(rootHtml);
+        if (!section)
+          throw new Error('spliceLensIndex: no <section data-kcd-section="lenses"> found in the entry document');
+        const headRe = /<div data-kcd-head>[\s\S]*?<\/div>\r?\n/;
+        const head = headRe.exec(section[0]);
+        if (!head)
+          throw new Error("spliceLensIndex: found the lenses section but not its table head row");
+        const headEndInSection = head.index + head[0].length;
+        const closeRe = /\r?\n(\t*)<\/div>\r?\n(\t*)<\/section>$/;
+        const close = closeRe.exec(section[0]);
+        if (!close)
+          throw new Error("spliceLensIndex: found the lenses table head but not its closing tags");
+        const rendered = rows.map((r) => `			<div data-kcd-slot="reference" data-kcd-mode="on">\r
+				<span data-kcd-field="what"  data-kcd-type="text">${r.what}</span>\r
+				<a    data-kcd-field="where" data-kcd-type="path" href="${r.where}">${r.what}</a>\r
+				<span data-kcd-field="why"   data-kcd-type="text">${r.why}</span>\r
+			</div>`).join("\r\n");
+        const newSection = section[0].slice(0, headEndInSection) + rendered + section[0].slice(close.index);
+        const html = rootHtml.slice(0, section.index) + newSection + rootHtml.slice(section.index + section[0].length);
+        return { rows, html, changed: html !== rootHtml };
+      }
+      /**
+       * Restore ONE deployed artifact to canonical from the bundle — the opposite of `VaultDeploy`,
+       * which only ever FILLS ( `force: false`, an existing file is never touched ). Reset is the
+       * deliberate overwrite `VaultDeploy` refuses to be.
+       *
+       * The canonical counterpart of a deployed path is resolved through `InstallManifest`, the same
+       * table `VaultDeploy` fills FROM — no second mapping to drift out of step with the first. A
+       * target with no covering row ( content the manifest never declared ) simply has no canonical
+       * counterpart; that is a normal, reportable outcome, not an error.
+       *
+       * CONFIRM-FIRST, per-artifact: called with no `opts` ( or `confirm: false` ), this only
+       * reports — `applied` is always `false` and nothing on disk changes. Pass `confirm: true` to
+       * actually overwrite, and only once the caller has seen the report. A target already
+       * `identical` to canonical is left untouched even with `confirm: true` — reset does not
+       * touch mtimes for no reason.
+       */
+      static reset(vault, targetPath, substrateSource, opts) {
+        const rel = targetPath.replace(/\\/g, "/").replace(/^\/+/, "");
+        const targetAbs = vault.toAbs(rel);
+        const entry = core_1.InstallManifest.entryFor(rel);
+        if (!entry)
+          return { path: rel, canonicalPath: "", hasCanonical: false, targetExisted: fs.existsSync(targetAbs), identical: false, applied: false };
+        const tail = rel === entry.vaultHome ? "" : rel.slice(entry.vaultHome.length + 1);
+        const canonicalPath = path2.join(substrateSource, entry.bundleSource, tail);
+        const hasCanonical = fs.existsSync(canonicalPath) && fs.statSync(canonicalPath).isFile();
+        const targetExisted = fs.existsSync(targetAbs);
+        if (!hasCanonical)
+          return { path: rel, canonicalPath, hasCanonical, targetExisted, identical: false, applied: false };
+        const canonicalContent = fs.readFileSync(canonicalPath, "utf-8");
+        const identical = targetExisted && fs.readFileSync(targetAbs, "utf-8") === canonicalContent;
+        const apply = !!opts?.confirm && !identical;
+        if (apply)
+          vault.write(rel, canonicalContent);
+        return { path: rel, canonicalPath, hasCanonical, targetExisted, identical, applied: apply };
+      }
+      /**
+       * Categorize every file under `kcd/` into one of the three real migration states. `overrides`
+       * maps a `kcd/`-stripped PREFIX to its real target prefix ( e.g. `{ 'docs/': 'references/kcd_sdk/'
+       * }` ) for the cases where the flat mirror of a `kcd/` path is not an actual home — deliberately a
+       * CALLER-supplied table, not baked in here: a different project's `kcd/` shape will need different
+       * overrides, and this function stays generic by not guessing at one project's history.
+       *
+       * Duplicate detection runs on the UN-overridden flat path — a file already deployed at its
+       * natural mirror is a duplicate regardless of where an unrelated file's override sends it.
+       */
+      static planKcdMigration(vault, overrides = {}) {
+        const actions = [];
+        const notes = [];
+        for (const f of vault.scan()) {
+          const rel = f.relativePath.replace(/\\/g, "/");
+          if (rel !== "kcd" && !rel.startsWith("kcd/"))
+            continue;
+          const stripped = rel.slice(4);
+          if (stripped.startsWith("templates/")) {
+            actions.push({ kind: "extract-template", kcdPath: rel });
+            continue;
+          }
+          if (vault.exists(`${DOC_ROOT_PREFIX}/${stripped}`)) {
+            const diverged = vault.read(rel) !== vault.read(stripped);
+            actions.push({ kind: "delete-duplicate", kcdPath: rel, deployedPath: stripped, diverged });
+            continue;
+          }
+          let target = stripped;
+          for (const [from, to] of Object.entries(overrides)) {
+            if (stripped.startsWith(from)) {
+              target = to + stripped.slice(from.length);
+              break;
+            }
+          }
+          actions.push({ kind: "relocate", kcdPath: rel, targetPath: target });
+        }
+        if (actions.some((a) => a.kcdPath === "kcd/kcd.css"))
+          notes.push("kcd/kcd.css is linked via a plain <link> tag, not a data-kcd-* href \u2014 no heal here sees it. Run fixStylesheetLinks() once its new home is settled.");
+        return { actions, notes };
+      }
+      /**
+       * Apply a plan's `delete-duplicate` and `relocate` actions — confirm-gated like every other
+       * write in this class. `extract-template` is reported, never applied: its destination is OUTSIDE
+       * the vault, in whatever package consumes this project, and that mapping is not this generic
+       * utility's to know. `relocate` reuses `vault.move()` verbatim — link-healing for free, same
+       * proven mechanism `kcd_move` already runs. `delete-duplicate` cannot use `move()` ( its
+       * destination already exists, which `move()` refuses by design ) — so it re-derives the same
+       * repoint-then-remove shape by hand: every inbound link to the `kcd/` copy is rewritten to point
+       * at the real deployed copy, then the stale file is removed, then the same post-condition
+       * `move()`/`delete()` both assert — no link may still resolve to the old path — is checked here too.
+       */
+      static applyKcdMigration(vault, plan, opts) {
+        const reports = [];
+        for (const action of plan.actions) {
+          if (action.kind === "extract-template") {
+            reports.push({ action, applied: false, error: "extract-template is not applied here \u2014 relocate it outside the vault, then delete the kcd/ source separately" });
+            continue;
+          }
+          if (!opts?.confirm) {
+            reports.push({ action, applied: false });
+            continue;
+          }
+          try {
+            if (action.kind === "delete-duplicate") {
+              const kcdAbs = vault.toAbs(action.kcdPath);
+              const newHref = `${DOC_ROOT_PREFIX}/${action.deployedPath}`;
+              for (const edit of vault.inboundEdits(kcdAbs, newHref))
+                vault.rewriteHref(edit);
+              fs.unlinkSync(kcdAbs);
+              vault.assertNoResidual(kcdAbs, "migrate");
+            } else {
+              vault.move(action.kcdPath, action.targetPath);
+            }
+            reports.push({ action, applied: true });
+          } catch (e) {
+            reports.push({ action, applied: false, error: e instanceof Error ? e.message : String(e) });
+          }
+        }
+        return reports;
+      }
+      /**
+       * Fix every document's stylesheet `<link>` to point at `kcd.css`'s CURRENT location, recomputed
+       * fresh from each file's own depth. Deliberately unconditional — every document in the vault
+       * shares the one stylesheet, so this recomputes every link rather than trying to detect which
+       * ones point at a stale path; a link already correct is simply reported `applied: false`
+       * ( nothing to do ), not skipped.
+       */
+      static fixStylesheetLinks(vault, cssHome, opts) {
+        const reports = [];
+        const linkRe = /<link\s+rel="stylesheet"\s+href="([^"]+)"\s*\/?>/;
+        for (const f of vault.scan()) {
+          const rel = f.relativePath.replace(/\\/g, "/");
+          if (rel === cssHome)
+            continue;
+          const raw = vault.read(rel);
+          const m = linkRe.exec(raw);
+          if (!m)
+            continue;
+          const depth = rel.split("/").length - 1;
+          const newHref = (depth === 0 ? "" : "../".repeat(depth)) + cssHome;
+          const oldHref = m[1];
+          if (oldHref === newHref) {
+            reports.push({ path: rel, oldHref, newHref, applied: false });
+            continue;
+          }
+          if (opts?.confirm) {
+            const before = raw.slice(0, m.index);
+            const after = raw.slice(m.index + m[0].length);
+            vault.write(rel, before + m[0].replace(oldHref, newHref) + after);
+          }
+          reports.push({ path: rel, oldHref, newHref, applied: !!opts?.confirm });
+        }
+        return reports;
+      }
     };
-    exports2.VaultUtilities = VaultUtilities2;
+    exports2.VaultUtilities = VaultUtilities3;
   }
 });
 
@@ -9436,7 +9966,7 @@ var require_VaultUtilities = __commonJS({
 var require_VaultDeploy = __commonJS({
   "../kcd_sdk/dist/node/VaultDeploy.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -9445,16 +9975,16 @@ var require_VaultDeploy = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    }) : (function(o, m, k, k2) {
+    } : function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    }));
-    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
+    });
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    }) : function(o, v) {
+    } : function(o, v) {
       o["default"] = v;
     });
-    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ (function() {
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ function() {
       var ownKeys = function(o) {
         ownKeys = Object.getOwnPropertyNames || function(o2) {
           var ar = [];
@@ -9472,15 +10002,13 @@ var require_VaultDeploy = __commonJS({
         __setModuleDefault(result, mod);
         return result;
       };
-    })();
+    }();
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.VaultDeploy = void 0;
     var fs = __importStar(require("fs"));
     var path2 = __importStar(require("path"));
     var core_1 = require_core();
-    var SUBSTRATE_DIR = "kcd";
     var COPY_EXCLUDE = [".git"];
-    var BASE_LENS = "lenses/_lens_base.html";
     var VaultDeploy = class _VaultDeploy {
       /** What this vault is missing, changing nothing. The 4.e maintenance read: point it at any
        *  project and it answers "is this vault whole?" without touching disk. */
@@ -9509,48 +10037,61 @@ var require_VaultDeploy = __commonJS({
           if (!present && write)
             fs.mkdirSync(abs, { recursive: true });
         }
-        items.push(..._VaultDeploy._substrate(vault, opts?.substrateSource, write));
-        items.push(_VaultDeploy._baseLens(vault, opts?.substrateSource, write));
+        items.push(..._VaultDeploy._manifest(vault, opts?.substrateSource, write));
         items.push(_VaultDeploy._navIndex(vault, write));
+        items.push(_VaultDeploy._commandDeck(vault, write));
         const missing = items.filter((i) => !i.present).length;
         return { root: projectRoot, docRoot, items, missing, applied: write };
       }
       /**
-       * The canonical framework library, copied from a master. `force: false` is what makes this a
-       * FILL rather than a reset — an existing file is never overwritten, so a project that has been
-       * running for months keeps whatever it has and only gains what it lacks.
+       * Every `InstallManifest` row, filled from the bundle. `force: false` is what makes this a FILL
+       * rather than a reset — an existing file is never overwritten, so a project that has been running
+       * for months keeps whatever it has and only gains what it lacks.
        *
-       * A missing or unreadable source is reported, not thrown: a deploy that cannot find its master
-       * should say so plainly and leave the rest of the structure in place, because the directories
-       * are still worth having.
+       * A missing bundle, or a row absent from it, is reported per-row rather than thrown: a deploy that
+       * cannot find part of its source should say so plainly and keep filling everything else, because
+       * one missing optional row is not a reason to leave the rest of the vault half-built.
        */
-      static _substrate(vault, source, write) {
-        const dest = path2.join(vault, SUBSTRATE_DIR);
-        if (!source || !fs.existsSync(source)) {
-          return [{
+      static _manifest(vault, source, write) {
+        const items = [];
+        for (const entry of core_1.InstallManifest.all()) {
+          const dest = path2.join(vault, entry.vaultHome);
+          const src = source ? path2.join(source, entry.bundleSource) : void 0;
+          if (!src || !fs.existsSync(src)) {
+            items.push({
+              kind: "substrate",
+              path: entry.vaultHome,
+              present: fs.existsSync(dest),
+              note: !source ? "no substrate source given" : `${entry.required ? "required" : "optional"} \u2014 not found in bundle at "${entry.bundleSource}"`
+            });
+            continue;
+          }
+          const isDir = fs.statSync(src).isDirectory();
+          const gaps = isDir ? _VaultDeploy._missingUnder(src, dest) : fs.existsSync(dest) ? [] : [entry.bundleSource];
+          const item = {
             kind: "substrate",
-            path: SUBSTRATE_DIR,
-            present: fs.existsSync(dest),
-            note: source ? `canonical substrate not found at "${source}"` : "no substrate source given"
-          }];
+            path: entry.vaultHome,
+            present: gaps.length === 0,
+            note: gaps.length === 0 ? "complete" : `${gaps.length} file(s) missing: ${gaps.slice(0, 5).join(", ")}${gaps.length > 5 ? "\u2026" : ""}`
+          };
+          if (gaps.length > 0 && write) {
+            if (isDir) {
+              fs.mkdirSync(dest, { recursive: true });
+              fs.cpSync(src, dest, {
+                recursive: true,
+                force: false,
+                // never overwrite — this fills, it does not reset
+                errorOnExist: false,
+                filter: (s) => !COPY_EXCLUDE.includes(path2.basename(s))
+              });
+            } else {
+              fs.mkdirSync(path2.dirname(dest), { recursive: true });
+              fs.copyFileSync(src, dest);
+            }
+          }
+          items.push(item);
         }
-        const gaps = _VaultDeploy._missingUnder(source, dest);
-        const item = {
-          kind: "substrate",
-          path: SUBSTRATE_DIR,
-          present: gaps.length === 0,
-          note: gaps.length === 0 ? "complete" : `${gaps.length} file(s) missing: ${gaps.slice(0, 5).join(", ")}${gaps.length > 5 ? "\u2026" : ""}`
-        };
-        if (gaps.length > 0 && write) {
-          fs.cpSync(source, dest, {
-            recursive: true,
-            force: false,
-            // never overwrite — this fills, it does not reset
-            errorOnExist: false,
-            filter: (src) => !COPY_EXCLUDE.includes(path2.basename(src))
-          });
-        }
-        return [item];
+        return items;
       }
       /** Every file under `source` ( excluding the copy-excluded names ) with no counterpart under
        *  `dest`, as source-relative paths. The measurement behind "is the substrate complete?". */
@@ -9575,24 +10116,6 @@ var require_VaultDeploy = __commonJS({
         walk("");
         return out;
       }
-      /** Seed the deployed base lens from the substrate's copy. Every session auto-loads it, so a vault
-       *  without one has no floor — but an existing one is never replaced: it is the most-edited
-       *  document in a mature project. */
-      static _baseLens(vault, source, write) {
-        const dest = path2.join(vault, BASE_LENS);
-        const present = fs.existsSync(dest);
-        const item = { kind: "file", path: BASE_LENS, present, note: "auto-loaded into every session" };
-        if (present || !write || !source)
-          return item;
-        const from = path2.join(source, BASE_LENS);
-        if (!fs.existsSync(from)) {
-          item.note = `substrate has no ${BASE_LENS} to seed from`;
-          return item;
-        }
-        fs.mkdirSync(path2.dirname(dest), { recursive: true });
-        fs.copyFileSync(from, dest);
-        return item;
-      }
       /** The vault's root nav-index — the entry map a reader ( human or agent ) lands on. Written only
        *  when absent, and deliberately minimal: it is a starting point the project grows, not a
        *  generated artifact that would fight being edited. */
@@ -9606,6 +10129,28 @@ var require_VaultDeploy = __commonJS({
         fs.writeFileSync(dest, _VaultDeploy._navIndexHtml(), "utf-8");
         return item;
       }
+      /**
+       * The command deck's one file. The deck's location is CONVENTION, not configuration — it is always
+       * `<docRoot>/dev-utilities/commands.json` — so the deck panel computes that path rather than asking
+       * the user for it. That only holds if the file reliably exists, which is this step's whole job: every
+       * deployed project gets one, and a repair on an older project fills it in.
+       *
+       * Seeded EMPTY. JSON carries no comments, so there is nowhere to explain the schema in the file, and a
+       * placeholder entry would render as a launcher button that does nothing — worse than an empty deck,
+       * which states the path it read and invites the first real command. The directory itself comes from
+       * the layout table like every other folder.
+       */
+      static _commandDeck(vault, write) {
+        const rel = "dev-utilities/commands.json";
+        const dest = path2.join(vault, rel);
+        const present = fs.existsSync(dest);
+        const item = { kind: "file", path: rel, present, note: "the command deck's launchers" };
+        if (present || !write)
+          return item;
+        fs.mkdirSync(path2.dirname(dest), { recursive: true });
+        fs.writeFileSync(dest, "[]\n", "utf-8");
+        return item;
+      }
       static _navIndexHtml() {
         const rows = core_1.VaultLayout.all().filter((e) => !e.dir.includes("/")).map((e) => `			<div data-kcd-slot="link">
 				<span data-kcd-field="what"  data-kcd-type="text">${e.dir}</span>
@@ -9617,7 +10162,7 @@ var require_VaultDeploy = __commonJS({
 <head>
 	<meta charset="utf-8">
 	<title>Vault \u2014 Navigation Index</title>
-	<link rel="stylesheet" href="kcd/kcd.css">
+	<link rel="stylesheet" href="kcd.css">
 </head>
 <body>
 
@@ -9659,7 +10204,7 @@ ${rows}
 var require_Survey = __commonJS({
   "../kcd_sdk/dist/node/Survey.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -9668,16 +10213,16 @@ var require_Survey = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    }) : (function(o, m, k, k2) {
+    } : function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    }));
-    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
+    });
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    }) : function(o, v) {
+    } : function(o, v) {
       o["default"] = v;
     });
-    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ (function() {
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ function() {
       var ownKeys = function(o) {
         ownKeys = Object.getOwnPropertyNames || function(o2) {
           var ar = [];
@@ -9695,11 +10240,12 @@ var require_Survey = __commonJS({
         __setModuleDefault(result, mod);
         return result;
       };
-    })();
+    }();
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.Survey = void 0;
     var fs = __importStar(require("fs"));
     var path2 = __importStar(require("path"));
+    var DEFAULT_DOC_ROOT2 = "_Claude";
     var SKIP_DIRS = /* @__PURE__ */ new Set([
       "node_modules",
       ".git",
@@ -9845,10 +10391,19 @@ var require_Survey = __commonJS({
     var MAX_TEST_DIRS = 8;
     var INDEX_FILE = "index.json";
     var Survey2 = class _Survey {
-      /** Walk `projectRoot` and produce the report. Never throws on odd trees. */
+      /**
+       * Walk `projectRoot` and produce the report. Never throws on odd trees.
+       *
+       * The vault is EXCLUDED. A survey reconnoitres the project the vault sits beside, so counting the
+       * vault's own artifacts as the user's code is not a rounding error — it is the wrong answer to the
+       * only question this asks. Left unskipped, a freshly installed vault ( ~44 framework documents )
+       * swamps a small project entirely, and every agent reading the roster concludes the project is
+       * made of KCD HTML. Found 2026-07-25, when a 6-file test project surveyed as 50 files.
+       */
       static run(projectRoot, opts) {
         const root = path2.resolve(projectRoot);
         const maxFiles = opts?.maxFiles ?? MAX_FILES;
+        const docRoot = opts?.docRoot ?? DEFAULT_DOC_ROOT2;
         const files = [];
         const manifests = [];
         let directories = 0, truncated = false;
@@ -9867,7 +10422,7 @@ var require_Survey = __commonJS({
             }
             const abs = path2.join(dir, entry.name);
             if (entry.isDirectory()) {
-              if (SKIP_DIRS.has(entry.name) || entry.name.startsWith("."))
+              if (SKIP_DIRS.has(entry.name) || entry.name === docRoot || entry.name.startsWith("."))
                 continue;
               directories++;
               const isTest = TEST_DIRS.has(entry.name.toLowerCase());
@@ -10585,7 +11140,7 @@ var require_SdkFileAccess = __commonJS({
 var require_node = __commonJS({
   "../kcd_sdk/dist/node/index.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -10594,10 +11149,10 @@ var require_node = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    }) : (function(o, m, k, k2) {
+    } : function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    }));
+    });
     var __exportStar = exports2 && exports2.__exportStar || function(m, exports3) {
       for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p)) __createBinding(exports3, m, p);
     };
@@ -10667,7 +11222,7 @@ var require_node = __commonJS({
 var require_dist = __commonJS({
   "../kcd_sdk/dist/index.js"(exports2) {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -10676,10 +11231,10 @@ var require_dist = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    }) : (function(o, m, k, k2) {
+    } : function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    }));
+    });
     var __exportStar = exports2 && exports2.__exportStar || function(m, exports3) {
       for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p)) __createBinding(exports3, m, p);
     };
@@ -10786,7 +11341,6 @@ var McpServer = class {
   constructor(info) {
     this.info = info;
   }
-  info;
   tools = /* @__PURE__ */ new Map();
   /** Register a tool. Last registration of a name wins. */
   registerTool(def) {
@@ -10946,11 +11500,12 @@ function judge(assertions, result) {
   if (result.isError) {
     return { pass: false, detail: `unexpected error: ${textOf(result)}` };
   }
+  if (assertions.length === 0) return { pass: true };
   let data;
   try {
     data = JSON.parse(textOf(result));
   } catch {
-    return { pass: false, detail: "result payload was not JSON" };
+    return { pass: false, detail: "result payload was not JSON, but assertions require a JSON object" };
   }
   for (const a of assertions) {
     const detail = checkOne(a, data);
@@ -11101,6 +11656,7 @@ var PathGuard = class extends AbstractGuard {
 };
 
 // src/tools/discovery.ts
+var import_kcd_sdk3 = __toESM(require_dist());
 function discoveryTools(chain) {
   return [
     {
@@ -11113,7 +11669,7 @@ function discoveryTools(chain) {
         { label: "finds a body/frontmatter term", input: { text: "lens" }, assertions: [] },
         { label: "censuses the vault by type", input: { groupBy: "type" }, assertions: [] }
       ],
-      description: 'Query artifacts by any combination of path glob, type, and body/frontmatter text (AND-combined). Returns matching refs, or { type, count }[] with groupBy:"type".',
+      description: "Find artifacts by path glob, type, and body text \u2014 the place to start when you don't know the path.",
       doc: 'The single read-query over the vault \u2014 subsumes the old glob/list/search/types tools. Any of `glob` ( vault-relative path pattern; `*` within a segment, `**` across ), `type` ( artifact classifier: lens, plan, habit, reference, contract, generator, analyzer, template, framework, nav-index ), and `text` ( case-insensitive substring across body + serialized frontmatter ) may be combined; they AND together. With no filter it returns the whole vault. Returns an array of refs ( path + type + name ) \u2014 read one with kcd_get, walk its edges with kcd_links. Pass `groupBy: "type"` to get `{ type, count }[]` ( sorted by count, descending ) instead of refs \u2014 the cheapest orientation call. Read-only.',
       inputSchema: {
         type: "object",
@@ -11132,25 +11688,13 @@ function discoveryTools(chain) {
       handler: async (args) => {
         try {
           chain.run({ tool: "kcd_query", params: args });
-          const vault = MCPUtils.vault;
-          const glob = typeof args["glob"] === "string" ? args["glob"] : void 0;
-          const type = typeof args["type"] === "string" ? args["type"] : void 0;
-          const text = typeof args["text"] === "string" ? args["text"] : void 0;
-          const groupBy = args["groupBy"] === "type";
-          const needle = text?.toLowerCase();
-          let files = glob ? vault.glob(glob) : vault.scan();
-          if (type) files = files.filter((f) => vault.classify(f.path) === type);
-          if (needle) files = files.filter((f) => (f.body + "\n" + JSON.stringify(f.frontmatter)).toLowerCase().includes(needle));
-          if (groupBy) {
-            const counts = {};
-            for (const f of files) {
-              const t = vault.classify(f.path);
-              counts[t] = (counts[t] ?? 0) + 1;
-            }
-            const census = Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([type2, count]) => ({ type: type2, count }));
-            return MCPUtils.result(census);
-          }
-          return MCPUtils.result(files.map((f) => vault.toRef(f)));
+          const result = import_kcd_sdk3.VaultUtilities.query(MCPUtils.vault, {
+            glob: typeof args["glob"] === "string" ? args["glob"] : void 0,
+            type: typeof args["type"] === "string" ? args["type"] : void 0,
+            text: typeof args["text"] === "string" ? args["text"] : void 0,
+            groupBy: args["groupBy"] === "type" ? "type" : void 0
+          });
+          return MCPUtils.result(result);
         } catch (e) {
           return MCPUtils.error(e instanceof Error ? e.message : String(e));
         }
@@ -11160,7 +11704,7 @@ function discoveryTools(chain) {
 }
 
 // src/tools/read.ts
-var import_kcd_sdk3 = __toESM(require_dist());
+var import_kcd_sdk4 = __toESM(require_dist());
 function readTools(chain) {
   return [
     {
@@ -11170,7 +11714,7 @@ function readTools(chain) {
         { label: "reads a lens artifact", input: { path: "lenses/parser/parser.html" }, assertions: [] },
         { label: "PathGuard jails an out-of-vault path", input: { path: "C:/Windows/System32/drivers/etc/hosts" }, assertions: [{ type: "error_expected" }] }
       ],
-      description: "Load and serialize a KCD artifact. For lenses, depth controls how many levels of linked context to include (default 1 = the lens alone, 2+ = with the lenses/references it always pulls in).",
+      description: "Load one artifact; for a lens, `depth` pulls in the context it always brings with it.",
       doc: "Load one artifact by vault-relative `path`, parse it, and return its serialized shape (frontmatter + sections + body + resolved links). For a lens, `depth` controls dredge: 1 (default) returns the lens alone; 2+ pulls its always-policy children that many levels deep, so the returned object carries the composed Know set. Non-lens types ignore `depth`. The path is PathGuard-jailed to the vault; an out-of-vault path returns a structured error. Use kcd_links instead when you only need the link graph, not the full body. Read-only.",
       inputSchema: {
         type: "object",
@@ -11191,7 +11735,7 @@ function readTools(chain) {
             const lens = vault.loadLens(filePath, { depth: depth ?? 1 });
             return MCPUtils.result(lens.serialize());
           }
-          const artifact = import_kcd_sdk3.KCDPrimitive.fromHtml(vault.read(filePath), vault.toAbs(filePath));
+          const artifact = import_kcd_sdk4.KCDPrimitive.fromHtml(vault.read(filePath), vault.toAbs(filePath));
           return MCPUtils.result(artifact.serialize());
         } catch (e) {
           return MCPUtils.error(e instanceof Error ? e.message : String(e));
@@ -11204,7 +11748,7 @@ function readTools(chain) {
       spec: [
         { label: "resolves links for a lens", input: { path: "lenses/parser/parser.html" }, assertions: [] }
       ],
-      description: "Get outbound links and addresses declared by an artifact, plus inbound links pointing to it from the rest of the vault.",
+      description: "See an artifact's outbound links, and everything pointing back at it.",
       doc: "Resolve the link graph around one artifact. Returns `{ outbound, inbound }`: outbound = the links the artifact itself declares (resolved to their targets); inbound = every other file in the vault whose links resolve TO this one (backlinks), found by scanning + resolving the whole vault. The graph primitive behind the editor's reference fan and the backlink panel. Cheaper than kcd_get when you only need edges, not the body. Read-only.",
       inputSchema: {
         type: "object",
@@ -11214,21 +11758,8 @@ function readTools(chain) {
       handler: async (args) => {
         try {
           chain.run({ tool: "kcd_links", params: args });
-          const vault = MCPUtils.vault;
-          const filePath = String(args["path"] ?? "");
-          const abs = vault.toAbs(filePath);
-          const artifact = import_kcd_sdk3.KCDPrimitive.fromHtml(vault.read(filePath), abs);
-          const outbound = artifact.getLinks();
-          const names = new Set(vault.scan().map((f) => typeof f.frontmatter["name"] === "string" ? f.frontmatter["name"] : "").filter((n) => n !== ""));
-          const addresses = (artifact.serialize().addresses ?? []).map((a) => ({
-            ...a,
-            occupied: names.has(a.value) || vault.exists(a.value)
-          }));
-          const inbound = vault.scan().filter((f) => f.rawLinks.some((l) => vault.resolveHref(l.href) === abs)).map((f) => ({
-            path: f.relativePath,
-            relativePath: f.relativePath
-          }));
-          return MCPUtils.result({ outbound, addresses, inbound });
+          const result = import_kcd_sdk4.VaultUtilities.links(MCPUtils.vault, String(args["path"] ?? ""));
+          return MCPUtils.result(result);
         } catch (e) {
           return MCPUtils.error(e instanceof Error ? e.message : String(e));
         }
@@ -11240,7 +11771,7 @@ function readTools(chain) {
       spec: [
         { label: "validates the whole vault", input: {}, assertions: [] }
       ],
-      description: "Validate one artifact (path provided) or the entire vault (no path): structural type rules plus reference integrity (dangling links, broken base/lens refs). Returns issues and a summary.",
+      description: "Validate one artifact, or the whole vault, for dangling links and broken refs.",
       doc: 'Validate artifacts on two axes. STRUCTURAL ( per file ): required frontmatter, sections, and type rules \u2014 a parse failure becomes an error issue rather than aborting the run. REFERENCE INTEGRITY ( cross-file, advisory warnings ): internal links whose target is missing on disk ( code-file links count; external URLs, #anchors, and {placeholder} hrefs are skipped ), and `base`/`lens` slugs that name no artifact ( the `cross` sentinel is skipped ). Pass `path` to check one file; omit it to sweep the whole vault. Returns `{ issues, summary }` \u2014 each issue carries its path, severity (error/warn), and message; the summary totals errors vs warnings. The pre-flight before a save or move sweep, and the observable form of the "always viable" invariant. Read-only.',
       inputSchema: {
         type: "object",
@@ -11251,7 +11782,7 @@ function readTools(chain) {
         try {
           chain.run({ tool: "kcd_health", params: args });
           const inputPath = typeof args["path"] === "string" ? args["path"] : "";
-          const report = import_kcd_sdk3.VaultUtilities.health(MCPUtils.vault, inputPath || void 0);
+          const report = import_kcd_sdk4.VaultUtilities.health(MCPUtils.vault, inputPath || void 0);
           return MCPUtils.result(report);
         } catch (e) {
           return MCPUtils.error(e instanceof Error ? e.message : String(e));
@@ -11264,7 +11795,7 @@ function readTools(chain) {
       spec: [
         { label: "compiles a single lens", input: { lenses: ["lens_crafter"] }, assertions: [] }
       ],
-      description: "Compile one or more lenses into a single context string \u2014 the composed Know/Care/manifest a lens contributes. Pass lens names (or vault paths); the first is primary. Returns the compiled text, the lenses compiled, and a token estimate.",
+      description: "Compile one or more lenses into one composed context string \u2014 first lens is primary.",
       doc: "The LENS compiler \u2014 Daedalus's basic context-compilation surface. Give it lens names ( a bare `parser` maps to `lenses/parser/parser.html`; a vault path is used as-is ) and it dredges each lens to its OWN authored depth, folds their context blocks together, resolves habit-class contention, and assembles one context string ( Care-first, manifest tables ). For a single lens the output equals that lens's own compiled context; multiple lenses compose into one, first = primary. Returns `{ lenses, text, tokens }`. This is lens composition only \u2014 the live runtime layers ( model root context, active MCP tool schemas, session memory ) are Starmind's job, not the vault's. Read-only.",
       inputSchema: {
         type: "object",
@@ -11282,7 +11813,7 @@ function readTools(chain) {
         try {
           chain.run({ tool: "kcd_compile", params: args });
           const lenses = Array.isArray(args["lenses"]) ? args["lenses"].map(String) : [];
-          const result = import_kcd_sdk3.VaultUtilities.compile(MCPUtils.vault, lenses);
+          const result = import_kcd_sdk4.VaultUtilities.compile(MCPUtils.vault, lenses);
           return MCPUtils.result(result);
         } catch (e) {
           return MCPUtils.error(e instanceof Error ? e.message : String(e));
@@ -11292,10 +11823,23 @@ function readTools(chain) {
     {
       name: "kcd_survey",
       annotations: { readOnlyHint: true },
+      // Two cases because this tool has two RETURN SHAPES. The lean default is prose, so it can only be
+      // smoke-tested (no assertion can read a key off text) — and it stays FIRST because the first spec's
+      // input becomes the tool's `example` in tools/list, and the idiomatic call is the argument-less one.
+      // The `full: true` case is where the real assertions live, since that shape is a SurveyReport object.
       spec: [
-        { label: "surveys the configured project", input: {}, assertions: [] }
+        { label: "surveys the configured project", input: {}, assertions: [] },
+        {
+          label: "full: true returns a structured report",
+          input: { full: true },
+          assertions: [
+            { type: "has_key", key: "components" },
+            { type: "type_is", key: "components", expected: "array" },
+            { type: "has_key", key: "totals" }
+          ]
+        }
       ],
-      description: "Reconnoitre the PROJECT the vault sits beside \u2014 a deterministic, filename-level census of its components ( languages, manifests, entry points, test layout, nesting ), NOT a source parse. Returns a lean text projection by default, or the full structured report with `full: true`. Read this to orient in an unfamiliar codebase instead of exploring it.",
+      description: "Reconnoitre the project beside the vault \u2014 a filename-level census of components, languages, and entry points.",
       doc: "Walk the configured project root and return a structured reconnaissance of it. This is a CENSUS: it reads filenames and small manifests only \u2014 no source is parsed and no model runs \u2014 so it produces a real answer on a Python, Go or C# project exactly as on TypeScript. The unit is the COMPONENT ( the root, plus every directory carrying its own package manifest ); each file is attributed to the deepest component containing it, so a monorepo reads as its real parts. By default returns the LEAN TEXT PROJECTION \u2014 the orientation read, geometry-free, the form a small model reasons over best. Pass `full: true` for the complete `SurveyReport` object ( components with languages, entryPoints, tests, contains, stats ). What a survey does NOT tell you: what the code does, which component matters, or that an absent thing is truly absent \u2014 treat it as orientation, not authority ( see the read-a-survey reference ). Read-only; surveys the project, writes nothing. The CLI `survey` command writes the same data as a JSON tree.",
       inputSchema: {
         type: "object",
@@ -11308,8 +11852,8 @@ function readTools(chain) {
         try {
           chain.run({ tool: "kcd_survey", params: args });
           const { projectRoot } = Config.resolve();
-          const report = import_kcd_sdk3.Survey.run(projectRoot);
-          return args["full"] === true ? MCPUtils.result(report) : MCPUtils.text(import_kcd_sdk3.Survey.project(report));
+          const report = import_kcd_sdk4.Survey.run(projectRoot);
+          return args["full"] === true ? MCPUtils.result(report) : MCPUtils.text(import_kcd_sdk4.Survey.project(report));
         } catch (e) {
           return MCPUtils.error(e instanceof Error ? e.message : String(e));
         }
@@ -11319,7 +11863,7 @@ function readTools(chain) {
 }
 
 // src/tools/write.ts
-var import_kcd_sdk4 = __toESM(require_dist());
+var import_kcd_sdk5 = __toESM(require_dist());
 function writeTools(chain) {
   return [
     {
@@ -11337,7 +11881,7 @@ function writeTools(chain) {
         { label: "jails an out-of-vault path", input: { path: "C:/Windows/x.html", artifact: { type: "reference", frontmatter: {}, body: "" } }, assertions: [{ type: "error_expected" }] },
         { label: "refuses an artifact that fails validation", input: { path: "references/domain/x.html", artifact: { type: "reference", frontmatter: {}, body: "" } }, assertions: [{ type: "error_expected" }] }
       ],
-      description: "Write one KCD artifact to disk: emit HTML from its structured shape, validate, and save \u2014 a malformed artifact is refused, nothing written. Creates or overwrites. For several, sequence via kcd_batch.",
+      description: "Write an artifact, validated first \u2014 a malformed one is refused and nothing lands.",
       doc: "Persist one artifact by vault-relative `path` from its `artifact` ( a SerializedArtifact \u2014 the shape kcd_get returns ). Emits HTML with KcdEmit: frontmatter is rebuilt from `artifact.frontmatter`, the `body` passes through \u2014 an existing body has its frontmatter block replaced ( the edit path: kcd_get \u2192 mutate \u2192 kcd_save ), a body with none gets one prepended ( the create path ). The result is validated with KcdValidate BEFORE any write: a structural failure returns a structured error and writes NOTHING ( the write-time gate \u2014 can't save a malformed artifact ). On success it writes and returns `{ saved, warnings }`. PathGuard jails the path and checks the declared type matches the target directory. NOTE: agent-authored body HTML is not yet sanitized here ( the render layer sanitizes on display; a save-time sanitize pass is a named deferral ), and structured section/region/slot synthesis ( create a lens from fields alone ) is not built \u2014 supply body HTML.",
       inputSchema: {
         type: "object",
@@ -11362,8 +11906,8 @@ function writeTools(chain) {
           const filePath = String(args["path"] ?? "");
           const raw = args["artifact"] ?? {};
           const artifact = { ...raw, body: typeof raw["body"] === "string" ? raw["body"] : "" };
-          const html = import_kcd_sdk4.KcdEmit.emit(artifact);
-          const report = import_kcd_sdk4.KcdValidate.validate(html);
+          const html = import_kcd_sdk5.KcdEmit.emit(artifact);
+          const report = import_kcd_sdk5.KcdValidate.validate(html);
           if (!report.ok) {
             const detail = report.errors.map((e) => `${e.code} @ ${e.where}: ${e.msg}`).join("; ");
             return MCPUtils.error(`kcd_save refused "${filePath}": artifact failed validation \u2014 ${detail}`);
@@ -11383,7 +11927,7 @@ function writeTools(chain) {
         { label: "jails an out-of-vault source", input: { from: "C:/Windows/System32/drivers/etc/hosts", to: "x.html" }, assertions: [{ type: "error_expected" }] },
         { label: "missing source \u2192 structured error", input: { from: "does-not-exist-xyz.html", to: "work/mcp/AI/nope.html" }, assertions: [{ type: "error_expected" }] }
       ],
-      description: "Move or rename a KCD artifact and heal every inbound link across the vault. Destructive: rewrites referrers and renames the file.",
+      description: "Move or rename an artifact, healing every inbound link across the vault.",
       doc: "Rename or relocate one artifact by vault-relative `from` \u2192 `to`, then HEAL the graph: every other file whose links resolve to `from` has that href rewritten to the new location, so no backlink rots. Referrers are matched by RESOLVED identity ( not a text grep ), and the swap preserves their hand-authored formatting. Returns the HealPlan \u2014 `{ op, from, to, edits }`, where each edit is the referrer + old/new href. Refuses if `from` is missing or `to` already exists ( structured error ), and asserts afterward that no link still resolves to `from` \u2014 a residual fails loud rather than leaving the vault dangling. Both paths are PathGuard-jailed. Destructive: it writes referrers and renames the file.",
       inputSchema: {
         type: "object",
@@ -11413,7 +11957,7 @@ function writeTools(chain) {
         { label: "jails an out-of-vault path", input: { path: "C:/Windows/System32/drivers/etc/hosts" }, assertions: [{ type: "error_expected" }] },
         { label: "missing target \u2192 structured error", input: { path: "does-not-exist-xyz.html" }, assertions: [{ type: "error_expected" }] }
       ],
-      description: "Delete a KCD artifact and cascade the removal through every referrer. Destructive: strips inbound references and removes the file; blocks if the artifact is referenced by identity (base/lens).",
+      description: "Delete an artifact, cascading the removal through every referrer.",
       doc: 'Remove one artifact by vault-relative `path` and CASCADE the removal: every inbound reference is excised from its referrer so the graph stays viable \u2014 a slot-field link takes its whole record row, a bare prose <a> unwraps to its text, span-precise so surrounding formatting is untouched. BLOCKS ( structured error, nothing deleted ) if any artifact references the target by IDENTITY ( a base/lens slug naming it ) \u2014 those are not movable links and must be repointed or renamed first. Returns the HealPlan \u2014 `{ op:"delete", from, edits }`, each edit a referrer touched. Refuses a missing target, PathGuard-jails the path, and asserts afterward that no link still resolves to it ( a residual fails loud ). Destructive: it writes referrers and removes the file.',
       inputSchema: {
         type: "object",
@@ -11440,6 +11984,10 @@ function batchTools(invoke) {
   return [
     {
       name: "kcd_batch",
+      // No fixed destructiveHint would be honest either way — a batch of reads is harmless,
+      // one that dispatches kcd_move/kcd_delete is not. Defensively true: a client that trusts
+      // the hint should be warned, not surprised, and a false negative is the worse failure mode.
+      annotations: { destructiveHint: true },
       example: {
         calls: [
           { tool: "kcd_query", args: { type: "lens" } },
@@ -11450,7 +11998,7 @@ function batchTools(invoke) {
         { label: "runs a read sequence", input: { calls: [{ tool: "kcd_query", args: { groupBy: "type" } }] }, assertions: [] },
         { label: "reports a bad call without throwing", input: { calls: [{ tool: "does-not-exist" }] }, assertions: [] }
       ],
-      description: "Run an ordered sequence of tool calls in one shot, stopping at the first failure. Returns each call's output, any failure, and the unrun remainder.",
+      description: "Run an ordered sequence of tool calls, stopping at the first failure.",
       doc: "Execute `calls` \u2014 `[{ tool, args? }]` \u2014 IN ORDER through the server's internal dispatch, as a single tool call, so an agent that stacks a few operations gets one round-trip. Stops at the FIRST failure ( a step whose result is an error ). Returns `{ completed, failed, remaining }`: `completed` is `[{ tool, output }]` for every step that succeeded ( output is that tool's own result text ); `failed` is `{ index, tool, error }` or null; `remaining` is the tool names never reached. A nested `kcd_batch` is rejected. This tool is only as destructive as the tools it invokes \u2014 bundle heals ( move/delete ) and reads freely \u2014 but the sequence is NOT atomic: a mid-sequence failure leaves the earlier steps applied.",
       inputSchema: {
         type: "object",

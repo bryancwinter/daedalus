@@ -1,0 +1,142 @@
+/* ============================================================================
+   kcd.css — the generic component stylesheet for KCD documents.
+
+   THE ADDRESSING CONTRACT (read this first):
+   Every machine-relevant value is an explicitly-addressed field —
+   `data-kcd-field="<name>"` — whose own content IS the value (text, or `href`
+   when it's a link). Components are containers identified by their own
+   `data-kcd-*` attribute (region, section, slot, param, frontmatter). The parser
+   reads ONLY these explicit addresses + component attributes — never element
+   order, never class names, never scraped free text. So this stylesheet keys off
+   the SAME addresses the parser does: styling and parsing share one contract.
+   Anything not addressed is human chrome the parser ignores. Any field that
+   fails validation ⇒ the whole FILE is discarded (never partially parsed).
+
+   DARK BY DEFAULT. Light is a future productization theme — it overrides only
+   this :root block; every component reads the variables.
+
+   CANONICAL LOCATION: _Claude/kcd/kcd.css. Every authored KCD document links here
+   by a RELATIVE path (these are meant to open directly in a browser via file://,
+   with no server and no virtual root) — see kcd-document-protocol.html §8 for the
+   depth-counting rule every <link> href must follow.
+   ============================================================================ */
+
+:root {
+	--kcd-ink:        #e6e6f2;
+	--kcd-muted:      #9a9ac4;
+	--kcd-faint:      #61617e;
+	--kcd-accent:     #8b7ff0;   /* the KCD violet */
+	--kcd-suggested:  #e0c24a;   /* the suggested / progressive-disclosure marker */
+	--kcd-off:        #4a4a63;   /* the off / disabled-slot marker */
+	--kcd-rule:       #2a2a46;
+	--kcd-panel:      #17172e;
+	--kcd-bg:         #0d0d1c;
+	--kcd-chip:       #221f48;
+	--kcd-measure:    72rem;
+	--kcd-gap:        1.2rem;
+	--kcd-radius:     8px;
+}
+
+/* ── Scrollbar (Chromium) ─────────────────────────────────────────────────── */
+::-webkit-scrollbar              { width: 8px; height: 8px; }
+::-webkit-scrollbar-track        { background: var(--kcd-bg); }
+::-webkit-scrollbar-thumb        { background: var(--kcd-accent); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover  { background: #a090f8; }
+
+/* ── Page + reading frame ─────────────────────────────────────────────────── */
+body {
+	font: 16px/1.65 system-ui, -apple-system, "Segoe UI", sans-serif;
+	color: var(--kcd-ink); background: var(--kcd-bg);
+	max-width: var(--kcd-measure); margin: 2.5rem auto; padding: 0 1.25rem;
+}
+
+/* ── Artifact root ────────────────────────────────────────────────────────── */
+[data-kcd] > h1 { font-size: 1.7rem; margin: .2rem 0; }
+[data-kcd]::before {
+	content: attr(data-kcd);
+	display: inline-block; font-size: .7rem; letter-spacing: .1em; text-transform: uppercase;
+	color: var(--kcd-accent); border: 1px solid var(--kcd-accent);
+	border-radius: 999px; padding: .05rem .55rem;
+}
+
+/* ── Frontmatter — a <dl> of addressable fields, each dd inline-editable ──────
+   dd[data-kcd-field="<name>"] is the value + the editing surface; the dt is a
+   human label. data-kcd-type names the SettingField control + the validator. */
+[data-kcd-frontmatter] {
+	display: grid; grid-template-columns: max-content 1fr; gap: .2rem .9rem;
+	border: 1px solid var(--kcd-rule); border-radius: var(--kcd-radius);
+	background: var(--kcd-panel); padding: .7rem .9rem; margin: 1rem 0 1.5rem; font-size: .85rem;
+}
+[data-kcd-frontmatter] > dt { color: var(--kcd-muted); font-family: ui-monospace, monospace; }
+[data-kcd-frontmatter] > dd { margin: 0; }
+[data-kcd-frontmatter] > dd[data-kcd-field]:empty::before { content: "—"; color: var(--kcd-faint); }
+[data-kcd-frontmatter] > dd[data-kcd-field] { border-bottom: 1px dotted transparent; }
+[data-kcd-frontmatter]:hover > dd[data-kcd-field] { border-bottom-color: var(--kcd-rule); }
+
+/* tag chips — a flat chip container for list-type fields */
+[data-kcd-chips] { display: flex; flex-wrap: wrap; gap: .35rem; list-style: none; margin: 0; padding: 0; }
+[data-kcd-tag] {
+	font-size: .72rem; line-height: 1; padding: .25rem .55rem; border-radius: 999px;
+	background: var(--kcd-chip); border: 1px solid var(--kcd-rule); color: var(--kcd-accent);
+	font-family: ui-monospace, monospace;
+}
+
+/* ── Region (lens Know/Care/Do) ───────────────────────────────────────────── */
+[data-kcd-region] { border-left: 3px solid var(--kcd-rule); padding-left: 1.1rem; margin: var(--kcd-gap) 0; }
+[data-kcd-region] > h2 { font-size: .8rem; letter-spacing: .09em; text-transform: uppercase; color: var(--kcd-muted); margin: 0 0 .4rem; }
+
+/* ── Section (the merge key) ──────────────────────────────────────────────── */
+[data-kcd-section] { margin: .9rem 0; }
+[data-kcd-section] > h3 { font-size: 1.05rem; margin: 0 0 .3rem; }
+[data-kcd-merge="declarative"] { position: relative; }
+[data-kcd-merge="declarative"]::after { content: "one authority"; position: absolute; top: 0; right: 0; font-size: .65rem; color: var(--kcd-faint); }
+
+/* ── Faux-table (styled divs, NEVER <table> — "tables suck") ──────────────────
+   References, slots, params. Each ROW is a component; each CELL is an addressed
+   field. Styling keys off the field address, so a renamed/reordered cell can't
+   silently break either render or parse. --kcd-cols sets the column template. */
+[data-kcd-table] { display: flex; flex-direction: column; gap: .1rem; margin: .4rem 0; }
+[data-kcd-table] > * { display: grid; grid-template-columns: var(--kcd-cols, 1fr 1fr 2fr); gap: .9rem; padding: .35rem .5rem; border-radius: 6px; align-items: baseline; }
+[data-kcd-table] > [data-kcd-head] { color: var(--kcd-muted); font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; border-bottom: 1px solid var(--kcd-rule); }
+[data-kcd-table] > [data-kcd-slot]:hover, [data-kcd-table] > [data-kcd-param]:hover { background: var(--kcd-panel); }
+[data-kcd-table] [data-kcd-field="what"], [data-kcd-table] [data-kcd-field="name"] { color: var(--kcd-ink); }
+[data-kcd-table] [data-kcd-field="name"] { font-family: ui-monospace, monospace; }
+[data-kcd-table] [data-kcd-field="where"] { color: var(--kcd-accent); font-weight: 600; text-decoration: none; font-family: ui-monospace, monospace; }
+[data-kcd-table] [data-kcd-field="where"]:hover { text-decoration: underline; }
+[data-kcd-table] [data-kcd-field="why"], [data-kcd-table] [data-kcd-field="description"] { color: var(--kcd-muted); font-size: .9rem; }
+/* progressive-disclosure + cardinality markers ride the row's own attributes.
+   data-kcd-mode = off | on ( default, routing-row only ) | suggested ( full text rides ). */
+[data-kcd-slot][data-kcd-mode="suggested"] [data-kcd-field="where"]::after { content: " ★"; color: var(--kcd-suggested); }
+[data-kcd-slot][data-kcd-mode="off"] { opacity: .5; text-decoration: line-through; }
+[data-kcd-slot][data-kcd-param] [data-kcd-field="where"]::before { content: "◇1 "; color: var(--kcd-faint); font-weight: 400; font-size: .85em; }
+/* an empty params area announces itself so an author sees the slot exists */
+[data-kcd-params]:not(:has([data-kcd-param]))::after { content: "No parameters."; color: var(--kcd-faint); font-style: italic; font-size: .85rem; padding: .25rem .5rem; }
+
+/* ── Chrome: human-only furniture, stripped for the AI extraction ─────────────
+   data-kcd-audience = human | agent | both (default both). */
+[data-kcd-audience="human"] { position: relative; }
+[data-kcd-audience="human"]::before {
+	content: "human"; position: absolute; top: -.55rem; right: .4rem;
+	font-size: .6rem; letter-spacing: .08em; text-transform: uppercase;
+	color: var(--kcd-faint); background: var(--kcd-bg); padding: 0 .3rem;
+}
+[data-kcd-chrome="demo"] { border: 1px dashed var(--kcd-accent); border-radius: var(--kcd-radius); padding: 1rem; margin: .8rem 0; background: var(--kcd-panel); }
+
+/* Live (embedded widget) — inert placeholder outside Starmind */
+[data-kcd-live] { display: block; border: 1px dashed var(--kcd-accent); border-radius: var(--kcd-radius); background: var(--kcd-panel); padding: 1rem; margin: .6rem 0; color: var(--kcd-muted); }
+[data-kcd-live]::before { content: "◆ live: " attr(data-kcd-live) " — rendered by Starmind"; font-size: .85rem; }
+
+/* Canonical bespoke vanilla JS. type="text/kcd-js" does NOT execute in a browser
+   (the script-exec gate stays closed outside Starmind); shown to humans, sandboxed by Starmind. */
+[data-kcd-script] { margin: .6rem 0; }
+[data-kcd-script]::before { content: "vanilla js — sandboxed by Starmind"; font-size: .7rem; color: var(--kcd-muted); }
+script[type="text/kcd-js"] {
+	display: block; white-space: pre; overflow-x: auto;
+	background: #08081a; color: var(--kcd-ink); border: 1px solid var(--kcd-rule);
+	border-radius: var(--kcd-radius); padding: .8rem 1rem; font-family: ui-monospace, monospace; font-size: .8rem;
+}
+
+/* ── Prose furniture ──────────────────────────────────────────────────────── */
+blockquote { border-left: 3px solid var(--kcd-accent); margin: .8rem 0; padding: .2rem 1rem; color: var(--kcd-muted); }
+a { color: var(--kcd-accent); }
+code { font-family: ui-monospace, monospace; background: var(--kcd-panel); padding: .05rem .3rem; border-radius: 4px; }

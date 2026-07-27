@@ -8,4 +8,7 @@ import { Cli } from './Cli';
  * esbuild prepends the `#!/usr/bin/env node` shebang at build time ( see build.js ), so the
  * emitted dist/cli/index.js is directly executable as the npm-installed `bin`.
  */
-Cli.run( process.argv.slice( 2 ) );
+Cli.run( process.argv.slice( 2 ) ).catch( ( e ) => {
+	process.stderr.write( `daedalus: ${ e instanceof Error ? e.message : String( e ) }\n` );
+	process.exit( 1 );
+} );

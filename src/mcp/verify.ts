@@ -129,11 +129,21 @@ function judge( assertions: Assertion[], result: ToolResult ): { pass: boolean; 
 		return { pass: false, detail: `unexpected error: ${ textOf( result ) }` };
 	}
 
+	// No assertions = a SMOKE case: the only claim is "this call succeeds". Returning here rather than
+	// falling through to the parse is the whole point — every assertion type below reads a key off a parsed
+	// object, so parsing was only ever a means to checking them, never a requirement of its own. Parsing
+	// unconditionally made "returns JSON" an unwritten assertion on every spec, which no tool author ever
+	// wrote and which a TEXT-returning tool can never satisfy: `kcd_survey`'s default lean projection is
+	// prose by design, so its smoke spec failed for succeeding correctly ( found 2026-07-26, when the
+	// vendored-plugin build phase began running this gate ).
+	if ( assertions.length === 0 ) return { pass: true };
+
 	let data: Record<string, unknown>;
 	try {
 		data = JSON.parse( textOf( result ) ) as Record<string, unknown>;
 	} catch {
-		return { pass: false, detail: 'result payload was not JSON' };
+		// Now an honest failure: something asked for a key, so a non-JSON payload really is the wrong shape.
+		return { pass: false, detail: 'result payload was not JSON, but assertions require a JSON object' };
 	}
 
 	for ( const a of assertions ) {

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>generate-postman — Generator</title>
+	<link rel="stylesheet" href="../../kcd.css">
+</head>
+<body>
+
+<article data-kcd="generator">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">generate-postman</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">Builds Postman v2.1 collections from a Slim-style PHP route map — one per controller, flush-and-fill. Run to (re)generate importable API collections.</dd>
+		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">generator</dd>
+		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">disabled</dd>
+		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
+		<dt>author</dt>        <dd data-kcd-field="author"         data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
+		<dt>base</dt>          <dd data-kcd-field="base"           data-kcd-type="slug">_generator-base</dd>
+		<dt>updated</dt>       <dd data-kcd-field="updated"        data-kcd-type="date">2026-06-30</dd>
+	</dl>
+
+	<h1>generate-postman — Generator</h1>
+
+	<p><em>Generic across any Slim-style PHP API project with a central route map. The deployed copy
+	solves the requirements below with project-specific values.</em></p>
+
+	<p>Base rules: <a href="_Claude/generators/_generator_base.html">_generator_base</a> —
+	composition model, requirement resolution, fail behavior, output conventions.</p>
+
+	<section data-kcd-section="parameters">
+		<h3>Parameters</h3>
+		<div data-kcd-table data-kcd-params style="--kcd-cols: 1fr 1fr 1fr 2fr">
+			<div data-kcd-head><span>Name</span><span>Type</span><span>Default</span><span>Description</span></div>
+			<!-- model — default model seeding the work-graph node. Optional; NOT YET IMPLEMENTED. -->
+			<div data-kcd-param>
+				<span data-kcd-field="name"        data-kcd-type="slug">model</span>
+				<span data-kcd-field="type"        data-kcd-type="enum">model</span>
+				<span data-kcd-field="default"     data-kcd-type="text">claude-sonnet-5</span>
+				<span data-kcd-field="description" data-kcd-type="text">Default model that seeds this generator's work-graph node (not yet implemented).</span>
+			</div>
+		</div>
+		<p>Output: one <code>{output-dir}/{ControllerClassName}.postman_collection.json</code> per
+		discovered controller — flush-and-fill across the full set.</p>
+		<p><em>Under <code>--test</code>, the destination is redirected to the generator-output bucket
+		per <code>_generator_base</code>
+		(<code>_Claude/audits/generate-postman/{ControllerClassName}.postman_collection.json</code>, one
+		file per controller). <code>name</code> and <code>base</code> derive from the filename /
+		frontmatter.</em></p>
+	</section>
+
+	<section data-kcd-section="requirements">
+		<h3>Requirements</h3>
+		<p><em>Declared generically here; solved in the deployed copy. See <code>_generator_base</code>
+		for pre-flight resolution and the fail rule.</em></p>
+		<ul>
+			<li><code>route-source</code> (Input) — File registering all HTTP routes — source of method,
+			full path, and controller method name. Used for controller discovery and route
+			extraction.</li>
+			<li><code>controller-dir</code> (Input) — Directory containing controller source files.</li>
+			<li><code>output-dir</code> (Input) — Directory where collection JSON files are written.</li>
+			<li><code>collection-prefix</code> (Input) — Prefix prepended to collection names:
+			<code>{collection-prefix} - {ShortName}</code>.</li>
+			<li><code>base-url-var</code> (Input) — Postman variable name for the API base URL (used in
+			collection variables and URL encoding).</li>
+			<li><code>auth-var</code> (Input) — Postman variable name for the bearer token.</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="care">
+		<h3>Care</h3>
+		<p><strong>Defends:</strong></p>
+		<ul>
+			<li>Flush-and-fill across the full output set — every collection is fully regenerated each
+			run.</li>
+			<li><code>_postman_id</code> is preserved from any existing collection (enables in-place
+			Postman replace).</li>
+			<li>Bearer auth is on every route via collection-level auth — no exceptions, never at request
+			level.</li>
+			<li>Only controllers with at least one registered route group in <code>{route-source}</code>
+			get a collection.</li>
+		</ul>
+		<p><strong>Will not touch:</strong></p>
+		<ul>
+			<li>Business logic in controller files — read-only.</li>
+			<li>Files in <code>{output-dir}</code> that do not correspond to a discovered controller.</li>
+		</ul>
+		<p><strong>Surfaces (notes inline, does not block):</strong></p>
+		<ul>
+			<li>A route in <code>{route-source}</code> with no matching method in the controller file —
+			note as "unmatched" in the summary.</li>
+			<li>A controller file in <code>{controller-dir}</code> with no route group in
+			<code>{route-source}</code> — silently skipped (not a routing controller).</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="do">
+		<h3>Do</h3>
+		<p><em>Pre-flight runs first, per <code>_generator_base</code> — deployment check, then
+		requirement resolution.</em></p>
+
+		<section data-kcd-section="phase-1">
+			<h4>Phase 1 — Controller Discovery</h4>
+			<p>Read <code>{route-source}</code>. Identify every distinct controller class referenced in
+			route group registrations. These are the controllers that have routes and need
+			collections.</p>
+			<p>For each discovered controller, derive:</p>
+			<ul>
+				<li><strong>Controller file:</strong> <code>{controller-dir}/{ControllerClassName}.php</code></li>
+				<li><strong>Output path:</strong> <code>{output-dir}/{ControllerClassName}.postman_collection.json</code></li>
+				<li><strong>Collection name:</strong> <code>{collection-prefix} - {ShortName}</code> where
+				ShortName = ControllerClassName minus "Controller"</li>
+			</ul>
+			<p>If an output file already exists for a controller: read it and extract
+			<code>info._postman_id</code> for reuse. Otherwise generate a new UUID for that
+			controller.</p>
+		</section>
+
+		<section data-kcd-section="phase-2">
+			<h4>Phase 2 — Route Extraction (per controller)</h4>
+			<p>For each controller from Phase 1, extract its route group from
+			<code>{route-source}</code>:</p>
+			<ul>
+				<li>HTTP method (GET, POST, PATCH, DELETE, etc.)</li>
+				<li>Full path including group prefix</li>
+				<li>Controller method name</li>
+			</ul>
+			<p>Output: a list of <code>{method, path, controller_method}</code> for each controller.</p>
+		</section>
+
+		<section data-kcd-section="phase-3">
+			<h4>Phase 3 — Controller Analysis (per controller)</h4>
+			<p>For each route from Phase 2, read the corresponding method in the controller file and
+			identify:</p>
+			<ul>
+				<li><strong>Path params</strong> — variables from <code>$args</code></li>
+				<li><strong>Query params</strong> — keys from <code>getQueryParams()</code></li>
+				<li><strong>Request body</strong> — keys from <code>getParsedBody()</code> (POST/PATCH
+				only)</li>
+				<li><strong>Responses</strong> — infer status codes from <code>withStatus()</code> calls;
+				infer body shape from response writes and SQL columns</li>
+				<li><strong>Inline comments</strong> — use existing <code>//</code> comments to inform
+				request descriptions</li>
+			</ul>
+		</section>
+
+		<section data-kcd-section="phase-4">
+			<h4>Phase 4 — Collection Assembly (per controller)</h4>
+			<p>Build a Postman Collection v2.1 JSON document for each controller.</p>
+			<p><strong>Collection-level variables</strong> — always include <code>{base-url-var}</code>
+			and <code>{auth-var}</code>; add one variable per unique path param appearing in this
+			controller's routes.</p>
+			<p><strong>Collection-level auth:</strong></p>
+<pre><code>{ "type": "bearer", "bearer": [{ "key": "token", "value": "{{auth-var}}", "type": "string" }] }</code></pre>
+			<p><strong>Multiple-surface rule</strong> — when a route accepts meaningfully different input
+			states, generate one named sibling request per variation. Split only on genuinely different
+			call patterns, not different data values.</p>
+			<p><strong>Saved examples</strong> — include at least one saved example per request; one per
+			explicitly-returned status code for routes with multiple outcomes.</p>
+			<p><strong>URL encoding:</strong></p>
+<pre><code>{ "raw": "{{base-url-var}}/path/{{param}}", "host": ["{{base-url-var}}"], "path": ["segment", "{{param}}"] }</code></pre>
+			<p>Write the completed JSON to the output path derived in Phase 1.</p>
+		</section>
+
+		<section data-kcd-section="phase-5">
+			<h4>Phase 5 — Output Declaration</h4>
+			<p>After all collections are written, print a summary table:</p>
+<pre><code>## generate-postman report
+
+| Controller | Collection | Routes | Items |
+|---|---|---|---|
+| CampaignsController | Planning - Campaigns | N | N |
+| ...                 | ...                  | N | N |</code></pre>
+			<p>List any unmatched routes (routes in <code>{route-source}</code> with no corresponding
+			method) at the bottom of the report.</p>
+		</section>
+	</section>
+
+</article>
+
+</body>
+</html>

@@ -17,7 +17,11 @@ export function batchTools( invoke: Invoke ): ( ToolDefinition & { spec?: TestSp
 
 	return [
 		{
-			name:    'kcd_batch',
+			name:        'kcd_batch',
+			// No fixed destructiveHint would be honest either way — a batch of reads is harmless,
+			// one that dispatches kcd_move/kcd_delete is not. Defensively true: a client that trusts
+			// the hint should be warned, not surprised, and a false negative is the worse failure mode.
+			annotations: { destructiveHint: true },
 			example: {
 				calls: [
 					{ tool: 'kcd_query', args: { type: 'lens' } },
@@ -28,7 +32,7 @@ export function batchTools( invoke: Invoke ): ( ToolDefinition & { spec?: TestSp
 				{ label: 'runs a read sequence',                  input: { calls: [ { tool: 'kcd_query', args: { groupBy: 'type' } } ] }, assertions: [] },
 				{ label: 'reports a bad call without throwing',   input: { calls: [ { tool: 'does-not-exist' } ] },                        assertions: [] },
 			],
-			description: 'Run an ordered sequence of tool calls in one shot, stopping at the first failure. Returns each call\'s output, any failure, and the unrun remainder.',
+			description: 'Run an ordered sequence of tool calls, stopping at the first failure.',
 			doc:
 				'Execute `calls` — `[{ tool, args? }]` — IN ORDER through the server\'s internal dispatch, as a ' +
 				'single tool call, so an agent that stacks a few operations gets one round-trip. Stops at the ' +

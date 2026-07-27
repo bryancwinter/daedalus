@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>_generator_base — Generator base</title>
+	<link rel="stylesheet" href="../kcd.css">
+</head>
+<body>
+
+<article data-kcd="generator">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">_generator-base</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">Base rules shared by every canonical generator — the spec-executing invariant, composition model, requirement resolution, and output conventions. Composed into each generator; never deployed or run standalone.</dd>
+		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">generator</dd>
+		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">composed</dd>
+		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
+		<dt>author</dt>        <dd data-kcd-field="author"         data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
+	</dl>
+
+	<h1>_generator_base — Generator base</h1>
+
+	<p data-kcd-audience="human"><em>Base for all Generator procedures. Every canonical generator
+	references this file the way a lens references
+	<a href="_Claude/lenses/_lens_base.html">_lens_base</a>. It carries the rules shared by all
+	generators so individual procedures never repeat them. Carries the live-in-place role — it is read
+	directly from <code>kcd/generators/</code>; it is never deployed and never run standalone (it is
+	composed into every canonical generator).</em></p>
+
+	<section data-kcd-section="generator-invariant">
+		<h3>The generator invariant</h3>
+		<p>A <strong>generator executes a spec; it does not improvise.</strong> Broad write authority is
+		only safe because the work is mechanically specified. The generator is the <strong>executing
+		end</strong> of the composing-side rule in
+		<a href="_Claude/lenses/_lens_base.html">_lens_base</a> — <em>"delegation is by manifest, not
+		brief."</em> It receives a manifest with every consequence resolved in advance and applies it
+		flush-and-fill.</p>
+		<p>A generator carries <strong>no lens and no judgment.</strong> Where a choice is genuinely open
+		it does not decide — it flags (per its <code>Care</code> block) or stops. This is the blast-radius
+		invariant in force: <strong>broad write ⇒ low autonomy.</strong> An agent that needs to reason
+		about consequences is an analyzer's job, not a generator's.</p>
+		<p><em>Model convention: generators default to <code>claude-sonnet-5</code> (declared per
+		instance as the <code>model</code> parameter) — the reliable workhorse. Downgrade to haiku only
+		for genuinely trivial, fully mechanical work.</em></p>
+	</section>
+
+	<section data-kcd-section="composition-model">
+		<h3>Composition Model</h3>
+		<p>A generator is a folder plus this base:</p>
+		<table>
+			<thead><tr><th>Layer</th><th>Location</th><th>Owns</th></tr></thead>
+			<tbody>
+				<tr><td><code>_generator_base</code></td><td><code>_Claude/kcd/generators/_generator_base.html</code></td><td>rules shared by all generators (this file)</td></tr>
+				<tr><td>Canonical</td><td><code>_Claude/kcd/generators/{name}/{name}.html</code></td><td>generic logic; <strong>declares</strong> requirements</td></tr>
+				<tr><td>Deployed</td><td><code>_Claude/generators/{name}/{name}.html</code></td><td>full copy; <strong>solves</strong> requirements with project values</td></tr>
+				<tr><td>Context</td><td><code>_Claude/kcd/generators/{name}/context/</code></td><td>context specific to this generator</td></tr>
+			</tbody>
+		</table>
+		<p>The canonical declares requirements generically (no project values); the deployed copy is a
+		full self-contained copy that solves them. The deployed tree mirrors the canonical family layout
+		— a deployed generator sits at <code>_Claude/generators/{name}/</code> exactly as its canonical
+		sits at <code>_Claude/kcd/generators/{name}/</code>.</p>
+	</section>
+
+	<section data-kcd-section="naming">
+		<h3>Naming</h3>
+		<p>Every generator declares a <code>name</code> — its single canonical identifier. Lowercase,
+		hyphen-separated, verb-led (e.g. <code>generate-swagger</code>). Identity derives from it; an
+		agent never invents a name. Where a string needs the generator's identity, it uses
+		<code>{name}</code> exactly:</p>
+		<table>
+			<thead><tr><th>Reference</th><th>Derived value</th></tr></thead>
+			<tbody>
+				<tr><td>Canonical file</td><td><code>_Claude/kcd/generators/{name}/{name}.html</code></td></tr>
+				<tr><td>Deployed file</td><td><code>_Claude/generators/{name}/{name}.html</code></td></tr>
+				<tr><td>Test-mode output</td><td><code>_Claude/audits/{name}.html</code></td></tr>
+			</tbody>
+		</table>
+	</section>
+
+	<section data-kcd-section="parameters">
+		<h3>Parameters</h3>
+		<p>A generator declares its <strong>parameters</strong> — the typed, user-set variables that tune
+		a run, distinct from <code>Requirements</code> (which name external tooling and project inputs).
+		Each parameter is a <strong>name / type / default</strong> triple — the typed-field vocabulary the
+		app's setting fields use. Prose for now; this migrates to a declarative HTML field set, so a
+		deployed parameter becomes type-checked and verifiable at author time.</p>
+		<p>Every generator carries these <strong>default parameters</strong> (a canonical instance adds
+		its own rows below them):</p>
+		<div data-kcd-table data-kcd-params style="--kcd-cols: 1fr 1fr 1fr 2fr">
+			<div data-kcd-head><span>Name</span><span>Type</span><span>Default</span><span>Description</span></div>
+			<div data-kcd-param>
+				<span data-kcd-field="name"        data-kcd-type="slug">dry-run</span>
+				<span data-kcd-field="type"        data-kcd-type="enum">toggle</span>
+				<span data-kcd-field="default"     data-kcd-type="text">false</span>
+				<span data-kcd-field="description" data-kcd-type="text">Plan only — make no writes</span>
+			</div>
+			<div data-kcd-param>
+				<span data-kcd-field="name"        data-kcd-type="slug">max-passes</span>
+				<span data-kcd-field="type"        data-kcd-type="enum">number</span>
+				<span data-kcd-field="default"     data-kcd-type="text">3</span>
+				<span data-kcd-field="description" data-kcd-type="text">Stop after this many passes</span>
+			</div>
+			<div data-kcd-param>
+				<span data-kcd-field="name"        data-kcd-type="slug">output-label</span>
+				<span data-kcd-field="type"        data-kcd-type="enum">text</span>
+				<span data-kcd-field="default"     data-kcd-type="text"></span>
+				<span data-kcd-field="description" data-kcd-type="text">Optional label prefix for output</span>
+			</div>
+		</div>
+	</section>
+
+	<section data-kcd-section="requirements">
+		<h3>Requirements</h3>
+		<p>A canonical generator declares <strong>requirements</strong> — anything it needs that is not
+		generic:</p>
+		<ul>
+			<li><strong>Tooling</strong> — an external executable or library (a compiler, a linter, an SDK).</li>
+			<li><strong>Input</strong> — a project file path, glob, or configuration value (a source
+			directory, a schema version).</li>
+		</ul>
+		<p>The canonical copy declares each requirement by name and description; it never names a concrete
+		path or value. The deployed copy solves every declared requirement.</p>
+		<h4>Pre-flight</h4>
+		<p>Before Phase 1, in order:</p>
+		<p><strong>1 — Deployment check.</strong> Confirm a deployed copy exists at
+		<code>_Claude/generators/{name}/{name}.html</code>. If absent, fail immediately:</p>
+		<pre><code>FAILED — not deployed: no deployed copy at _Claude/generators/{name}/{name}.html</code></pre>
+		<p><strong>2 — Requirement resolution.</strong> Resolve every declared requirement against the
+		deployed copy's solutions. If any requirement is unsolved, or its solution is unreachable (missing
+		file, missing executable), fail immediately:</p>
+		<pre><code>FAILED — unmet requirement: {requirement-name} ({tooling|input}) — {what was expected}</code></pre>
+		<p>Either failure stops the run — no output, no partial work. A generator runs only when it is
+		both deployed and fully resolved.</p>
+	</section>
+
+	<section data-kcd-section="output-conventions">
+		<h3>Output Conventions</h3>
+		<ul>
+			<li>A generator builds an artifact and writes it to the artifact's real home — a reference into
+			<code>references/</code>, a test into the test tree, and so on. Placing artifacts where they
+			belong is the generator's purpose; writing to canonical project locations is expected, not a
+			violation. There is no single default output folder — the <code>Output</code> parameter
+			declares the destination.</li>
+			<li>Output is <strong>flush-and-fill</strong> — destroy and recreate on each run. The generator
+			is durable; its output is not.</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="reference-wiring">
+		<h3>Reference Wiring</h3>
+		<p>When a generator's artifact is a <strong>reference</strong> — a document meant to be loaded by
+		sessions — two rules apply:</p>
+		<ul>
+			<li>The reference follows the reference template
+			(_reference_template) — frontmatter
+			included, with <code>updated</code> set to the run date.</li>
+			<li>The generator's task list includes wiring it into the Know table of every appropriate lens:
+			a <code>What | Where | Why</code> row pointing to the reference, added if missing or corrected
+			if stale. A reference no lens knows about is dead weight. The deployed copy names which lenses
+			are appropriate (an Input requirement); the canonical declares the wiring step generically.</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="habits">
+		<h3>Habits</h3>
+		<p>Every generator invokes <code>run-report</code> as its final action — automatic, no
+		per-generator declaration required.</p>
+		<div data-kcd-table>
+			<div data-kcd-head><span>What</span><span>Where</span><span>Why</span></div>
+			<div data-kcd-slot="habit" data-kcd-mode="on">
+				<span data-kcd-field="what"  data-kcd-type="text">run-report</span>
+				<a    data-kcd-field="where" data-kcd-type="path" href="_Claude/habits/unslotted/run-report.html">run-report</a>
+				<span data-kcd-field="why"   data-kcd-type="text">mandatory — fires after the generator's final phase</span>
+			</div>
+		</div>
+	</section>
+
+</article>
+
+</body>
+</html>

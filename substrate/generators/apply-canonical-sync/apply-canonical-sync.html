@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<!-- ============================================================================
+     GENERATOR — apply-canonical-sync (canonical). Migrated from apply-canonical-sync.md.
+     Full format law: _Claude/kcd/references/kcd_sdk/kcd-document-protocol.html. Parameters §3.
+     ============================================================================ -->
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>apply-canonical-sync — Generator</title>
+	<link rel="stylesheet" href="../../kcd.css">
+</head>
+<body>
+
+<article data-kcd="generator">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">apply-canonical-sync</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">Applies a canonical sync manifest — a table of section-level text replacements — to deployed artifacts whose canonical parent changed. Mechanical, manifest-driven, decides nothing. Run when a canonical doc changes and deployed copies must catch up.</dd>
+		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">generator</dd>
+		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">disabled</dd>
+		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
+		<dt>author</dt>        <dd data-kcd-field="author"         data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
+		<dt>base</dt>          <dd data-kcd-field="base"           data-kcd-type="slug">_generator-base</dd>
+	</dl>
+
+	<h1>apply-canonical-sync — Generator</h1>
+
+	<p><em>Generic across any KCD-structured project. Applies a canonical sync manifest — a table of
+	section-level text replacements — to one or more deployed artifacts whose canonical parent changed.
+	The deployed copy is the target; the manifest is the input; the generator decides nothing. Ships
+	<code>disabled</code> here in <code>kcd/generators/</code>; deployment activates the deployed
+	copy.</em></p>
+
+	<p>Base rules: <a href="_Claude/generators/_generator_base.html">_generator_base</a> —
+	composition model, requirement resolution, fail behavior, output conventions.</p>
+
+	<section data-kcd-section="parameters">
+		<h3>Parameters</h3>
+		<div data-kcd-table data-kcd-params style="--kcd-cols: 1fr 1fr 1fr 2fr">
+			<div data-kcd-head><span>Name</span><span>Type</span><span>Default</span><span>Description</span></div>
+			<!-- model — default model seeding the work-graph node. Optional; NOT YET IMPLEMENTED. -->
+			<div data-kcd-param>
+				<span data-kcd-field="name"        data-kcd-type="slug">model</span>
+				<span data-kcd-field="type"        data-kcd-type="enum">model</span>
+				<span data-kcd-field="default"     data-kcd-type="text">claude-sonnet-5</span>
+				<span data-kcd-field="description" data-kcd-type="text">Default model that seeds this generator's work-graph node (not yet implemented).</span>
+			</div>
+		</div>
+		<p>Output: in-place edits to the deployed artifacts named in the manifest + a run log at
+		<code>_Claude/audits/apply-canonical-sync.md</code>.</p>
+		<p><em><code>name</code> and <code>base</code> derive from the filename / frontmatter.</em></p>
+	</section>
+
+	<section data-kcd-section="requirements">
+		<h3>Requirements</h3>
+		<ul>
+			<li><code>sync-manifest</code> (Input) — Path to the canonical sync manifest file produced by a human or analyzer session.</li>
+			<li><code>doc-root</code> (Input) — Root of the deployed documentation tree. Deployed artifact paths in the manifest resolve from here.</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="manifest-format">
+		<h3>Manifest format</h3>
+		<p>The manifest is a markdown file with one table. The generator reads it verbatim — it makes no
+		judgments about which rows to apply or skip. Every row must be complete and unambiguous before it
+		reaches the generator; the session or analyzer that authored the manifest owns completeness.</p>
+		<pre><code># Canonical Sync Manifest — {YYYY-MM-DD}
+
+**Rows**: N
+
+| # | target | section | from | to | note |
+|---|---|---|---|---|---|</code></pre>
+		<table>
+			<thead><tr><th>Column</th><th>Meaning</th></tr></thead>
+			<tbody>
+				<tr><td><code>#</code></td><td>Row counter — sequential, for log cross-reference.</td></tr>
+				<tr><td><code>target</code></td><td>Path to the deployed <code>.md</code> file to edit, relative to <code>{doc-root}</code>.</td></tr>
+				<tr><td><code>section</code></td><td>Heading (e.g. <code>## Composition Model</code>) or <code>frontmatter</code> — scopes the replacement to prevent false matches when the same substring appears elsewhere.</td></tr>
+				<tr><td><code>from</code></td><td>Exact text to find within that section. Must match the file verbatim (whitespace included).</td></tr>
+				<tr><td><code>to</code></td><td>Replacement text. May be empty (pure deletion).</td></tr>
+				<tr><td><code>note</code></td><td>Provenance — why this is safe/mechanical (e.g. <code>canonical: _Claude/kcd/analyzers/_analyzer_base.md</code>).</td></tr>
+			</tbody>
+		</table>
+	</section>
+
+	<section data-kcd-section="care">
+		<h3>Care</h3>
+		<p><strong>Defends:</strong></p>
+		<ul>
+			<li>Every edit is manifest-driven — the generator applies rows, it does not compose them.</li>
+			<li>A row that cannot be executed (section not found, <code>from</code> not found within section) is a <strong>failure</strong>, not a skip — the run stops and logs the failure. A partial apply is worse than no apply.</li>
+			<li>The deployment-specific sections below are <strong>never touched</strong>, even if a manifest row targets them. The generator refuses the row and logs it as a violation.</li>
+		</ul>
+		<p><strong>Preservation invariant — these sections are never modified:</strong></p>
+		<ul>
+			<li><code>## Requirements — solved</code> (or <code>## Requirements — Solved</code>)</li>
+			<li><code>## Project Notes</code></li>
+			<li>The <code>kcd:</code> frontmatter block</li>
+			<li>The <code>status:</code> frontmatter field</li>
+			<li>Any file under <code>{doc-root}/work/</code> or <code>{doc-root}/scratch/</code></li>
+		</ul>
+		<p><strong>Will not touch:</strong></p>
+		<ul>
+			<li>Files outside <code>{doc-root}</code> — no manifest row may target a path outside the doc root.</li>
+			<li>The sync manifest itself.</li>
+			<li>The <code>kcd/</code> canonical tree — deployed artifacts only.</li>
+		</ul>
+		<p><strong>Surfaces (logs, does not block):</strong></p>
+		<ul>
+			<li>A <code>target</code> that does not exist — logged as a warning; row skipped. (The manifest may refer to an artifact not yet deployed; that is a pre-flight concern, not a hard stop, when the manifest explicitly marks a row as <code>optional</code>.)</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="do">
+		<h3>Do</h3>
+		<p><em>Pre-flight runs first, per <code>_generator_base</code> — deployment check, then requirement
+		resolution.</em></p>
+
+		<section data-kcd-section="phase-1">
+			<h4>Phase 1 — Manifest Load</h4>
+			<p>Read the sync manifest at <code>{sync-manifest}</code>. Parse the table. Validate:</p>
+			<ul>
+				<li>All required columns present (<code>#</code>, <code>target</code>, <code>section</code>, <code>from</code>, <code>to</code>, <code>note</code>).</li>
+				<li>No row targets a file outside <code>{doc-root}</code>.</li>
+				<li>No row targets a preservation-invariant section — fail the run immediately if found (the manifest is malformed; the author must fix it before re-running).</li>
+			</ul>
+			<p>If the table is empty (zero rows), write a run log noting "manifest empty — nothing to apply"
+			and exit cleanly (not a failure).</p>
+		</section>
+
+		<section data-kcd-section="phase-2">
+			<h4>Phase 2 — Apply Rows</h4>
+			<p>For each row in order:</p>
+			<ol>
+				<li>Resolve <code>target</code> against <code>{doc-root}</code>. If the file does not exist, log a warning and skip.</li>
+				<li>Locate the <code>section</code> in the file. If not found, <strong>fail</strong> (the manifest is stale or wrong).</li>
+				<li>Within the section, locate <code>from</code> verbatim. If not found, <strong>fail</strong>.</li>
+				<li>Replace <code>from</code> with <code>to</code> in-place (preserving surrounding content).</li>
+				<li>Log the row as applied.</li>
+			</ol>
+			<p>Under <code>--test</code>: compute every step (validate, locate, diff) but write nothing. Log
+			the row as <code>[DRY RUN] would apply</code>.</p>
+			<p><strong>One file, multiple rows.</strong> When several rows target the same file, apply them in
+			manifest order. Each row's <code>from</code> is matched against the post-previous-edit content of
+			the file (later rows see the result of earlier edits). This is the expected behavior — manifest
+			authors must account for it.</p>
+		</section>
+
+		<section data-kcd-section="phase-3">
+			<h4>Phase 3 — Run Log</h4>
+			<p>Write (flush-and-fill) <code>_Claude/audits/apply-canonical-sync.md</code>:</p>
+			<pre><code># apply-canonical-sync — Run Log — {YYYY-MM-DD}
+
+**Manifest**: {sync-manifest}
+**Rows in manifest**: N   ·   **Applied**: N   ·   **Skipped**: N   ·   **Failed**: N
+
+## Applied
+
+| # | target | section | note |
+|---|---|---|---|
+
+## Skipped (target not found)
+
+| # | target | reason |
+|---|---|---|
+
+## Failed (section or from not found)
+
+| # | target | section | reason |
+|---|---|---|</code></pre>
+			<p>Under <code>--test</code>, all rows appear under <code>## Would Apply (dry run)</code> instead
+			of <code>## Applied</code>.</p>
+		</section>
+
+		<section data-kcd-section="phase-4">
+			<h4>Phase 4 — Output Declaration</h4>
+			<p>Writes in-place edits to the deployed files named in the manifest. Writes the run log to
+			<code>_Claude/audits/apply-canonical-sync.md</code> (flush-and-fill). Modifies no other file.</p>
+		</section>
+	</section>
+
+	<section data-kcd-section="deployed-copy">
+		<h3>Deployed copy</h3>
+		<p>Not hand-authored. The deploy contract produces it: a full copy of this canonical with
+		requirements solved to project values, <code>status: active</code>, and a
+		<code>kcd: { canonical: … }</code> pointer for provenance. Project-specific quirks, if any, go in a
+		<code>## Project Notes</code> section there.</p>
+	</section>
+
+</article>
+
+</body>
+</html>

@@ -13,7 +13,7 @@ export function readTools( chain: GuardChain ): ( ToolDefinition & { spec?: Test
 				{ label: 'reads a lens artifact', input: { path: 'lenses/parser/parser.html' }, assertions: [] },
 				{ label: 'PathGuard jails an out-of-vault path', input: { path: 'C:/Windows/System32/drivers/etc/hosts' }, assertions: [ { type: 'error_expected' } ] },
 			],
-			description: 'Load and serialize a KCD artifact. For lenses, depth controls how many levels of linked context to include (default 1 = the lens alone, 2+ = with the lenses/references it always pulls in).',
+			description: 'Load one artifact; for a lens, `depth` pulls in the context it always brings with it.',
 			doc:
 				'Load one artifact by vault-relative `path`, parse it, and return its serialized shape ' +
 				'(frontmatter + sections + body + resolved links). For a lens, `depth` controls dredge: ' +
@@ -58,7 +58,7 @@ export function readTools( chain: GuardChain ): ( ToolDefinition & { spec?: Test
 			spec: [
 				{ label: 'resolves links for a lens', input: { path: 'lenses/parser/parser.html' }, assertions: [] },
 			],
-			description: 'Get outbound links and addresses declared by an artifact, plus inbound links pointing to it from the rest of the vault.',
+			description: 'See an artifact\'s outbound links, and everything pointing back at it.',
 			doc:
 				'Resolve the link graph around one artifact. Returns `{ outbound, inbound }`: outbound = the ' +
 				'links the artifact itself declares (resolved to their targets); inbound = every other file ' +
@@ -74,32 +74,9 @@ export function readTools( chain: GuardChain ): ( ToolDefinition & { spec?: Test
 				try {
 					chain.run( { tool: 'kcd_links', params: args } );
 
-					const vault    = MCPUtils.vault;
-					const filePath = String( args[ 'path' ] ?? '' );
-					const abs      = vault.toAbs( filePath );
-					const artifact = KCDPrimitive.fromHtml( vault.read( filePath ), abs );
-					const outbound = artifact.getLinks();
-
-					// Addresses ride their OWN list, never mixed into outbound. A link asserts occupancy;
-					// an address does not — collapsing them would hand the caller back the exact ambiguity
-					// the primitive exists to remove. `occupied` is reported as a FACT, not a verdict.
-					const names     = new Set( vault.scan()
-						.map( f => typeof f.frontmatter[ 'name' ] === 'string' ? f.frontmatter[ 'name' ] as string : '' )
-						.filter( n => n !== '' ) );
-					const addresses = ( artifact.serialize().addresses ?? [] ).map( a => ( {
-						...a,
-						occupied: names.has( a.value ) || vault.exists( a.value ),
-					} ) );
-
-					// Inbound: scan vault, resolve each raw link, match against target
-					const inbound  = vault.scan()
-						.filter( f => f.rawLinks.some( l => vault.resolveHref( l.href ) === abs ) )
-						.map( f => ( {
-							path:         f.relativePath,
-							relativePath: f.relativePath,
-						} ) );
-
-					return MCPUtils.result( { outbound, addresses, inbound } );
+					// One engine, two faces: this same call backs the CLI `links` command.
+					const result = VaultUtilities.links( MCPUtils.vault, String( args[ 'path' ] ?? '' ) );
+					return MCPUtils.result( result );
 				} catch ( e ) {
 					return MCPUtils.error( e instanceof Error ? e.message : String( e ) );
 				}
@@ -111,7 +88,7 @@ export function readTools( chain: GuardChain ): ( ToolDefinition & { spec?: Test
 			spec: [
 				{ label: 'validates the whole vault', input: {}, assertions: [] },
 			],
-			description: 'Validate one artifact (path provided) or the entire vault (no path): structural type rules plus reference integrity (dangling links, broken base/lens refs). Returns issues and a summary.',
+			description: 'Validate one artifact, or the whole vault, for dangling links and broken refs.',
 			doc:
 				'Validate artifacts on two axes. STRUCTURAL ( per file ): required frontmatter, sections, ' +
 				'and type rules — a parse failure becomes an error issue rather than aborting the run. ' +
@@ -148,7 +125,7 @@ export function readTools( chain: GuardChain ): ( ToolDefinition & { spec?: Test
 			spec: [
 				{ label: 'compiles a single lens', input: { lenses: [ 'lens_crafter' ] }, assertions: [] },
 			],
-			description: 'Compile one or more lenses into a single context string — the composed Know/Care/manifest a lens contributes. Pass lens names (or vault paths); the first is primary. Returns the compiled text, the lenses compiled, and a token estimate.',
+			description: 'Compile one or more lenses into one composed context string — first lens is primary.',
 			doc:
 				'The LENS compiler — Daedalus\'s basic context-compilation surface. Give it lens names ' +
 				'( a bare `parser` maps to `lenses/parser/parser.html`; a vault path is used as-is ) and it ' +
@@ -188,10 +165,23 @@ export function readTools( chain: GuardChain ): ( ToolDefinition & { spec?: Test
 		{
 			name:        'kcd_survey',
 			annotations: { readOnlyHint: true },
+			// Two cases because this tool has two RETURN SHAPES. The lean default is prose, so it can only be
+			// smoke-tested (no assertion can read a key off text) — and it stays FIRST because the first spec's
+			// input becomes the tool's `example` in tools/list, and the idiomatic call is the argument-less one.
+			// The `full: true` case is where the real assertions live, since that shape is a SurveyReport object.
 			spec: [
 				{ label: 'surveys the configured project', input: {}, assertions: [] },
+				{
+					label:      'full: true returns a structured report',
+					input:      { full: true },
+					assertions: [
+						{ type: 'has_key', key: 'components' },
+						{ type: 'type_is', key: 'components', expected: 'array' },
+						{ type: 'has_key', key: 'totals' },
+					],
+				},
 			],
-			description: 'Reconnoitre the PROJECT the vault sits beside — a deterministic, filename-level census of its components ( languages, manifests, entry points, test layout, nesting ), NOT a source parse. Returns a lean text projection by default, or the full structured report with `full: true`. Read this to orient in an unfamiliar codebase instead of exploring it.',
+			description: 'Reconnoitre the project beside the vault — a filename-level census of components, languages, and entry points.',
 			doc:
 				'Walk the configured project root and return a structured reconnaissance of it. This is a ' +
 				'CENSUS: it reads filenames and small manifests only — no source is parsed and no model runs — ' +

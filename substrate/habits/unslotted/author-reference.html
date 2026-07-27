@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>author-reference — Habit</title>
+	<link rel="stylesheet" href="../../kcd.css">
+</head>
+<body>
+
+<article data-kcd="habit">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">author-reference</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">The canonical section vocabulary and frontmatter for a reference artifact — overview · free-named topical · rules · references — and the rules for keeping one durable; fires when authoring, migrating, or auditing a reference. Inherited by all lenses via _lens_base.</dd>
+		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">habit</dd>
+		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">active</dd>
+		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
+		<dt>author</dt>        <dd data-kcd-field="author"         data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
+	</dl>
+
+	<h1>author-reference — Habit</h1>
+
+	<p><em>Inherited by all lenses via <code>_lens_base</code>. Defines the shape of a
+	<code>reference</code> artifact — the durable, project-level store of truth. The mechanics of the HTML
+	itself are <a href="_Claude/references/kcd_sdk/kcd-document-protocol.html">kcd-document-protocol</a>;
+	this habit is the reference-specific section vocabulary and the rules that keep one durable.</em></p>
+
+	<section data-kcd-section="why">
+		<h3>Why</h3>
+		<p>Authoring a new reference, migrating one to the HTML substrate, or auditing an existing one. A
+		reference is <strong>durable state</strong> — the settled how-it-works, not a plan or a todo. (A
+		forward-looking observation is a <code>note</code>, which keeps its open sections; a procedural recipe
+		is a <code>how-to</code>, which keeps its own step shape.)</p>
+	</section>
+
+	<section data-kcd-section="action">
+		<h3>Action</h3>
+		<p>author or audit the reference using the canonical section vocabulary below — <code>overview</code>
+		· free-named topical · <code>rules</code> (union) · <code>references</code> (union) — and keep it
+		durable</p>
+	</section>
+
+	<section data-kcd-section="explanation">
+		<h3>Explanation</h3>
+		<p>A reference is the durable, project-level store of truth — the settled how-it-works, not a plan
+		or a todo (a forward-looking observation is a <code>note</code>, which keeps its open sections; a
+		procedural recipe is a <code>how-to</code>). The HTML mechanics are
+		<a href="_Claude/references/kcd_sdk/kcd-document-protocol.html">kcd-document-protocol</a>; this
+		habit is the reference-specific section vocabulary and the rules that keep one durable and dense
+		(dense reference graphs let agents <em>find</em> things).</p>
+	</section>
+
+	<section data-kcd-section="frontmatter">
+		<h3>Frontmatter</h3>
+		<p>Exactly the universal set: <code>name</code> · <code>description</code> · <code>type</code> ·
+		<code>status</code> · <code>schema-version</code> · <code>author</code> · <code>updated</code>. No
+		<code>category</code> / <code>domain</code> field — <strong>the folder encodes the category.</strong>
+		Author is the block form <code>Name &lt;email&gt;</code>. Preserve the original <code>updated</code>
+		date when migrating — a mechanical move does not re-date the content.</p>
+	</section>
+
+	<section data-kcd-section="sections">
+		<h3>Sections — the vocabulary</h3>
+		<p>A reference has no Know/Care/Do region; sections sit directly under
+		<code>&lt;article data-kcd="reference"&gt;</code>. Each section is a typed property the parser extracts
+		(an authoring surface), not a freeform blob.</p>
+		<ul>
+			<li><strong><code>overview</code></strong> (additive) — one prose block: what it is and why it
+			exists, with the mental model / shape / layers folded in. The one-paragraph orientation.</li>
+			<li><strong>Topical sections</strong> (free-named, additive) — one named property per doc-specific
+			mechanism (<code>the-truck</code>, <code>guard-chain</code>, <code>the-vault</code>…). The
+			irreducible body. Trim hard: each earns its place; cut the tangential and the stale.</li>
+			<li><strong><code>rules</code></strong> (<code>data-kcd-merge="union"</code>) — short, authoritative
+			this-not-that statements, each a <code>data-kcd-slot</code> with a
+			<code>data-kcd-field="rule"</code> cell (the rule text stays prose). Rules cover only the code the
+			reference idiomatically governs. Union so a lens dredging several references stacks their rules into
+			one deduped view.</li>
+			<li><strong><code>references</code></strong> (<code>data-kcd-merge="union"</code>) — one merged
+			What/Where/Why faux-table (the <a href="_Claude/habits/unslotted/index-format.html">index-format</a> shape).
+			<strong>Source files, links, see-also, and relations all fold in here</strong> — a reference IS a
+			relation (info + a path to trawl). <code>where</code> is a real <code>&lt;a href&gt;</code>
+			(<code>path</code> or <code>url</code>). Dense reference graphs are the point: they let agents
+			<em>find</em> things.</li>
+		</ul>
+		<p><strong>Human aids</strong> (cheat-sheet, worked example, figure, a <code>&lt;details&gt;</code>
+		rationale accordion) carry <code>data-kcd-audience="human"</code> — kept for the visual read, stripped
+		from the AI read.</p>
+	</section>
+
+	<section data-kcd-section="rules">
+		<h3>Rules</h3>
+		<div data-kcd-table>
+			<div data-kcd-head><span>Rule</span></div>
+			<div data-kcd-slot="rule"><span data-kcd-field="rule" data-kcd-type="text"><strong>Durable state only — drop deferred.</strong> Deferred / open / not-built / todo content is not a reference section. Leave it in the source or file it on the owning lens; a reference carries only what is settled.</span></div>
+			<div data-kcd-slot="rule"><span data-kcd-field="rule" data-kcd-type="text"><strong>Prose is canonical, not chrome.</strong> Load-bearing body prose lives inside a <code>data-kcd-section</code> (merged into <code>overview</code> or surfaced as its own topical property). Only genuinely decorative prose is dropped.</span></div>
+			<div data-kcd-slot="rule"><span data-kcd-field="rule" data-kcd-type="text"><strong>Illustrative tables are chrome; canonical rows are faux-tables.</strong> A descriptive table carrying no extracted data is a plain <code>&lt;table&gt;</code> (parser ignores it). Anything with <code>data-kcd-slot</code>/<code>-field</code> is a styled-div faux-table — never a real <code>&lt;table&gt;</code> (protocol §3).</span></div>
+			<div data-kcd-slot="rule"><span data-kcd-field="rule" data-kcd-type="text"><strong>Files, links, and relations are one property.</strong> Do not scatter a "Files" list, a "Links" list, and a "Related" list — merge them into the single <code>references</code> section.</span></div>
+			<div data-kcd-slot="rule"><span data-kcd-field="rule" data-kcd-type="text"><strong>The folder is the category.</strong> Location encodes domain; never restate it as a frontmatter field.</span></div>
+		</div>
+	</section>
+
+	<section data-kcd-section="references" data-kcd-merge="union">
+		<h3>References</h3>
+		<div data-kcd-table>
+			<div data-kcd-head><span>What</span><span>Where</span><span>Why</span></div>
+			<div data-kcd-slot="reference">
+				<span data-kcd-field="what"  data-kcd-type="text">kcd-document-protocol</span>
+				<a    data-kcd-field="where" data-kcd-type="path" href="_Claude/references/kcd_sdk/kcd-document-protocol.html">kcd-document-protocol</a>
+				<span data-kcd-field="why"   data-kcd-type="text">The locked HTML mechanics beneath this habit — addressing contract, component vocabulary, frontmatter fields, faux-tables (§3), audience/chrome (§5).</span>
+			</div>
+			<div data-kcd-slot="reference">
+				<span data-kcd-field="what"  data-kcd-type="text">index-format</span>
+				<a    data-kcd-field="where" data-kcd-type="path" href="_Claude/habits/unslotted/index-format.html">index-format</a>
+				<span data-kcd-field="why"   data-kcd-type="text">The What/Where/Why faux-table shape the references section reuses; the sibling habit for nav-indexes.</span>
+			</div>
+		</div>
+	</section>
+
+</article>
+
+</body>
+</html>

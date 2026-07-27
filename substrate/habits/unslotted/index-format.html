@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>index-format — Habit</title>
+	<link rel="stylesheet" href="../../kcd.css">
+</head>
+<body>
+
+<article data-kcd="habit">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">index-format</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">Defines the canonical What/Where/Why faux-table shape of any nav-index; fires when writing, modifying, or auditing a nav-index. Inherited by all lenses via _lens_base.</dd>
+		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">habit</dd>
+		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">active</dd>
+		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
+		<dt>author</dt>        <dd data-kcd-field="author"         data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
+	</dl>
+
+	<h1>index-format — Habit</h1>
+
+	<p><em>Inherited by all lenses via <code>_lens_base</code>. Defines the canonical shape of any
+	navigational index (a <code>nav-index</code> artifact, or any What/Where/Why import block) in the
+	project.</em></p>
+
+	<section data-kcd-section="why">
+		<h3>Why</h3>
+		<p>Writing, modifying, or auditing any navigational index.</p>
+		<p>A navigational index is any surface whose primary purpose is navigation — pointing readers
+		at other files. Examples: <code>plans/nav-index.html</code>, <code>kcd/habits/nav-index.html</code>,
+		the <code>Know</code> and <code>Do</code> reference blocks in every lens, a catalogue under
+		<code>references/domain/</code>. If a surface's job is to answer "where do I find X?" it's a
+		navigational index.</p>
+	</section>
+
+	<section data-kcd-section="action">
+		<h3>Action</h3>
+		<p>Structure each navigable section as a <strong>What / Where / Why faux-table</strong> —
+		styled divs, never a real <code>&lt;table&gt;</code> (protocol §3). Each row is a
+		<code>data-kcd-slot="&lt;kind&gt;"</code>; each cell is an addressable
+		<code>data-kcd-field</code>. The <strong>kind is mandatory and set by POSITION</strong> — the row
+		inherits the role of the block it sits in: <code>link</code> in a nav-index, <code>reference</code>
+		in a Know References/Domains block, <code>habit</code>/<code>contract</code>/<code>tool</code>/
+		<code>rule</code> in the matching Do block; <code>table-data</code> for a plain non-linking row.
+		A bare <code>data-kcd-slot</code> with no kind is invalid — the validator rejects it:</p>
+		<pre><code>&lt;div data-kcd-table&gt;
+  &lt;div data-kcd-head&gt;&lt;span&gt;What&lt;/span&gt;&lt;span&gt;Where&lt;/span&gt;&lt;span&gt;Why&lt;/span&gt;&lt;/div&gt;
+  &lt;div data-kcd-slot="link"&gt;
+    &lt;span data-kcd-field="what"  data-kcd-type="text"&gt;{label}&lt;/span&gt;
+    &lt;a    data-kcd-field="where" data-kcd-type="path" href="{path}"&gt;{label}&lt;/a&gt;
+    &lt;span data-kcd-field="why"   data-kcd-type="text"&gt;{use case}&lt;/span&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+		<ul>
+			<li><strong>What</strong> — the destination's name in plain language. Not the filename.
+			("Per-Widget API Surface", not "per-widget-api-surface".)</li>
+			<li><strong>Where</strong> — a real <code>&lt;a&gt;</code> whose <code>href</code> is both
+			the value and the navigation; link text is the file stem (or a meaningful short slug).</li>
+			<li><strong>Why</strong> — one phrase capturing what the reader gets by clicking through.
+			Bias toward purpose ("decompose persistence into per-widget endpoints") over content
+			summary ("contains 6 phases and a table"). One sentence max.</li>
+		</ul>
+		<p>Each row is exactly one navigable destination.</p>
+		<p>A <strong>4th column</strong> is permitted only when an extra dimension is load-bearing for
+		a specific index — e.g. <code>What | Where | Why | Lens</code> for a cross-cutting audit table.
+		The first three columns and their semantics never change; only a trailing column may be added.
+		Use sparingly (mirrors the same exception in
+		<a href="_Claude/references/kcd_sdk/lens_anatomy.html">lens_anatomy</a>).</p>
+		<p>Multi-section indexes use one <code>data-kcd-section</code> per group, each with its own
+		faux-table. The section names the group; the table holds the rows. Group by audience or status
+		(e.g. Cross-lens / Complete / Retired), not by alphabet.</p>
+	</section>
+
+	<section data-kcd-section="format">
+		<h3>Format</h3>
+		<ul>
+			<li>Columns are set with the <code>--kcd-cols</code> custom property; order is cosmetic —
+			the parser reads cells by <code>data-kcd-field</code> name, never by position.</li>
+			<li>The <code>data-kcd-head</code> row is human chrome (column labels); the parser ignores
+			it.</li>
+			<li>Navigational slots carry no <code>data-kcd-mode="suggested"</code> — they are pure navigation,
+			not dredge/inclusion.</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="counter-examples">
+		<h3>Counter-examples (do not use)</h3>
+		<ul>
+			<li>Bullet list of links — drops the <em>why</em>, forces the reader to open each to learn purpose.</li>
+			<li>2-column <code>What | Where</code> faux-table — same problem.</li>
+			<li>A real <code>&lt;table&gt;</code> — forbidden by protocol §3; use the styled-div faux-table.</li>
+			<li>Prose paragraph — not scannable, not atomically amendable.</li>
+			<li>Long <code>Why</code> text spilling to a second line — compress or move detail to the destination.</li>
+		</ul>
+	</section>
+
+	<section data-kcd-section="explanation">
+		<h3>Explanation</h3>
+		<p>The <em>why</em> column is the load-bearing one. Without it, a nav-index is just a directory
+		listing — the reader has to open files to find what they need. With it, the reader can scan,
+		decide, and click once. This is the difference between "I have a folder of plans" and "I have
+		a navigable plan library." It compounds as the index grows.</p>
+	</section>
+
+</article>
+
+</body>
+</html>
