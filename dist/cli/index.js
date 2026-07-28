@@ -537,7 +537,7 @@ var require_VaultLayout = __commonJS({
     var NAV_INDEX_FILE = "nav-index.html";
     var FRAMEWORK_ROOT_FILES = ["root.html", "root-context.html", "kcd_framework.html"];
     var LENS_MAX_DEPTH = 3;
-    var VaultLayout = class _VaultLayout {
+    var VaultLayout2 = class _VaultLayout {
       /** Every row, in table order — for the doc generator and anything enumerating the structure. */
       static all() {
         return LAYOUT;
@@ -629,7 +629,7 @@ var require_VaultLayout = __commonJS({
         return top !== void 0 && _VaultLayout.ephemeralDirs().includes(top);
       }
     };
-    exports2.VaultLayout = VaultLayout;
+    exports2.VaultLayout = VaultLayout2;
   }
 });
 
@@ -12309,8 +12309,6 @@ var Cli = class {
         return this.links(args);
       case "seed":
         return this.seed(args);
-      case "gitignore":
-        return this.gitignore(args);
       case "lens-index":
         return this.lensIndex(args);
       case "init":
@@ -12637,9 +12635,40 @@ so running it twice repairs rather than duplicates.
       skills: true,
       ignore: "none"
     };
+    const gitRoot = this.gitRoot(projectRoot);
     const stepping = Prompt.interactive && !confirm;
+    if (!stepping && !confirm) {
+      process.stdout.write(
+        `${this.tint(this.C.dim, "non-interactive ( no terminal attached ) \u2014 using defaults for every choice.")}
+${this.tint(this.C.dim, "Run `daedalus init` yourself in a terminal to be asked instead.")}
+
+`
+      );
+    }
     if (stepping) {
-      Prompt.step(1, 4, "Agent entry points");
+      const total = gitRoot ? 6 : 5;
+      let count = 0;
+      const step = (title) => Prompt.step(++count, total, title);
+      step("What gets created");
+      process.stdout.write(
+        "\n  Everything KCD governs lives in ONE folder beside your code. Alongside it go two\n  or three small files at your project root that point your agent at that folder.\n  Nothing of yours is moved, renamed, or overwritten.\n\n"
+      );
+      process.stdout.write(this.installTree(projectRoot, docRoot, choices, true));
+      if (!await Prompt.confirm(
+        `Create this in ${projectRoot}?`,
+        true,
+        "The steps after this one trim the root files. Nothing has been written yet."
+      )) {
+        Prompt.close();
+        process.stdout.write(
+          `
+${this.tint(this.C.bold, "Nothing was written.")} Run ${this.tint(this.C.bold, "daedalus init")} again whenever you like.
+
+`
+        );
+        process.exit(0);
+      }
+      step("Agent entry points");
       choices.hosts = await Prompt.multiselect(
         "Which agents should be pointed at this vault?",
         hosts.map((h) => ({
@@ -12650,29 +12679,67 @@ so running it twice repairs rather than duplicates.
         hosts.map((_h, i) => i),
         "A small managed block is added at the top of each. Your own content is kept below it."
       );
-      Prompt.step(2, 4, "The MCP server");
+      step("What goes in your entry files");
+      const seeds = this.hostSeeds().filter((s) => choices.hosts.includes(s.target));
+      for (const s of seeds) {
+        const abs = path2.join(projectRoot, s.target);
+        const present = (0, import_fs2.existsSync)(abs);
+        const ownsText = present && this.hasOwnContent(abs);
+        process.stdout.write(
+          `
+  ${this.tint(this.C.bold, s.target)} \u2014 ` + (!present ? "does not exist yet, will be created" : ownsText ? this.tint(this.C.blue, "already exists and has your own content \u2014 it is kept, in full, below our block") : "already exists") + "\n"
+        );
+      }
+      if (seeds.length) {
+        const sample = seeds[0].payload.split("\n").slice(0, 5);
+        process.stdout.write(
+          `
+  ${this.tint(this.C.dim, "The block added at the top, between markers we own and only ever rewrite between:")}
+  ${this.tint(this.C.dim, "<!-- kcd:begin -->")}
+` + sample.map((l) => `  ${this.tint(this.C.dim, l.length > 74 ? l.slice(0, 73) + "\u2026" : l)}`).join("\n") + `
+  ${this.tint(this.C.dim, `\u2026 ${Math.max(0, seeds[0].payload.split("\n").length - 5)} more lines`)}
+  ${this.tint(this.C.dim, "<!-- kcd:end -->")}
+`
+        );
+      }
+      if (!await Prompt.confirm("Happy with that?", true, "Answer no to stop; nothing has been written.")) {
+        Prompt.close();
+        process.stdout.write(`
+${this.tint(this.C.bold, "Nothing was written.")}
+
+`);
+        process.exit(0);
+      }
+      step("The MCP server");
       choices.mcp = await Prompt.confirm(
         "Register the daedalus MCP server in .mcp.json?",
         true,
         "This is what gives your agent the kcd_* tools. Without it the vault is just files."
       );
-      Prompt.step(3, 4, "Bundled skills");
+      step("Bundled skills");
       choices.skills = await Prompt.confirm(
         "Install the bundled skills into .claude/skills/?",
         true,
         "kcd-onboard walks you through turning a fresh vault into one about YOUR project."
       );
-      Prompt.step(4, 4, "Git");
-      choices.ignore = await Prompt.select(
-        "How much of this should git track?",
-        [
-          { label: "Track the vault, ignore its scratch dirs", note: "recommended", value: "scratch" },
-          { label: "Track everything", note: "nothing added to .gitignore", value: "none" },
-          { label: "Ignore the whole vault", note: "try it without touching your repo", value: "vault" }
-        ],
-        0,
-        "The vault is project knowledge and usually worth committing; audits/ and work/ are churn."
-      );
+      if (gitRoot) {
+        step("Git");
+        process.stdout.write(
+          `
+  ${this.tint(this.C.dim, `This is a git repository ( ${gitRoot} ).`)}
+`
+        );
+        choices.ignore = await Prompt.select(
+          "Should this go into your repository, or be ignored?",
+          [
+            { label: "Commit the vault, ignore its scratch dirs", note: "recommended", value: "scratch" },
+            { label: "Commit everything", note: "nothing added to .gitignore", value: "none" },
+            { label: "Ignore the whole vault", note: "try it without touching your repo", value: "vault" }
+          ],
+          0,
+          "The vault is project knowledge and is usually worth committing \u2014 it is how a team shares\n  the context. audits/ and work/ are regenerable churn and rarely are."
+        );
+      }
       const summary = `
 ${this.tint(this.C.bold, "Ready to install")}
   project        ${before.projectRoot}
@@ -12680,8 +12747,8 @@ ${this.tint(this.C.bold, "Ready to install")}
   entry points   ${choices.hosts.length ? choices.hosts.join(", ") : "none"}
   MCP server     ${choices.mcp ? "registered in .mcp.json" : "skipped"}
   skills         ${choices.skills ? "installed" : "skipped"}
-  .gitignore     ${choices.ignore === "none" ? "untouched" : choices.ignore === "vault" ? "whole vault ignored" : "scratch dirs ignored"}
-`;
+` + (gitRoot ? `  .gitignore     ${choices.ignore === "none" ? "untouched" : choices.ignore === "vault" ? "whole vault ignored" : "scratch dirs ignored"}
+` : "");
       process.stdout.write(summary);
       confirm = await Prompt.confirm("Install now?", true, "Nothing has been written yet.");
       Prompt.close();
@@ -12696,21 +12763,23 @@ ${this.tint(this.C.bold, "Nothing was written.")} Run ${this.tint(this.C.bold, "
     const deployBefore = import_kcd_sdk6.VaultDeploy.inspect(projectRoot, { docRoot, substrateSource });
     const shape = deployBefore.items.some((i) => i.present) ? "repairing" : "creating";
     process.stdout.write(
-      `${this.tint(this.C.bold, "1. The vault")} \u2014 ${shape} ${path2.join(projectRoot, docRoot)} ( ${deployBefore.missing} item(s) to fill )
-   Your artifact store. lenses/ hold agent personalities, habits/ atomic behaviours,
-   references/ project knowledge, plans/ work that authorizes action. The framework's
-   own floor is copied in from this package; the rest is yours to grow.
+      // No number. The stepper above owns the numbering ( "step 3/5" ); a second 1..4 sequence
+      // running underneath it reads as two competing progress bars.
+      `${this.tint(this.C.bold, "The vault")} \u2014 ${shape}, ${deployBefore.missing} item(s) to fill
+
 `
     );
+    if (!stepping) process.stdout.write(this.installTree(projectRoot, docRoot, choices));
     const deployed = confirm ? import_kcd_sdk6.VaultDeploy.apply(projectRoot, { docRoot, substrateSource }) : deployBefore;
-    for (const item of deployed.items) if (!item.present) process.stdout.write(`  ${confirm ? "\u2713" : "\xB7"} ${item.kind.padEnd(9)} ${item.path}
+    const filled = deployed.items.filter((i) => !i.present).length;
+    process.stdout.write(`
+  ${confirm ? "\u2713" : "\xB7"} ${confirm ? "filled" : "would fill"} ${filled} item(s) from the bundled floor. The rest is yours to grow.
 `);
     process.stdout.write(
       `
-${this.tint(this.C.bold, "2. Agent entry points")}
-   A managed block in CLAUDE.md ( and the Codex/Gemini equivalents ) pointing your agent
-   at the vault. Anything already in those files is kept \u2014 the block is added above it,
-   between markers, and only that block is ever rewritten.
+${this.tint(this.C.bold, "Agent entry points")}
+   Anything already in those files is kept \u2014 the block goes above it, between markers,
+   and only what is between them is ever rewritten.
 `
     );
     if ((0, import_fs2.existsSync)(vault.toAbs(ROOT_CONTEXT))) {
@@ -12734,7 +12803,8 @@ ${this.tint(this.C.bold, "2. Agent entry points")}
         );
       }
     } else {
-      process.stdout.write("  seed     \u2014 pending ( root-context.html not deployed yet )\n");
+      process.stdout.write(`  ${this.tint(this.C.dim, 'written once the vault above exists \u2014 re-run with "confirm" and they land together')}
+`);
     }
     const mcpPath = path2.join(projectRoot, ".mcp.json");
     let mcpDoc = {};
@@ -12752,7 +12822,7 @@ ${this.tint(this.C.bold, "2. Agent entry points")}
     const mcpChanged = choices.mcp && JSON.stringify(already) !== JSON.stringify(entry);
     process.stdout.write(
       `
-${this.tint(this.C.bold, "3. The MCP server")} \u2014 .mcp.json: ${!choices.mcp ? "skipped" : !already ? "registers" : mcpChanged ? "updates" : "already current"}
+${this.tint(this.C.bold, "The MCP server")} \u2014 .mcp.json: ${!choices.mcp ? "skipped" : !already ? "registers" : mcpChanged ? "updates" : "already current"}
    Gives your agent the kcd_* tools. Any other server you have registered is left alone.
 `
     );
@@ -12762,9 +12832,8 @@ ${this.tint(this.C.bold, "3. The MCP server")} \u2014 .mcp.json: ${!choices.mcp 
     }
     process.stdout.write(
       `
-${this.tint(this.C.bold, "4. Skills")}
-   Dropped into .claude/skills/. A skill already there is never overwritten \u2014 once it
-   exists it is yours to edit.
+${this.tint(this.C.bold, "Skills")}
+   A skill already there is never overwritten \u2014 once it exists it is yours to edit.
 `
     );
     const skillsSrc = this.skillsRoot();
@@ -12786,15 +12855,14 @@ ${this.tint(this.C.bold, "4. Skills")}
     }
     process.stdout.write(
       `
-${this.tint(this.C.bold, "What this puts in your repository")}
-   ${docRoot}/            the vault \u2014 worth committing; it is project knowledge
-   CLAUDE.md etc.      agent entry points \u2014 worth committing
-   .mcp.json           server registration \u2014 commit if your team shares it
-   .claude/skills/     bundled skills \u2014 worth committing
-   None of it is generated noise, so the usual answer is "commit it".
+${this.tint(this.C.bold, "In your repository")}
+   None of the above is generated noise, so the usual answer is "commit it" \u2014 the vault is
+   project knowledge and committing it is how a team shares the context. Only ${docRoot}/audits
+   and ${docRoot}/work are regenerable churn.
 `
     );
-    if (stepping && choices.ignore !== "none") {
+    if (!gitRoot) {
+    } else if (stepping && choices.ignore !== "none") {
       const ig = import_kcd_sdk6.VaultUtilities.gitignore(projectRoot, docRoot, choices.ignore, { confirm });
       process.stdout.write(
         `
@@ -12804,15 +12872,16 @@ ${this.tint(this.C.bold, "Git")} \u2014 .gitignore: ${ig.changed ? ig.applied ? 
       for (const e of ig.entries) process.stdout.write(`  ${ig.applied ? "\u2713" : "\xB7"} ${e}
 `);
     } else if (!stepping) {
-      const ignoreNow = import_kcd_sdk6.VaultUtilities.gitignore(projectRoot, docRoot, "scratch");
+      const scratch = import_kcd_sdk6.VaultUtilities.gitignore(projectRoot, docRoot, "scratch");
       process.stdout.write(
         `
-${this.tint(this.C.bold, "Keeping it out of git")} \u2014 ${ignoreNow.hadManagedBlock ? "already configured" : "not configured"}
-   Nothing is written to .gitignore unless you ask. Three honest answers:
+${this.tint(this.C.bold, "Git")} \u2014 .gitignore: ${scratch.hadManagedBlock ? "already carries a kcd block" : "untouched"}
+   Nothing is written there unless you ask for it. If you want the regenerable churn
+   kept out of history, these are the lines \u2014 yours to add, move, or ignore:
 
-     ${this.tint(this.C.bold, "daedalus gitignore scratch confirm")}   ignore ${docRoot}/audits, /work, /scratch  ( recommended )
-     ${this.tint(this.C.bold, "daedalus gitignore vault confirm")}     ignore the whole vault  ( try it without touching your repo )
-     ${this.tint(this.C.bold, "daedalus gitignore none confirm")}      remove the block again  ( the choice is reversible )
+` + scratch.entries.map((e) => `       ${e}
+`).join("") + `
+   Or ignore ${docRoot}/ outright to try this without touching your repository at all.
 `
       );
     }
@@ -12981,46 +13050,6 @@ inbound ( ${result.inbound.length} )
 `);
       process.exit(2);
     }
-  }
-  /**
-   * `daedalus gitignore <scratch|vault|none> [confirm]` — maintain the `.gitignore` managed block.
-   *
-   * The mechanical half of the repo-hygiene question `init` raises. Preview-then-confirm like every
-   * other write, and `none` makes the choice reversible, which is what lets `init` recommend a
-   * default without it being a trap.
-   */
-  static gitignore(args) {
-    const confirm = args.positionals.includes("confirm");
-    const scope = args.positionals.find((p) => p !== "confirm");
-    if (scope !== "scratch" && scope !== "vault" && scope !== "none") {
-      process.stderr.write("daedalus: gitignore requires a scope \u2014 scratch, vault, or none\n");
-      process.exit(2);
-    }
-    const { projectRoot, docRoot } = Config.resolve();
-    const report = import_kcd_sdk6.VaultUtilities.gitignore(projectRoot, docRoot, scope, { confirm });
-    if (args.json) {
-      this.emit(report);
-      process.exit(0);
-    }
-    const state = !report.changed ? "already current" : report.applied ? "updated" : "would change";
-    process.stdout.write(`
-.gitignore \u2014 ${state} ( scope: ${scope} )
-`);
-    for (const e of report.entries) process.stdout.write(`  ${report.applied ? "\u2713" : "\xB7"} ${e}
-`);
-    if (scope === "none" && report.hadManagedBlock) process.stdout.write(`  ${report.applied ? "\u2713" : "\xB7"} managed block removed
-`);
-    if (report.changed && !confirm) {
-      process.stdout.write(`
-Nothing was written. Re-run to apply:
-
-    daedalus gitignore ${scope} confirm
-
-`);
-    } else {
-      process.stdout.write("\n");
-    }
-    process.exit(0);
   }
   /**
    * `daedalus seed [host] [confirm]` — extract §10 seed payloads from `root-context.html` into
@@ -13351,13 +13380,76 @@ Nothing was written. Re-run to apply:
    * is unreadable — anchoring is an optimisation, and losing it must not fail an install.
    */
   static hostMarkers() {
+    return this.hostSeeds().map((s) => s.target);
+  }
+  /** The bundle's own seed declarations, before any vault exists. The install needs these BEFORE
+   *  step 1 has run — to anchor the project root, to offer the entry points as a choice, and to
+   *  show the user the block they are about to have added to a file they already own. */
+  static hostSeeds() {
     try {
       const src = path2.join(this.substrateRoot(), ROOT_CONTEXT);
       if (!(0, import_fs2.existsSync)(src)) return [];
-      return import_kcd_sdk6.VaultUtilities.parseSeedsFrom((0, import_fs2.readFileSync)(src, "utf-8")).map((s) => s.target);
+      return import_kcd_sdk6.VaultUtilities.parseSeedsFrom((0, import_fs2.readFileSync)(src, "utf-8"));
     } catch {
       return [];
     }
+  }
+  /**
+   * The install, drawn as a folder tree rooted at the project.
+   *
+   * Folders, not files. A fresh vault is ~50 files and listing them was an unreadable wall that
+   * told a newcomer nothing — what matters on first contact is the SHAPE: a `_Claude/` beside your
+   * code, holding a handful of directories with obvious jobs, plus two or three files at the
+   * project root. Directory names and their one-line purposes come from `VaultLayout`, so this
+   * picture cannot drift from what deploy actually creates.
+   *
+   * `pending` draws it as the stepper's FIRST question, before any choice has been made — the vault
+   * half is settled ( that is what is being agreed to ), the root files are still up for discussion,
+   * and saying so on the picture is what keeps it from being a promise the later steps then break.
+   */
+  static installTree(projectRoot, docRoot, choices, pending = false) {
+    const short = (purpose) => {
+      const first = purpose.split(/[.—]/)[0].trim();
+      return first.length > 52 ? first.slice(0, 51).replace(/\s+\S*$/, "") + "\u2026" : first;
+    };
+    const rows = import_kcd_sdk6.VaultLayout.all().filter((e) => !e.dir.includes("/"));
+    const agent = rows.filter((e) => e.layer === "agent");
+    const data = rows.filter((e) => e.layer === "data" && e.indexed);
+    const scratch = rows.filter((e) => e.layer === "data" && !e.indexed);
+    const dim = (s) => this.tint(this.C.dim, s);
+    const pad = (s) => s.padEnd(18);
+    const out = [];
+    out.push(`${this.tint(this.C.bold, path2.basename(projectRoot) || projectRoot)}/`);
+    out.push("\u2502");
+    out.push(`\u251C\u2500 ${this.tint(this.C.bold, pad(docRoot + "/"))}${dim("The vault \u2014 everything governed lives here")}`);
+    out.push("\u2502  \u2502");
+    const group = (entries, label) => {
+      if (entries.length === 0) return;
+      out.push(`\u2502  \u2502  ${dim(label)}`);
+      for (const e of entries) out.push(`\u2502  \u251C\u2500 ${pad(e.dir + "/")}${dim(short(e.purpose))}`);
+      out.push("\u2502  \u2502");
+    };
+    group(agent, "What an agent is composed from");
+    group(data, "What the project accumulates");
+    if (scratch.length) {
+      out.push(`\u2502  \u2502  ${dim("Scratch and output space")}`);
+      out.push(`\u2502  \u251C\u2500 ${scratch.map((e) => e.dir + "/").join("  ")}`);
+      out.push("\u2502  \u2502");
+    }
+    out.push(`\u2502  \u251C\u2500 ${pad("root.html")}${dim("The entry document \u2014 read first, and yours to edit")}`);
+    out.push(`\u2502  \u2514\u2500 ${pad("root-context.html")}${dim("Generates the entry files below")}`);
+    out.push("\u2502");
+    if (pending) out.push(`\u2502  ${dim("At your project root \u2014 each one is a question in the steps below")}`);
+    const hostWhy = (h) => h.startsWith("CLAUDE") ? "Points Claude Code at the vault" : h.startsWith("AGENTS") ? "The same, for Codex and others" : h.startsWith("GEMINI") ? "The same, for Gemini" : "Points your agent at the vault";
+    const leaves = [];
+    for (const h of choices.hosts) leaves.push([h, hostWhy(h)]);
+    if (choices.mcp) leaves.push([".mcp.json", "Registers the kcd_* tools"]);
+    if (choices.skills) leaves.push([".claude/skills/", "The bundled onboarding skill"]);
+    leaves.forEach(([name, why], i) => {
+      const last = i === leaves.length - 1;
+      out.push(`${last ? "\u2514\u2500" : "\u251C\u2500"} ${pad(name)}${dim(why)}`);
+    });
+    return out.join("\n") + "\n";
   }
   /** Nearest ancestor of `from` ( inclusive ) holding any host marker file, or null. Same upward
    *  walk `inferProjectRoot` uses for the vault, against a different marker — because on a FIRST
@@ -13368,6 +13460,27 @@ Nothing was written. Re-run to apply:
     let dir = path2.resolve(from);
     for (; ; ) {
       if (markers.some((m) => (0, import_fs2.existsSync)(path2.join(dir, m)))) return dir;
+      const parent = path2.dirname(dir);
+      if (parent === dir) return null;
+      dir = parent;
+    }
+  }
+  /**
+   * Nearest ancestor of `from` ( inclusive ) that is a git working tree, or null.
+   *
+   * Tests EXISTENCE, not directory-ness: `.git` is a directory in an ordinary clone but a FILE in a
+   * worktree, a submodule, or anything else using a gitdir pointer, and treating those as "not a
+   * repository" would silently drop the ignore question for exactly the people most likely to care.
+   *
+   * Walks up for the same reason the vault does — a repo root above the install directory still
+   * governs it. The block itself is always written to a `.gitignore` at the PROJECT root, which is
+   * correct whether or not that is also the repo root: git honours nested ignore files, and the
+   * entries are relative to the file that holds them.
+   */
+  static gitRoot(from) {
+    let dir = path2.resolve(from);
+    for (; ; ) {
+      if ((0, import_fs2.existsSync)(path2.join(dir, ".git"))) return dir;
       const parent = path2.dirname(dir);
       if (parent === dir) return null;
       dir = parent;
@@ -13610,7 +13723,7 @@ ${label} \u2014 ${report.root}/${report.docRoot} ( ${report.missing} missing )
 Usage: daedalus <command> [options]
 
 Commands:
-  init [confirm]    Install: deploy the vault, extract host seeds, register the MCP, install skills ( preview only, unless "confirm" ).
+  init [confirm]    Install into this project. In a terminal it steps you through the choices; "confirm" takes the defaults and writes.
   get-started       After restarting your agent session: survey the project and print a prompt to verify the tools are live.
   validate [path]   Validate one artifact, or the whole vault when no path is given.
   compile <lens...> Compile one or more lenses to a context string ( first = primary ).
@@ -13626,7 +13739,6 @@ Commands:
   links <path>      An artifact's outbound links/addresses, plus everything pointing back at it.
   seed [host] [confirm]      Extract root-context seed payloads into CLAUDE.md etc ( preview only, unless "confirm" ).
   lens-index [confirm]       Regenerate the entry doc's Lenses table from real lenses ( preview only, unless "confirm" ).
-  gitignore <scope> [confirm]  Keep the vault out of git \u2014 scope: scratch | vault | none ( preview only, unless "confirm" ).
   clear [all] [confirm]      Take the install back out. Removes only what it added; "all" also removes the vault.
 
 Options:

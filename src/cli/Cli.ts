@@ -75,8 +75,6 @@ export class Cli {
 				return this.links( args );
 			case 'seed':
 				return this.seed( args );
-			case 'gitignore':
-				return this.gitignore( args );
 			case 'lens-index':
 				return this.lensIndex( args );
 			case 'init':
@@ -428,6 +426,12 @@ export class Cli {
 		// the pieces are. That is the same principle the configuration walkthrough is built on: the
 		// questions ARE the curriculum.
 		//
+		// ORDER IS THE POINT ( Bryan, 2026-07-28 ). The FIRST question is the whole shape — here is
+		// the tree we would build beside your code; is that acceptable? Every question after it
+		// refines an answer already given. Asking about MCP registration before anyone has agreed to
+		// the structure inverts the decision, and a stranger who would have said no has to sit
+		// through four questions before reaching the one they cared about.
+		//
 		// The questionnaire runs only when someone is actually there to answer ( `Prompt.interactive`
 		// requires a TTY at both ends ) and only when `confirm` was not already given. Scripted,
 		// piped, or agent-driven runs take every default and behave exactly as before, so nothing
@@ -440,6 +444,10 @@ export class Cli {
 			ignore: 'none' as 'scratch' | 'vault' | 'none'
 		};
 
+		// Git is DETECTED, never assumed. Outside a working tree the ignore question has no meaning,
+		// and asking it anyway is the kind of question that teaches a user the installer is not
+		// paying attention to their project.
+		const gitRoot  = this.gitRoot( projectRoot );
 		const stepping = Prompt.interactive && !confirm;
 
 		// SAY WHICH MODE THIS IS. Falling back to defaults without a word is correct behaviour and
@@ -453,7 +461,35 @@ export class Cli {
 		}
 
 		if ( stepping ) {
-			Prompt.step( 1, 5, 'Agent entry points' );
+			// Six steps in a repository, five outside one. The counter is derived rather than
+			// written down twice, so "step 5/6" can never disagree with how many questions arrive.
+			const total = gitRoot ? 6 : 5;
+			let   count = 0;
+			const step  = ( title: string ): void => Prompt.step( ++count, total, title );
+
+			// STEP 1 — THE SHAPE. The one question a stranger actually has on first contact, asked
+			// before any of the detail questions that only make sense once it is answered yes.
+			step( 'What gets created' );
+			process.stdout.write(
+				'\n  Everything KCD governs lives in ONE folder beside your code. Alongside it go two\n' +
+				'  or three small files at your project root that point your agent at that folder.\n' +
+				'  Nothing of yours is moved, renamed, or overwritten.\n\n'
+			);
+			process.stdout.write( this.installTree( projectRoot, docRoot, choices, true ) );
+			if ( !( await Prompt.confirm(
+				`Create this in ${ projectRoot }?`,
+				true,
+				'The steps after this one trim the root files. Nothing has been written yet.'
+			) ) ) {
+				Prompt.close();
+				process.stdout.write(
+					`\n${ this.tint( this.C.bold, 'Nothing was written.' ) } ` +
+					`Run ${ this.tint( this.C.bold, 'daedalus init' ) } again whenever you like.\n\n`
+				);
+				process.exit( 0 );
+			}
+
+			step( 'Agent entry points' );
 			choices.hosts = await Prompt.multiselect(
 				'Which agents should be pointed at this vault?',
 				hosts.map( ( h ) => ( {
@@ -465,10 +501,10 @@ export class Cli {
 				'A small managed block is added at the top of each. Your own content is kept below it.'
 			);
 
-			// STEP 2 — show them the actual edit to a file they already own, before making it. These
-			// are files a developer has opinions about; "a managed block is added" is a promise, and
-			// showing the block is the evidence for it.
-			Prompt.step( 2, 5, 'What goes in your entry files' );
+			// Show them the actual edit to a file they already own, before making it. These are files
+			// a developer has opinions about; "a managed block is added" is a promise, and showing
+			// the block is the evidence for it.
+			step( 'What goes in your entry files' );
 			const seeds = this.hostSeeds().filter( ( s ) => choices.hosts.includes( s.target ) );
 			for ( const s of seeds ) {
 				const abs      = path.join( projectRoot, s.target );
@@ -497,31 +533,39 @@ export class Cli {
 				process.exit( 0 );
 			}
 
-			Prompt.step( 3, 5, 'The MCP server' );
+			step( 'The MCP server' );
 			choices.mcp = await Prompt.confirm(
 				'Register the daedalus MCP server in .mcp.json?',
 				true,
 				'This is what gives your agent the kcd_* tools. Without it the vault is just files.'
 			);
 
-			Prompt.step( 4, 5, 'Bundled skills' );
+			step( 'Bundled skills' );
 			choices.skills = await Prompt.confirm(
 				'Install the bundled skills into .claude/skills/?',
 				true,
 				'kcd-onboard walks you through turning a fresh vault into one about YOUR project.'
 			);
 
-			Prompt.step( 5, 5, 'Git' );
-			choices.ignore = await Prompt.select<'scratch' | 'vault' | 'none'>(
-				'Should this go into your repository, or be ignored?',
-				[
-					{ label: 'Commit the vault, ignore its scratch dirs', note: 'recommended', value: 'scratch' },
-					{ label: 'Commit everything',                         note: 'nothing added to .gitignore', value: 'none' },
-					{ label: 'Ignore the whole vault',                    note: 'try it without touching your repo', value: 'vault' }
-				],
-				0,
-				'The vault is project knowledge and is usually worth committing — it is how a team shares\n  the context. audits/ and work/ are regenerable churn and rarely are.'
-			);
+			// Only inside a working tree. This is the one moment the question is genuinely useful —
+			// immediately after agreeing to write six paths into a version-controlled repository —
+			// and it is the ONLY moment we ask: see the note on the apply step below.
+			if ( gitRoot ) {
+				step( 'Git' );
+				process.stdout.write(
+					`\n  ${ this.tint( this.C.dim, `This is a git repository ( ${ gitRoot } ).` ) }\n`
+				);
+				choices.ignore = await Prompt.select<'scratch' | 'vault' | 'none'>(
+					'Should this go into your repository, or be ignored?',
+					[
+						{ label: 'Commit the vault, ignore its scratch dirs', note: 'recommended', value: 'scratch' },
+						{ label: 'Commit everything',                         note: 'nothing added to .gitignore', value: 'none' },
+						{ label: 'Ignore the whole vault',                    note: 'try it without touching your repo', value: 'vault' }
+					],
+					0,
+					'The vault is project knowledge and is usually worth committing — it is how a team shares\n  the context. audits/ and work/ are regenerable churn and rarely are.'
+				);
+			}
 
 			const summary =
 				`\n${ this.tint( this.C.bold, 'Ready to install' ) }\n` +
@@ -530,7 +574,9 @@ export class Cli {
 				`  entry points   ${ choices.hosts.length ? choices.hosts.join( ', ' ) : 'none' }\n` +
 				`  MCP server     ${ choices.mcp ? 'registered in .mcp.json' : 'skipped' }\n` +
 				`  skills         ${ choices.skills ? 'installed' : 'skipped' }\n` +
-				`  .gitignore     ${ choices.ignore === 'none' ? 'untouched' : choices.ignore === 'vault' ? 'whole vault ignored' : 'scratch dirs ignored' }\n`;
+				( gitRoot
+					? `  .gitignore     ${ choices.ignore === 'none' ? 'untouched' : choices.ignore === 'vault' ? 'whole vault ignored' : 'scratch dirs ignored' }\n`
+					: '' );
 			process.stdout.write( summary );
 
 			confirm = await Prompt.confirm( 'Install now?', true, 'Nothing has been written yet.' );
@@ -549,7 +595,9 @@ export class Cli {
 			// running underneath it reads as two competing progress bars.
 			`${ this.tint( this.C.bold, 'The vault' ) } — ${ shape }, ${ deployBefore.missing } item(s) to fill\n\n`
 		);
-		process.stdout.write( this.installTree( projectRoot, docRoot, choices ) );
+		// Drawn ONCE. Step 1 is the tree when someone is being stepped through; drawing it again here
+		// reads as two different pictures of the same thing and invites a hunt for the difference.
+		if ( !stepping ) process.stdout.write( this.installTree( projectRoot, docRoot, choices ) );
 
 		const deployed = confirm ? VaultDeploy.apply( projectRoot, { docRoot, substrateSource } ) : deployBefore;
 		const filled   = deployed.items.filter( ( i ) => !i.present ).length;
@@ -661,23 +709,29 @@ export class Cli {
 		// answer — this is what replaced "workspace mode" ( ruled 2026-07-26 ), because a vault outside
 		// the repository breaks `inferProjectRoot` and is an alternate topology, whereas the concern
 		// behind it is three lines in a file.
-		// The stepper already asked, so here we act. Outside the stepper nothing is written to
-		// .gitignore uninvited — the three commands are printed instead, which is the same choice
-		// offered a different way.
-		if ( stepping && choices.ignore !== 'none' ) {
+		//
+		// THERE IS NO `daedalus gitignore` COMMAND ( Bryan, 2026-07-28 ). Maintaining a .gitignore is
+		// something every developer already knows how to do, and owning a command for it bloats the
+		// surface with a chore that was never ours. We offer it once, at the one moment it is actually
+		// useful — right as six paths land in their repository — and after that the file is theirs
+		// like every other line in it. Outside the stepper we write nothing uninvited and print the
+		// lines instead, which is the same courtesy without the presumption.
+		if ( !gitRoot ) {
+			// Not a working tree. No question to ask, and no file to speak for.
+		} else if ( stepping && choices.ignore !== 'none' ) {
 			const ig = VaultUtilities.gitignore( projectRoot, docRoot, choices.ignore, { confirm } );
 			process.stdout.write(
 				`\n${ this.tint( this.C.bold, 'Git' ) } — .gitignore: ${ ig.changed ? ( ig.applied ? 'updated' : 'would change' ) : 'already current' }\n`
 			);
 			for ( const e of ig.entries ) process.stdout.write( `  ${ ig.applied ? '✓' : '·' } ${ e }\n` );
 		} else if ( !stepping ) {
-			const ignoreNow = VaultUtilities.gitignore( projectRoot, docRoot, 'scratch' );
+			const scratch = VaultUtilities.gitignore( projectRoot, docRoot, 'scratch' );
 			process.stdout.write(
-				`\n${ this.tint( this.C.bold, 'Keeping it out of git' ) } — ${ ignoreNow.hadManagedBlock ? 'already configured' : 'not configured' }\n` +
-				'   Nothing is written to .gitignore unless you ask. Three honest answers:\n\n' +
-				`     ${ this.tint( this.C.bold, 'daedalus gitignore scratch confirm' ) }   ignore ${ docRoot }/audits, /work, /scratch  ( recommended )\n` +
-				`     ${ this.tint( this.C.bold, 'daedalus gitignore vault confirm' ) }     ignore the whole vault  ( try it without touching your repo )\n` +
-				`     ${ this.tint( this.C.bold, 'daedalus gitignore none confirm' ) }      remove the block again  ( the choice is reversible )\n`
+				`\n${ this.tint( this.C.bold, 'Git' ) } — .gitignore: ${ scratch.hadManagedBlock ? 'already carries a kcd block' : 'untouched' }\n` +
+				'   Nothing is written there unless you ask for it. If you want the regenerable churn\n' +
+				'   kept out of history, these are the lines — yours to add, move, or ignore:\n\n' +
+				scratch.entries.map( ( e ) => `       ${ e }\n` ).join( '' ) +
+				`\n   Or ignore ${ docRoot }/ outright to try this without touching your repository at all.\n`
 			);
 		}
 
@@ -827,39 +881,6 @@ export class Cli {
 			process.stderr.write( `daedalus: ${ e instanceof Error ? e.message : String( e ) }\n` );
 			process.exit( 2 );
 		}
-	}
-
-	/**
-	 * `daedalus gitignore <scratch|vault|none> [confirm]` — maintain the `.gitignore` managed block.
-	 *
-	 * The mechanical half of the repo-hygiene question `init` raises. Preview-then-confirm like every
-	 * other write, and `none` makes the choice reversible, which is what lets `init` recommend a
-	 * default without it being a trap.
-	 */
-	private static gitignore( args: ParsedArgs ): void {
-		const confirm = args.positionals.includes( 'confirm' );
-		const scope   = args.positionals.find( ( p ) => p !== 'confirm' );
-
-		if ( scope !== 'scratch' && scope !== 'vault' && scope !== 'none' ) {
-			process.stderr.write( 'daedalus: gitignore requires a scope — scratch, vault, or none\n' );
-			process.exit( 2 );
-		}
-
-		const { projectRoot, docRoot } = Config.resolve();
-		const report = VaultUtilities.gitignore( projectRoot, docRoot, scope, { confirm } );
-		if ( args.json ) { this.emit( report ); process.exit( 0 ); }
-
-		const state = !report.changed ? 'already current' : report.applied ? 'updated' : 'would change';
-		process.stdout.write( `\n.gitignore — ${ state } ( scope: ${ scope } )\n` );
-		for ( const e of report.entries ) process.stdout.write( `  ${ report.applied ? '✓' : '·' } ${ e }\n` );
-		if ( scope === 'none' && report.hadManagedBlock ) process.stdout.write( `  ${ report.applied ? '✓' : '·' } managed block removed\n` );
-
-		if ( report.changed && !confirm ) {
-			process.stdout.write( `\nNothing was written. Re-run to apply:\n\n    daedalus gitignore ${ scope } confirm\n\n` );
-		} else {
-			process.stdout.write( '\n' );
-		}
-		process.exit( 0 );
 	}
 
 	/**
@@ -1237,8 +1258,12 @@ export class Cli {
 	 * code, holding a handful of directories with obvious jobs, plus two or three files at the
 	 * project root. Directory names and their one-line purposes come from `VaultLayout`, so this
 	 * picture cannot drift from what deploy actually creates.
+	 *
+	 * `pending` draws it as the stepper's FIRST question, before any choice has been made — the vault
+	 * half is settled ( that is what is being agreed to ), the root files are still up for discussion,
+	 * and saying so on the picture is what keeps it from being a promise the later steps then break.
 	 */
-	private static installTree( projectRoot: string, docRoot: string, choices: { hosts: string[]; mcp: boolean; skills: boolean } ): string {
+	private static installTree( projectRoot: string, docRoot: string, choices: { hosts: string[]; mcp: boolean; skills: boolean }, pending = false ): string {
 		// First sentence, trimmed to fit at a WORD boundary — a mid-word ellipsis reads as a bug.
 		// Deliberately NOT split on comma and NOT lowercased: an earlier pass did both and turned
 		// "Read-anywhere, write-one-report agents" into "read-anywhere" and "Know+Care" into
@@ -1281,6 +1306,7 @@ export class Cli {
 		out.push( `│  ├─ ${ pad( 'root.html' ) }${ dim( 'The entry document — read first, and yours to edit' ) }` );
 		out.push( `│  └─ ${ pad( 'root-context.html' ) }${ dim( 'Generates the entry files below' ) }` );
 		out.push( '│' );
+		if ( pending ) out.push( `│  ${ dim( 'At your project root — each one is a question in the steps below' ) }` );
 
 		const hostWhy = ( h: string ): string =>
 			h.startsWith( 'CLAUDE' ) ? 'Points Claude Code at the vault'
@@ -1311,6 +1337,28 @@ export class Cli {
 		let dir = path.resolve( from );
 		for ( ;; ) {
 			if ( markers.some( ( m ) => existsSync( path.join( dir, m ) ) ) ) return dir;
+			const parent = path.dirname( dir );
+			if ( parent === dir ) return null;
+			dir = parent;
+		}
+	}
+
+	/**
+	 * Nearest ancestor of `from` ( inclusive ) that is a git working tree, or null.
+	 *
+	 * Tests EXISTENCE, not directory-ness: `.git` is a directory in an ordinary clone but a FILE in a
+	 * worktree, a submodule, or anything else using a gitdir pointer, and treating those as "not a
+	 * repository" would silently drop the ignore question for exactly the people most likely to care.
+	 *
+	 * Walks up for the same reason the vault does — a repo root above the install directory still
+	 * governs it. The block itself is always written to a `.gitignore` at the PROJECT root, which is
+	 * correct whether or not that is also the repo root: git honours nested ignore files, and the
+	 * entries are relative to the file that holds them.
+	 */
+	private static gitRoot( from: string ): string | null {
+		let dir = path.resolve( from );
+		for ( ;; ) {
+			if ( existsSync( path.join( dir, '.git' ) ) ) return dir;
 			const parent = path.dirname( dir );
 			if ( parent === dir ) return null;
 			dir = parent;
@@ -1556,7 +1604,7 @@ export class Cli {
 			'daedalus — a context compiler\n\n' +
 			'Usage: daedalus <command> [options]\n\n' +
 			'Commands:\n' +
-			'  init [confirm]    Install: deploy the vault, extract host seeds, register the MCP, install skills ( preview only, unless "confirm" ).\n' +
+			'  init [confirm]    Install into this project. In a terminal it steps you through the choices; "confirm" takes the defaults and writes.\n' +
 			'  get-started       After restarting your agent session: survey the project and print a prompt to verify the tools are live.\n' +
 			'  validate [path]   Validate one artifact, or the whole vault when no path is given.\n' +
 			'  compile <lens...> Compile one or more lenses to a context string ( first = primary ).\n' +
@@ -1572,7 +1620,6 @@ export class Cli {
 			'  links <path>      An artifact\'s outbound links/addresses, plus everything pointing back at it.\n' +
 			'  seed [host] [confirm]      Extract root-context seed payloads into CLAUDE.md etc ( preview only, unless "confirm" ).\n' +
 			'  lens-index [confirm]       Regenerate the entry doc\'s Lenses table from real lenses ( preview only, unless "confirm" ).\n' +
-			'  gitignore <scope> [confirm]  Keep the vault out of git — scope: scratch | vault | none ( preview only, unless "confirm" ).\n' +
 			'  clear [all] [confirm]      Take the install back out. Removes only what it added; "all" also removes the vault.\n\n' +
 			'Options:\n' +
 			'  --root <dir>      Project root the vault sits under ( default: inferred by walking up ).\n' +
