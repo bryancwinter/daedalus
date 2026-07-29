@@ -36,14 +36,13 @@ export class DaedalusServer {
 	 * The lifecycle fields ( installed / exposed / entryPoint ) are Starmind interop and
 	 * are deliberately kept — see `./mcp/manifest.ts`'s header.
 	 *
-	 * The id was re-keyed `starmind_kcd` → `daedalus` on 2026-07-24 — the full cluster rename an
-	 * earlier note deferred to Phase 4. It was pulled forward and done in ONE pass across every
-	 * coupled site, because a half-migrated id is where this project keeps drawing blood. The id is
-	 * simultaneously the MCP server identity ( here + the plugin manifest ), a key in Starmind's
-	 * package registry ( `MasterRegistry.daedalus` ), the partition name of the on-disk config slice
-	 * ( `pkg.daedalus.json` — the old `pkg.starmind_kcd.json` is orphaned userData that simply
-	 * regenerates ), and the target of the tool-monitor widget and a subscription test. All moved
-	 * together; the coupling holds because nothing was left behind.
+	 * THE ID IS COUPLED — change it in ONE pass or not at all. `id` is simultaneously the MCP server
+	 * identity ( here + the plugin manifest ), a key in Starmind's package registry
+	 * ( `MasterRegistry.daedalus` ), the partition name of the on-disk config slice
+	 * ( `pkg.daedalus.json` ), and the target of the tool-monitor widget and a subscription test.
+	 * A half-migrated id is where this project keeps drawing blood. Note the host's own `.mcp.json`
+	 * key is a SEPARATE surface that no cluster-wide rename reaches — under Claude Code that key,
+	 * not this id, is what the `mcp__<key>__*` tool prefix is built from.
 	 */
 	static manifest: ServerManifest = {
 		id:          'daedalus',

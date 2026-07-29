@@ -34,8 +34,8 @@ import { inferProjectRoot } from 'kcd_sdk';
  * WHY STARMIND_PACKAGE_STORE IS NOT RENAMED. It is the HOST's variable, not this server's:
  * MCPService._packageEnv() sets it for every package-backed child Starmind spawns, and the name
  * describes the host's own mechanism, not this server's identity. Reading it is interop; renaming it
- * here would only break the handoff. ( This is unrelated to the server's own `manifest.id`, which WAS
- * re-keyed `starmind_kcd` → `daedalus` on 2026-07-24 — the env var is the HOST's, the id is OURS. )
+ * here would only break the handoff. ( Unrelated to the server's own `manifest.id` — the env var is
+ * the HOST's, the id is OURS. )
  *
  * The resolved value carries WHERE EACH FIELD CAME FROM. `doctor` ( plan 1.g ) and `mcp status`
  * ( 1.f ) print it, which turns "it is looking at the wrong vault" from a guess into a line of output.
