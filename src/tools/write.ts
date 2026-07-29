@@ -60,7 +60,10 @@ export function writeTools( chain: GuardChain ): ( ToolDefinition & { spec?: Tes
 					// will then reject it with a helpful message, not a parse crash ).
 					const artifact = { ...raw, body: typeof raw[ 'body' ] === 'string' ? raw[ 'body' ] : '' } as unknown as SerializedArtifact;
 
-					const html   = KcdEmit.emit( artifact );
+					// `filePath` rides along so the emitted stylesheet link gets the right relative depth —
+					// it is the SAME path the write lands at below, so the link can never disagree with
+					// where the file actually sits.
+					const html   = KcdEmit.emit( artifact, filePath );
 					const report = KcdValidate.validate( html );
 					if ( !report.ok ) {
 						const detail = report.errors.map( e => `${ e.code } @ ${ e.where }: ${ e.msg }` ).join( '; ' );

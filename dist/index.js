@@ -1173,12 +1173,37 @@ var require_KcdEmit = __commonJS({
     var HtmlTree_1 = require_HtmlTree();
     var KcdAddress_1 = require_KcdAddress();
     var KcdValidate_1 = require_KcdValidate();
+    var CSS_HOME = "kcd.css";
     exports2.KcdEmit = new class KcdEmit {
-      /** A full artifact → a full HTML document string ( doctype through `</html>` ). */
-      emit(artifact) {
+      /**
+       * A full artifact → a full HTML document string ( doctype through `</html>` ).
+       *
+       * `vaultPath` is the artifact's VAULT-RELATIVE destination ( `plans/x.html` ), and it exists for
+       * one reason: the stylesheet link is a plain relative href, so its correct value depends on how
+       * deep the document sits. Omit it and the link is emitted bare — correct only at the vault root.
+       * Every caller that WRITES TO DISK must pass it; a preview or a test that never lands a file can
+       * leave it off. ( Deliberately not inferred from `artifact.path`: that field is absent on the
+       * agent-supplied save shape and carries a different form depending on who built it, so guessing
+       * from it would emit a confidently wrong depth. )
+       */
+      emit(artifact, vaultPath) {
         const dl = this.frontmatterBlock(artifact.frontmatter);
         const article = this.spliceFrontmatter(artifact.body, dl);
-        return this.document(artifact.type, this.titleOf(artifact), article);
+        return this.document(artifact.type, this.titleOf(artifact), article, this.cssHref(vaultPath));
+      }
+      /**
+       * The stylesheet href for a document living at `vaultPath` — one `../` per directory level, then
+       * `kcd.css` at the vault root. The mirror of `VaultUtilities.fixStylesheetLinks`'s depth math, so
+       * a freshly emitted document already agrees with what the corpus-wide sweep would rewrite it to.
+       *
+       * An absent or root-level path yields the bare filename. Backslashes are normalized first, since
+       * a Windows-shaped path would otherwise count as a single segment and silently emit depth 0.
+       */
+      cssHref(vaultPath) {
+        const rel = (vaultPath ?? "").replace(/\\/g, "/").replace(/^\/+/, "");
+        if (!rel)
+          return CSS_HOME;
+        return "../".repeat(rel.split("/").length - 1) + CSS_HOME;
       }
       /** frontmatter → `<dl data-kcd-frontmatter>…</dl>`, the inverse of `KcdParse.frontmatter()`.
        *  Keys are emitted in the record's own iteration order; an absent / empty-string value is
@@ -1236,14 +1261,18 @@ ${rows.join("\n")}
       }
       /** Wrap an `<article>`'s inner HTML in a full document — doctype, a minimal head ( the
        *  `kcd.css` link mirrors every hand-authored artifact; Starmind itself never loads it live —
-       *  the sanitized body is styled by the renderer's own ported rules ), and the body. */
-      document(type, title, articleInner) {
+       *  the sanitized body is styled by the renderer's own ported rules, which is why a wrong href
+       *  here stays invisible until someone opens the file in a browser ), and the body.
+       *
+       *  `cssHref` defaults to the bare filename ( vault-root depth ). Callers reach this through
+       *  `emit`, which computes it from the destination path — see `cssHref`. */
+      document(type, title, articleInner, cssHref = CSS_HOME) {
         return `<!DOCTYPE html>
 <html lang="en">
 <head>
 	<meta charset="utf-8">
 	<title>${HtmlTree_1.HtmlTree.escapeText(title)}</title>
-	<link rel="stylesheet" href="kcd.css">
+	<link rel="stylesheet" href="${cssHref}">
 </head>
 <body>
 
@@ -3769,13 +3798,18 @@ var require_TurnEntry = __commonJS({
   "../kcd_sdk/dist/session/TurnEntry.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.Transcript = void 0;
+    exports2.Transcript = exports2.MIN_COMPACTION_TURNS = void 0;
+    exports2.frameCompaction = frameCompaction;
     var KCDPrimitive_1 = require_KCDPrimitive();
     var Assert_1 = require_Assert();
     var WIRE_KINDS = /* @__PURE__ */ new Set(["user", "assistant", "tool-call", "tool-result", "injected-file", "image"]);
+    exports2.MIN_COMPACTION_TURNS = 4;
     function frameFile(name, text) {
       return `[injected file \u2014 ${name}]
 ${text}`;
+    }
+    function frameCompaction(summary) {
+      return "[compacted summary of the earlier conversation \u2014 a REPORT about what happened, not a transcript of it. Details here are paraphrased and may have lost exact wording; re-read source files rather than trusting quotations below.]\n\n" + summary + "\n\n[end compacted summary]";
     }
     var IMAGE_TOKENS_PER_PIXEL = 1 / 750;
     var IMAGE_FALLBACK_TOKENS = 1600;
@@ -3793,8 +3827,12 @@ ${text}`;
         return new _Transcript([]);
       }
       // ── Reads ────────────────────────────────────────────────────────────────
-      /** The raw ordered turn list — what the Turns inspector folder iterates. Copy out so a reader can't
-       *  mutate the transcript in place. */
+      /** The raw ordered turn list — what the Turns inspector folder iterates. The ARRAY is a copy, so a
+       *  reader can't add, remove, or reorder turns; the Turn objects in it are the LIVE ones, so
+       *  `turn.entries` IS the transcript's entry list and pushing onto it edits the transcript. Shared by
+       *  convention, not sealed by construction: the one caller reads a finished turn's entries out on every
+       *  completed turn, and deep-cloning that path to buy a guarantee nobody's call site needs would cost
+       *  more than the guarantee is worth. Treat what comes back as read-only. */
       allTurns() {
         return [...this.turns];
       }
@@ -3809,28 +3847,94 @@ ${text}`;
        * `rows()`, because the inspector's itinerary shows everything that happened.
        */
       windowed(policy) {
-        if (policy.kind === "all")
+        const included = this.turns.filter((t) => t.include);
+        if (policy.kind === "lastN")
+          return new _Transcript(policy.n <= 0 ? [] : included.slice(-policy.n));
+        return new _Transcript(included);
+      }
+      /**
+       * This transcript with the active summary put in FRONT of it — a PURE query exactly as `windowed` is:
+       * a new Transcript, nothing mutated and nothing dropped from the original. Compose it after
+       * windowed( retention ), which reads naturally rather than because the order is load-bearing: the turns
+       * this summary covers already left, at `compactThrough()` time, and cannot come back.
+       *
+       * The NEWEST active compaction wins — an older one covers a prefix of what the newer one covers, since
+       * the newer pass read the older summary plus everything after it. That is what makes compacting twice
+       * compose instead of conflict.
+       *
+       * `mode: 'off'` skips a compaction, and what that MEANS has changed with the flag model: the summary
+       * stops riding, and the span it covered stays gone rather than coming back. An inert compaction is a
+       * deliberate "drop this whole stretch", not an undo — a compacted turn is history, not context, and
+       * nothing re-includes it.
+       *
+       * The summary rides as a synthetic USER turn: it stands in for turns that were BOTH roles, and
+       * attributing it to the assistant would have the model reading a paraphrase as its own verbatim words.
+       * Synthetic because it exists only HERE, in the throwaway projection — the bound transcript keeps every
+       * real turn, so `turnRows()` still shows what actually happened.
+       */
+      compacted(compactions) {
+        const active = compactions.filter((c) => c.mode !== "off").sort((a, b) => a.createdAt - b.createdAt);
+        const newest = active[active.length - 1];
+        if (!newest)
           return new _Transcript([...this.turns]);
-        if (policy.kind === "manual") {
-          const wanted = new Set(policy.ids);
-          return new _Transcript(this.turns.filter((t) => wanted.has(t.id)));
-        }
-        if (policy.n <= 0)
-          return new _Transcript([]);
-        return new _Transcript(this.turns.slice(-policy.n));
+        const summary = {
+          id: `compaction-${newest.id}`,
+          startedAt: newest.createdAt,
+          entries: [{ at: newest.createdAt, kind: "user", text: frameCompaction(newest.summary) }],
+          include: true,
+          compacted: false
+        };
+        return new _Transcript([summary, ...this.turns]);
       }
       // ── Appends ( in-flight — the orchestrator lands entries here as a turn runs ) ──
-      /** Open a fresh turn and return it — the in-flight appender pushes entries onto it as rounds resolve. */
+      /** Open a fresh turn and return it — the in-flight appender pushes entries onto it as rounds resolve.
+       *  Born INCLUDED and uncompacted, which is what makes the turn being dispatched right now ride without
+       *  anyone having to say so: whether the current turn is in the window was never a policy question. */
       openTurn(id, startedAt) {
-        const turn = { id, startedAt, entries: [] };
+        const turn = { id, startedAt, entries: [], include: true, compacted: false };
         this.turns.push(turn);
         return turn;
       }
-      /** Append one entry onto the last open turn ( opening an anonymous one if none exists — a defensive
-       *  fallback; the orchestrator normally openTurn()s first ). */
-      append(entry) {
-        const turn = this.turns[this.turns.length - 1] ?? this.openTurn(`t${this.turns.length + 1}`, entry.at);
-        turn.entries.push(entry);
+      /**
+       * Append one entry — onto the TURN the caller holds, or, when none is given, onto the last open turn
+       * ( opening an anonymous one if there is none — a defensive fallback for a caller that appends without
+       * opening ).
+       *
+       * Passing the `openTurn()` result is what makes a wrong-turn append unrepresentable. Two turns running
+       * concurrently against ONE session ( a room seat beside the chat surface, two Constellation steps ) both
+       * see the same "last turn", so the second turn's entries landed on the first turn's object. Nothing
+       * main-side enforces one-at-a-time: the renderer's `pending` flag is a chat-surface guard and
+       * `Session.turnStatus` is advisory.
+       */
+      append(entry, turn) {
+        const target = turn ?? this.turns[this.turns.length - 1] ?? this.openTurn(`t${this.turns.length + 1}`, entry.at);
+        target.entries.push(entry);
+      }
+      // ── Compaction ( the covered prefix is marked once, here ) ──
+      /**
+       * Mark every turn through `throughTurnId` ( INCLUSIVE ) as compacted — `compacted: true` and
+       * `include: false`, set together, in the one place that sets either. A summary stands in for them from
+       * now on, and they never ride again: a compacted turn is history, not context. The mode switch's clear
+       * skips them and the manual toggle refuses them, so this is a one-way door by design.
+       *
+       * Both flags move here rather than at two call sites because they are one fact said twice — a turn
+       * marked compacted but still included would ride alongside the summary that replaced it, paying for
+       * the same history twice, and the inverse would go dark with nothing on screen explaining why.
+       *
+       * Returns how many turns it marked. 0 means the id names no turn in this transcript ( its exchange was
+       * deleted from the DB ) — the caller decides what that is worth. This neither guesses at a prefix nor
+       * throws: guessing is what the old timestamp fallback did, and it existed only because the window was
+       * re-derived on every projection instead of being recorded once, here.
+       */
+      compactThrough(throughTurnId) {
+        const at = this.turns.findIndex((t) => t.id === throughTurnId);
+        if (at === -1)
+          return 0;
+        for (const turn of this.turns.slice(0, at + 1)) {
+          turn.compacted = true;
+          turn.include = false;
+        }
+        return at + 1;
       }
       // ── Projection: to the WIRE ────────────────────────────────────────────────
       /**
@@ -3923,6 +4027,7 @@ ${text}`;
           text: _Transcript._entryText(entry),
           tokens: displayOnly ? 0 : _Transcript._entryTokens(entry),
           displayOnly,
+          display: _Transcript._display(entry),
           // a non-text row carries its bytes so the inspector can thumbnail it inline
           ...entry.kind === "image" ? { media: {
             mediaType: entry.mediaType,
@@ -3973,6 +4078,38 @@ ${text}`;
             return frameFile(entry.name, entry.text);
           case "image":
             return (entry.name ?? "(image)") + (entry.width && entry.height ? ` ${entry.width}\xD7${entry.height}` : "");
+          default:
+            return Assert_1.Assert.never(entry);
+        }
+      }
+      /**
+       * How ONE entry presents — the single kind→look table for the whole app ( see RowDisplay ).
+       *
+       * Colours are the house tokens each kind already wears elsewhere, so the itinerary agrees with the
+       * surfaces around it by construction: `--know` for the human and `--care` for the model ( the chat's
+       * own per-role turn tints ), `--thinking` amber for reasoning, `--accent` for an action.
+       *
+       * A tool result is deliberately NOT the tool call's icon: a call and what it returned are different
+       * events, and giving them one glyph made a tool loop read as a stutter rather than a round trip. It
+       * also branches on `isError` — the one place that flag is known, and the reason this is computed per
+       * row instead of being a static lookup on `kind`.
+       */
+      static _display(entry) {
+        switch (entry.kind) {
+          case "user":
+            return { icon: "user", color: "--know" };
+          case "assistant":
+            return { icon: "sparkle", color: "--care" };
+          case "thinking":
+            return { icon: "lightbulb", color: "--thinking" };
+          case "tool-call":
+            return { icon: "pulse", color: "--accent" };
+          case "tool-result":
+            return entry.isError ? { icon: "warning", color: "--error" } : { icon: "package", color: "--plugin" };
+          case "injected-file":
+            return { icon: "file", color: "--reference" };
+          case "image":
+            return { icon: "camera", color: "--external" };
           default:
             return Assert_1.Assert.never(entry);
         }
@@ -4043,6 +4180,11 @@ var require_Session = __commonJS({
        *  Its home of record is the DB `entries` rows ( hydrated on load — see bindTranscript ). Empty until
        *  bound, so it is never null. */
       transcript = TurnEntry_1.Transcript.empty();
+      /** The COMPACTIONS acting on this session — the summaries that stand in for the turns they cover. The
+       *  same species as `transcript`: NON-PERSISTED object state, never in SerializedSession, rebuilt on
+       *  arrival via bindCompactions(). Its home of record is the `session_compactions` table. Empty until
+       *  bound, so the projection below is a no-op on a session that has never compacted. */
+      compactions = [];
       constructor(id, agentId, title, folder, tags, createdAt, lastActive, status, zoom, fontFamily, policies) {
         this.id = id;
         this.agentId = agentId;
@@ -4152,6 +4294,13 @@ var require_Session = __commonJS({
       bindTranscript(turns) {
         this.transcript = new TurnEntry_1.Transcript(turns);
       }
+      /** Rebuild the compaction list wholesale — the flush-and-fill twin of bindTranscript(). Bound from the
+       *  same load as the transcript, and rebound whenever a pass writes a new one, so the very next send is
+       *  narrowed by it rather than waiting for a reload. Oldest→newest; the projection re-sorts defensively
+       *  rather than trusting the caller's order. */
+      bindCompactions(compactions) {
+        this.compactions = compactions;
+      }
       /** Set ONE named policy, leaving its siblings alone. Pure configuration: no policy touches the
        *  transcript, so nothing is ever lost by changing one. The caller persists the whole bag ( DB
        *  update_session_policy ).
@@ -4168,12 +4317,31 @@ var require_Session = __commonJS({
       setTurnStatus(status) {
         this.turnStatus = status;
       }
-      /** The DYNAMIC half of the wire — the IN-WINDOW transcript projected to neutral messages a connector
-       *  maps to its provider format ( thinking excluded ). Joins agent.wireSystem() ( the stable half ) at
-       *  send: the whole request is { system: agent.wireSystem(), messages: session.wireMessages() }. The
-       *  policy is applied HERE, at the projection — the transcript itself is never edited. */
+      /** The transcript as it will actually RIDE — retention first ( which turns survive, read off each
+       *  turn's own `include` flag ), compaction second ( the summary put in front of what survived ).
+       *
+       *  The order no longer carries the weight it used to. Compaction ran last to stop a narrow retention
+       *  from smuggling a covered turn back in — impossible now, because a covered turn was marked
+       *  `include: false` once by `compactThrough()` and `windowed()` has already dropped it before
+       *  `compacted()` is reached. The sequence is what reads naturally, not a rule holding a bug shut.
+       *
+       *  Private and SHARED, because wireMessages() and estimateTokens() are the two readers that must never
+       *  disagree about what rides — the moment they compose the policies separately, the gauge starts lying
+       *  about the send. A third policy composes here and both readers get it for free.
+       *
+       *  Neither step edits the transcript: both build a new one, and the itinerary still shows every turn
+       *  that ever happened. Note the asymmetry in what re-widening buys, though — a retention change hands
+       *  back the turns it dropped, while a compacted turn is gone from the wire for good. It stays in the
+       *  account of what happened; it is simply no longer context. */
+      _projected() {
+        return this.transcript.windowed(this.policies.retention).compacted(this.compactions);
+      }
+      /** The DYNAMIC half of the wire — the projected transcript as neutral messages a connector maps to its
+       *  provider format ( thinking excluded ). Joins agent.wireSystem() ( the stable half ) at send: the
+       *  whole request is { system: agent.wireSystem(), messages: session.wireMessages() }. Every policy is
+       *  applied HERE, at the projection — the transcript itself is never edited. */
       wireMessages() {
-        return this.transcript.windowed(this.policies.retention).wireMessages();
+        return this._projected().wireMessages();
       }
       /** The inspector itinerary — one BLOCK per turn, each carrying the entries that happened inside it
        *  ( thinking included ). DELIBERATELY UNWINDOWED: the Turns folder is the account of what actually
@@ -4183,11 +4351,13 @@ var require_Session = __commonJS({
       transcriptTurns() {
         return this.transcript.turnRows();
       }
-      /** The session's own context cost — the wire weight of the IN-WINDOW transcript ( self-priced per
-       *  entry ), so it prices what will actually ride rather than everything ever said. The whole-context
-       *  estimate folds this onto agent.estimateTokens(); a caller sums the two halves. */
+      /** The session's own context cost — the wire weight of the PROJECTED transcript ( self-priced per
+       *  entry ), so it prices what will actually ride rather than everything ever said: a compacted session
+       *  is priced on its summary, which is the whole reason a user compacts one. Reads the same _projected()
+       *  the wire does, so the number cannot drift from the send. The whole-context estimate folds this onto
+       *  agent.estimateTokens(); a caller sums the two halves. */
       estimateTokens() {
-        return this.transcript.windowed(this.policies.retention).estimateTokens();
+        return this._projected().estimateTokens();
       }
       /**
        * A display title even when none was set. An untitled session is a session whose first prompt has not
@@ -11906,7 +12076,7 @@ function writeTools(chain) {
           const filePath = String(args["path"] ?? "");
           const raw = args["artifact"] ?? {};
           const artifact = { ...raw, body: typeof raw["body"] === "string" ? raw["body"] : "" };
-          const html = import_kcd_sdk5.KcdEmit.emit(artifact);
+          const html = import_kcd_sdk5.KcdEmit.emit(artifact, filePath);
           const report = import_kcd_sdk5.KcdValidate.validate(html);
           if (!report.ok) {
             const detail = report.errors.map((e) => `${e.code} @ ${e.where}: ${e.msg}`).join("; ");
