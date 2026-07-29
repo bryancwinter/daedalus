@@ -1,7 +1,7 @@
 import * as path from 'path';
 import { spawn } from 'child_process';
 import { existsSync, readFileSync, writeFileSync, readdirSync, statSync, mkdirSync, cpSync, rmSync } from 'fs';
-import { Vault, VaultUtilities, VaultDeploy, VaultLayout, Survey } from 'kcd_sdk';
+import { Vault, VaultUtilities, VaultDeploy, VaultLayout, Survey, KcdEmit } from 'kcd_sdk';
 import type { HealthReport, LensView, DeployReport, ArtifactRef, QueryOptions } from 'kcd_sdk';
 import { Config } from '../Config';
 import { Prompt } from './Prompt';
@@ -69,6 +69,8 @@ export class Cli {
 				return this.maintain( args );
 			case 'reset':
 				return this.reset( args );
+			case 'fix-css':
+				return this.fixCss( args );
 			case 'query':
 				return this.query( args );
 			case 'links':
@@ -1422,6 +1424,58 @@ export class Cli {
 	}
 
 	/**
+	 * `daedalus fix-css [confirm]` — recompute every document's stylesheet `<link>` from its own
+	 * depth. No `confirm` previews only, matching `maintain` and `reset`.
+	 *
+	 * This exists because the stylesheet is linked by a plain `<link href>`, not a `data-kcd-*`
+	 * address — so no heal, no validator, and no link-check sees it. `VaultUtilities.fixStylesheetLinks`
+	 * has been able to repair it since the 2026-07-08 cutover left itself a note to run it "once its
+	 * new home is settled"; the home settled and nothing ever called it. A library function with no
+	 * caller is a fix that does not exist, which is why this is a verb and not a script.
+	 *
+	 * Reports the links it CHANGED, plus a count of those already correct.
+	 *
+	 * KNOWN GAP: `fixStylesheetLinks` matches on `/<link\s+rel="stylesheet"\s+href="([^"]+)"\s*\/?>/`
+	 * — first match only, exact attribute order. A document whose link tag differs ( `href` before
+	 * `rel`, extra attributes, unusual whitespace ) is skipped WITHOUT a report, so it cannot be
+	 * distinguished here from a file that has no link at all. The totals below are therefore
+	 * "of the links we recognized", not "of every document". Teaching the sweep to report unmatched
+	 * files is a small change to `VaultUtilities` and worth making before trusting this at scale.
+	 */
+	private static fixCss( args: ParsedArgs ): void {
+		const confirm = args.positionals[ 0 ] === 'confirm';
+
+		try {
+			const vault   = this.vault();
+			// The stylesheet's vault home, read off the emitter rather than restated here — a second
+			// copy of this string is precisely what broke the corpus in the first place. `cssHref()`
+			// with no path returns the root-level form, which is exactly the sweep's `cssHome`.
+			const reports = VaultUtilities.fixStylesheetLinks( vault, KcdEmit.cssHref(), { confirm } );
+			if ( args.json ) { this.emit( reports ); process.exit( 0 ); }
+
+			const changed = reports.filter( r => r.oldHref !== r.newHref );
+			const correct = reports.length - changed.length;
+
+			for ( const r of changed ) {
+				const mark = confirm ? this.tint( this.C.green, '✓' ) : this.tint( this.C.grey, '·' );
+				process.stdout.write( `  ${ mark } ${ r.path }\n      ${ r.oldHref }  →  ${ r.newHref }\n` );
+			}
+
+			process.stdout.write(
+				`\n${ changed.length } link(s) ${ confirm ? 'rewritten' : 'would be rewritten' }`
+				+ `, ${ correct } already correct.\n`
+			);
+			if ( !confirm && changed.length ) {
+				process.stdout.write( 'run again with "confirm" to apply.\n' );
+			}
+			process.exit( 0 );
+		} catch ( e ) {
+			process.stderr.write( `daedalus: fix-css failed — ${ e instanceof Error ? e.message : String( e ) }\n` );
+			process.exit( 1 );
+		}
+	}
+
+	/**
 	 * `daedalus reset <path> [confirm]` — restore ONE deployed artifact to canonical from the
 	 * substrate. No `confirm` previews only, exactly like `maintain`: report what would change,
 	 * write nothing. `confirm` performs the overwrite — never on a target already identical to
@@ -1616,6 +1670,7 @@ export class Cli {
 			'  doctor            Five checks — Node, install, PATH, vault, MCP end-to-end — each with a fix.\n' +
 			'  maintain [fill]   Vault STRUCTURE vs VaultLayout ( preview only, unless "fill" ).\n' +
 			'  reset <path> [confirm]   Restore one artifact to canonical from the substrate ( preview only, unless "confirm" ).\n' +
+			'  fix-css [confirm]        Recompute every document\'s stylesheet link from its own depth ( preview only, unless "confirm" ).\n' +
 			'  query [json-filter]   Find artifacts by glob/type/text, or census by type ( e.g. \'{"groupBy":"type"}\' ).\n' +
 			'  links <path>      An artifact\'s outbound links/addresses, plus everything pointing back at it.\n' +
 			'  seed [host] [confirm]      Extract root-context seed payloads into CLAUDE.md etc ( preview only, unless "confirm" ).\n' +
