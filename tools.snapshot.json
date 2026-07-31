@@ -148,7 +148,7 @@
 					"lens_crafter"
 				]
 			},
-			"doc": "The LENS compiler — Daedalus's basic context-compilation surface. Give it lens names ( a bare `parser` maps to `lenses/parser/parser.html`; a vault path is used as-is ) and it dredges each lens to its OWN authored depth, folds their context blocks together, resolves habit-class contention, and assembles one context string ( Care-first, manifest tables ). For a single lens the output equals that lens's own compiled context; multiple lenses compose into one, first = primary. Returns `{ lenses, text, tokens }`. This is lens composition only — the live runtime layers ( model root context, active MCP tool schemas, session memory ) are Starmind's job, not the vault's. Read-only."
+			"doc": "The LENS compiler — Daedalus's basic context-compilation surface. Give it lens names ( a bare `parser` maps to `lenses/parser/parser.html`; a vault path is used as-is ) and it dredges each lens to its OWN authored depth, folds their context blocks together, resolves habit-class contention, and assembles one context string ( Care-first, manifest tables ). Multiple lenses compose into one, first = primary. The BASE LENS is always included and cannot be suppressed — it is the vault's inheritance floor ( project-wide stance plus the universal habits ), appended last so a named lens's own habit wins its class. Returns `{ lenses, text, tokens }`, where `lenses` reports what actually compiled, `_lens_base` included. This is lens composition only — the live runtime layers ( model root context, active MCP tool schemas, session memory ) are Starmind's job, not the vault's. Read-only."
 		},
 		{
 			"name": "kcd_survey",

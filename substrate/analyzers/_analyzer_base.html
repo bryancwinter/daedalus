@@ -22,10 +22,9 @@
 
 	<p data-kcd-audience="human"><em>Base for all Analyzer procedures. Every canonical analyzer
 	references this file the way a lens references
-	<a href="_Claude/lenses/_lens_base.html">_lens_base</a>. It carries the rules shared by all
-	analyzers so individual procedures never repeat them. Carries the live-in-place role — it is read
-	directly from <code>kcd/analyzers/</code>; it is never deployed and never run standalone (it is
-	composed into every canonical analyzer).</em></p>
+	<a href="_Claude/lenses/_lens-base.html">_lens-base</a>. It carries the rules shared by all
+	analyzers so individual procedures never repeat them. It is composed into every analyzer in this vault and never run
+	standalone.</em></p>
 
 	<section data-kcd-section="analyzer-role">
 		<h3>The analyzer role</h3>
@@ -39,7 +38,7 @@
 		manifest a generator can execute <strong>without further judgment</strong> forces the analyzer to
 		resolve every consequence in advance (see
 		<a href="_Claude/kcd_framework.html">kcd_framework</a> and the composing-side rule in
-		<a href="_Claude/lenses/_lens_base.html">_lens_base</a>).</p>
+		<a href="_Claude/lenses/_lens-base.html">_lens-base</a>).</p>
 		<p><strong>Blast-radius invariant in force.</strong> An analyzer has judgment and a lens, so it
 		gets the <strong>narrowest</strong> write authority — report-only. It may read the whole tree; it
 		may not modify it. High autonomy ⇒ narrow write.</p>
@@ -69,16 +68,16 @@
 		<table>
 			<thead><tr><th>Layer</th><th>Location</th><th>Owns</th></tr></thead>
 			<tbody>
-				<tr><td><code>_analyzer_base</code></td><td><code>_Claude/kcd/analyzers/_analyzer_base.html</code></td><td>rules shared by all analyzers (this file)</td></tr>
-				<tr><td>Canonical</td><td><code>_Claude/kcd/analyzers/{name}/{name}.html</code></td><td>generic interpretation logic; <strong>declares</strong> requirements</td></tr>
+				<tr><td><code>_analyzer_base</code></td><td><code>_Claude/analyzers/_analyzer_base.html</code></td><td>rules shared by all analyzers (this file)</td></tr>
+				<tr><td>Canonical</td><td><code>_Claude/analyzers/{name}/{name}.html</code></td><td>generic interpretation logic; <strong>declares</strong> requirements</td></tr>
 				<tr><td>Deployed</td><td><code>_Claude/analyzers/{name}/{name}.html</code></td><td>full copy; <strong>solves</strong> requirements with project values</td></tr>
-				<tr><td>Context</td><td><code>_Claude/kcd/analyzers/{name}/context/</code></td><td>context specific to this analyzer</td></tr>
+				<tr><td>Context</td><td><code>_Claude/analyzers/{name}/context/</code></td><td>context specific to this analyzer</td></tr>
 			</tbody>
 		</table>
 		<p>The canonical declares requirements generically (no project values); the deployed copy is a
 		full self-contained copy that solves them. The deployed tree mirrors the canonical family layout
 		— a deployed analyzer sits at <code>_Claude/analyzers/{name}/</code> exactly as its canonical sits
-		at <code>_Claude/kcd/analyzers/{name}/</code>.</p>
+		at <code>_Claude/analyzers/{name}/</code>.</p>
 	</section>
 
 	<section data-kcd-section="naming">
@@ -90,7 +89,7 @@
 		<table>
 			<thead><tr><th>Reference</th><th>Derived value</th></tr></thead>
 			<tbody>
-				<tr><td>Canonical file</td><td><code>_Claude/kcd/analyzers/{name}/{name}.html</code></td></tr>
+				<tr><td>Canonical file</td><td><code>_Claude/analyzers/{name}/{name}.html</code></td></tr>
 				<tr><td>Deployed file</td><td><code>_Claude/analyzers/{name}/{name}.html</code></td></tr>
 				<tr><td>Report output</td><td><code>_Claude/reports/{name}.html</code></td></tr>
 				<tr><td>Test-mode output</td><td><code>_Claude/audits/{name}.html</code></td></tr>

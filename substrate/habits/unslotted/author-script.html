@@ -11,7 +11,7 @@
 
 	<dl data-kcd-frontmatter>
 		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">author-script</dd>
-		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">Where dev scripts live and how to author one — the four homes (build · diagnostics · probes · fixtures), the dated won't-ship header, probes are disposable, and the promotion ladder junk → diagnostic → dev-utility → widget. Fires when creating, placing, or sorting any script / tooling artifact. Inherited by all lenses via _lens_base.</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">Where dev scripts live and how to author one — the four homes (build · diagnostics · probes · fixtures), the dated won't-ship header, probes are disposable, and the promotion ladder junk → diagnostic → dev-utility → widget. Fires when creating, placing, or sorting any script / tooling artifact. Inherited by all lenses via _lens-base.</dd>
 		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">habit</dd>
 		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">active</dd>
 		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
@@ -21,7 +21,7 @@
 
 	<h1>author-script — Habit</h1>
 
-	<p><em>Inherited by all lenses via <code>_lens_base</code>. Governs the ad-hoc tooling we keep writing —
+	<p><em>Inherited by all lenses via <code>_lens-base</code>. Governs the ad-hoc tooling we keep writing —
 	probes, smokes, benches, build helpers — so the pile stays legible and self-culling. Deliberately NOT a
 	contract: it indicates behaviour, it does not gate a boundary. Scripts are <strong>dev-only</strong> and
 	never ship (see rules); this habit is about keeping the workshop tidy, not about the product.</em></p>

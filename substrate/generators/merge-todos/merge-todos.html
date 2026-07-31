@@ -58,8 +58,8 @@
 				<tr>
 					<td><code>lenses-skip</code></td>
 					<td>Input</td>
-					<td>Lens names to exclude from the scan (typically <code>_lens_base</code>).</td>
-					<td><code>_lens_base</code></td>
+					<td>Lens names to exclude from the scan (typically <code>_lens-base</code>).</td>
+					<td><code>_lens-base</code></td>
 				</tr>
 			</tbody>
 		</table>
@@ -96,7 +96,7 @@
 			<h3 data-kcd-heading>Phase 1 — Todo Extraction</h3>
 			<p>Enumerate active lenses from
 			lenses/nav-index (excluding
-			<code>_lens_base</code>). For each lens, read its todo store under
+			<code>_lens-base</code>). For each lens, read its todo store under
 			<code>_Claude/logs/{lensname}/todo/</code>. Extract every unchecked item
 			<code>- [ ] [YYYY-MM-DD] {text}</code>. Record
 			<code>{date (parsed from the prefix, or undated), text, lens}</code>.</p>

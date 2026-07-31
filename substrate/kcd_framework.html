@@ -246,7 +246,7 @@
 			file-roster index are both legitimate projections over one store (the artifact files).
 			Robust indexes are a feature.</li>
 			<li><strong>Naming</strong> — kebab/lowercase for instance and report filenames;
-			<code>_</code>-prefixed bases and templates (<code>_lens_base.html</code>,
+			<code>_</code>-prefixed bases and templates (<code>_lens-base.html</code>,
 			<code>_lens_template.html</code>).</li>
 			<li><strong>Verb-first names from a fixed vocabulary.</strong> Every agent name
 			<strong>leads with a verb</strong> drawn from a small canonical set, so names sort by
@@ -277,10 +277,10 @@
 		that artifact does not belong in <code>kcd/</code>. Project-specific agents belong outside
 		it.</p>
 		<p><strong>Lenses are a two-tier exception.</strong> Most lenses are drafted in place and are
-		project-specific by design. A small minority are <em>deployable templates</em> (e.g.
-		<code>_base</code>, <code>lens_crafter</code>) that live in <code>kcd/lenses/</code> with
-		<code>status: disabled</code> and are copied into the deployed <code>lenses/</code> via the
-		deploy contract. Same schema; the portability constraint is what gates entry to
+		project-specific by design. A small minority are <em>bundled</em> (e.g.
+		<code>_lens-base</code>, <code>lens-crafter</code>) — they ship inside the Daedalus package and
+		<code>daedalus init</code> writes them into <code>lenses/</code> on a fresh install. They carry no
+		project vocabulary, because they land in vaults nobody has seen. The deploy contract. Same schema; the portability constraint is what gates entry to
 		<code>kcd/</code>.</p>
 	</section>
 

@@ -9,8 +9,9 @@ import { inferProjectRoot } from 'kcd_sdk';
  *
  *   1. argument     — override(), set once at startup from a parsed flag ( spawn arg or CLI ).
  *   2. host slice   — a host handing this child a package-store file to read ( Starmind ).
- *   3. environment  — DAEDALUS_PROJECT_ROOT / DAEDALUS_DOC_ROOT, ambient in the shell.
+ *   3. environment  — DAEDALUS_PROJECT_ROOT / DAEDALUS_DOC_ROOT / DAEDALUS_CSS_PATH, ambient in the shell.
  *   4. inferred     — walk up from the working directory for an ancestor holding the doc root.
+ *                     ( `cssPath` has no inferred tier — its fallback is DERIVED from the other two. )
  *
  * No tier names a host as a requirement. Starmind is ONE optional source among four: when it spawns
  * this child it sets STARMIND_PACKAGE_STORE to the absolute path of the child's own slice file,
@@ -46,8 +47,10 @@ const HOST_SLICE_ENV = 'STARMIND_PACKAGE_STORE';
 
 const PROJECT_ROOT_ENV = 'DAEDALUS_PROJECT_ROOT';
 const DOC_ROOT_ENV     = 'DAEDALUS_DOC_ROOT';
+const CSS_PATH_ENV     = 'DAEDALUS_CSS_PATH';
 
 const DEFAULT_DOC_ROOT = '_Claude';
+const DEFAULT_CSS_FILE = 'kcd.css';
 
 /** Which tier supplied a field. `fallback` means no tier did, and the built-in default was used. */
 export type ConfigSource = 'argument' | 'host-slice' | 'environment' | 'inferred' | 'fallback';
@@ -55,11 +58,16 @@ export type ConfigSource = 'argument' | 'host-slice' | 'environment' | 'inferred
 export interface DaedalusConfig {
 	projectRoot: string;
 	docRoot:     string;
+	/** The stylesheet's absolute path, WITHOUT a scheme — what a person configures and pastes. */
+	cssPath:     string;
 }
 
 export interface ResolvedConfig extends DaedalusConfig {
-	/** Per-field provenance — two fields can legitimately come from two different tiers. */
-	source: { projectRoot: ConfigSource; docRoot: ConfigSource };
+	/** The finished `file:///` URL an emitted document carries — `cssPath` with the scheme applied.
+	 *  Derived, never configured: a consumer wants the href and should not re-run the normalizer. */
+	cssHref: string;
+	/** Per-field provenance — fields can legitimately come from different tiers. */
+	source: { projectRoot: ConfigSource; docRoot: ConfigSource; cssPath: ConfigSource };
 }
 
 /** One tier's answer for one field. */
@@ -80,8 +88,10 @@ export class Config {
 	static override( values: Partial<DaedalusConfig> ): void {
 		const root = Config.str( values.projectRoot );
 		const doc  = Config.str( values.docRoot );
+		const css  = Config.str( values.cssPath );
 		if ( root ) Config.argument.projectRoot = root;
 		if ( doc )  Config.argument.docRoot     = doc;
+		if ( css )  Config.argument.cssPath     = css;
 	}
 
 	/**
@@ -103,11 +113,59 @@ export class Config {
 			[ 'environment', process.env[ PROJECT_ROOT_ENV ] ],
 		] ) ?? Config.infer( docRoot.value );
 
+		const root = path.resolve( projectRoot.value );
+
+		// The stylesheet. ABSOLUTE by design: the depth-relative form had to be recomputed on every
+		// write and re-swept across the corpus whenever a file moved, and a whole CLI verb existed only
+		// to keep that math honest. One value, shared by every document, editable per deployment.
+		const cssPath = Config.pick( [
+			[ 'argument',    Config.argument.cssPath ],
+			[ 'host-slice',  slice[ 'cssPath' ] ],
+			[ 'environment', process.env[ CSS_PATH_ENV ] ],
+		] ) ?? { value: Config.deriveCssPath( root, docRoot.value ), source: 'fallback' as const };
+
 		return {
-			projectRoot: path.resolve( projectRoot.value ),
+			projectRoot: root,
 			docRoot:     docRoot.value,
-			source:      { projectRoot: projectRoot.source, docRoot: docRoot.source },
+			cssPath:     cssPath.value,
+			cssHref:     Config.cssUrl( cssPath.value ),
+			source:      { projectRoot: projectRoot.source, docRoot: docRoot.source, cssPath: cssPath.source },
 		};
+	}
+
+	/**
+	 * A configured stylesheet path → the `file:///` URL a document carries.
+	 *
+	 * A person configures the part AFTER the scheme — a plain absolute path, because that is what
+	 * copying a path actually gives you and `C:\…` is what "absolute" MEANS on this platform. The
+	 * scheme is ours to add. Total by construction, so a paste in any shape a person actually produces
+	 * lands on the same URL:
+	 *
+	 *   "C:\Code\ContextManager\_Claude\kcd.css"        ← Explorer's Copy as path, quotes and all
+	 *   C:\Code\ContextManager\_Claude\kcd.css
+	 *   C:/Code/ContextManager/_Claude/kcd.css
+	 *   file:///C:/Code/ContextManager/_Claude/kcd.css  ← already a URL; the scheme comes OFF, not doubled
+	 *
+	 * Applied at RESOLVE rather than at the config screen's commit, because the same value can arrive
+	 * from an env var or a spawn flag — a normalizer living in the app would leave both unhandled.
+	 */
+	private static cssUrl( configured: string ): string {
+		const bare = configured
+			.trim()
+			.replace( /^["']+|["']+$/g, '' )   // Copy as path wraps the whole thing in quotes
+			.replace( /^file:\/+/i, '' )       // already a URL — take the path back off it
+			.replace( /\\/g, '/' )             // a browser reads the href as a URL, so `\` is not a separator
+			.replace( /^\/+/, '' );            // a leading slash would build file:////… and resolve to nothing
+		return `file:///${ bare }`;
+	}
+
+	/**
+	 * The derived stylesheet path — this vault's own `kcd.css`, bare ( the scheme is added by `cssUrl` ).
+	 * Derived rather than hardcoded so an install with nothing configured already emits a working link,
+	 * which makes the config field a tuning knob instead of a required setup step.
+	 */
+	private static deriveCssPath( projectRoot: string, docRoot: string ): string {
+		return path.resolve( projectRoot, docRoot, DEFAULT_CSS_FILE ).replace( /\\/g, '/' );
 	}
 
 	/** The first tier holding a usable value, carrying its name; null when every tier is empty. */

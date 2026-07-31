@@ -38,9 +38,9 @@
 		<code>write-approval-yolo</code>) pre-approve some zone for speed, but a lens working somewhere
 		with real blast radius — production config, a shared credential store, anything the user can't
 		cheaply revert — should clear every write, every time, with no exceptions carved for convenience.
-		Two hard exceptions refuse regardless of lens: <code>_Claude/kcd/</code> is read-only (framework
+		One hard exception refuses regardless of lens (framework
 		root; write only on explicit command) and <code>CLAUDE.md</code> is read-only to all but
-		<code>lens_crafter</code>, which drafts to <code>_Claude/work/lens_crafter/plans/</code> and gets
+		<code>lens-crafter</code>, which drafts to <code>_Claude/work/lens-crafter/plans/</code> and gets
 		approval first.</p>
 	</section>
 
@@ -48,8 +48,7 @@
 		<h3>Rules</h3>
 		<ul>
 			<li>every write, everywhere — state path + intended change, wait for clearance; no path is pre-approved, including under <code>_Claude/</code></li>
-			<li><code>_Claude/kcd/</code> — never write without an explicit user command during the session</li>
-			<li><code>CLAUDE.md</code> — only <code>lens_crafter</code> edits it, via drafted-and-approved changes</li>
+			<li><code>CLAUDE.md</code> — only <code>lens-crafter</code> edits it, via drafted-and-approved changes</li>
 		</ul>
 	</section>
 

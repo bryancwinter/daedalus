@@ -15,7 +15,7 @@
    DARK BY DEFAULT. Light is a future productization theme — it overrides only
    this :root block; every component reads the variables.
 
-   CANONICAL LOCATION: _Claude/kcd/kcd.css. Every authored KCD document links here
+   CANONICAL LOCATION: _Claude/kcd.css. Every authored KCD document links here
    by a RELATIVE path (these are meant to open directly in a browser via file://,
    with no server and no virtual root) — see kcd-document-protocol.html §8 for the
    depth-counting rule every <link> href must follow.

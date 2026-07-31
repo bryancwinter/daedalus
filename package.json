@@ -2,6 +2,7 @@
   "name": "daedalus",
   "version": "0.1.0",
   "description": "Daedalus — a context compiler. An MCP server and CLI over a KCD artifact vault.",
+  "license": "MIT",
   "bin": {
     "daedalus": "dist/cli/index.js"
   },

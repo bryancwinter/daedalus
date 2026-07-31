@@ -3,6 +3,7 @@ import type { ToolDefinition, TestSpec } from '../mcp';
 import type { SerializedArtifact } from 'kcd_sdk';
 import { GuardChain } from '../guards';
 import { MCPUtils } from '../MCPUtils';
+import { Config } from '../Config';
 
 export function writeTools( chain: GuardChain ): ( ToolDefinition & { spec?: TestSpec[] } )[] {
 	return [
@@ -29,8 +30,8 @@ export function writeTools( chain: GuardChain ): ( ToolDefinition & { spec?: Tes
 				'kcd_get → mutate → kcd_save ), a body with none gets one prepended ( the create path ). The result ' +
 				'is validated with KcdValidate BEFORE any write: a structural failure returns a structured error and ' +
 				'writes NOTHING ( the write-time gate — can\'t save a malformed artifact ). On success it writes and ' +
-				'returns `{ saved, warnings }`. PathGuard jails the path and checks the declared type matches the ' +
-				'target directory. NOTE: agent-authored body HTML is not yet sanitized here ( the render layer ' +
+				'returns `{ saved, warnings }`. PathGuard jails the path and checks the target directory ACCEPTS the ' +
+				'declared type — a refusal names the accepted set, so the fix is in the error. NOTE: agent-authored body HTML is not yet sanitized here ( the render layer ' +
 				'sanitizes on display; a save-time sanitize pass is a named deferral ), and structured ' +
 				'section/region/slot synthesis ( create a lens from fields alone ) is not built — supply body HTML.',
 			inputSchema: {
@@ -60,10 +61,11 @@ export function writeTools( chain: GuardChain ): ( ToolDefinition & { spec?: Tes
 					// will then reject it with a helpful message, not a parse crash ).
 					const artifact = { ...raw, body: typeof raw[ 'body' ] === 'string' ? raw[ 'body' ] : '' } as unknown as SerializedArtifact;
 
-					// `filePath` rides along so the emitted stylesheet link gets the right relative depth —
-					// it is the SAME path the write lands at below, so the link can never disagree with
-					// where the file actually sits.
-					const html   = KcdEmit.emit( artifact, filePath );
+					// The CONFIGURED stylesheet href rides along — ONE absolute `file:///` value for every
+					// document in the vault ( Config tiers 1–4 ), so a document's link no longer depends
+					// on where it sits and moving a file cannot break it. Resolved per call, matching
+					// every other Config read here: the host slice is a live file.
+					const html   = KcdEmit.emit( artifact, Config.resolve().cssHref );
 					const report = KcdValidate.validate( html );
 					if ( !report.ok ) {
 						const detail = report.errors.map( e => `${ e.code } @ ${ e.where }: ${ e.msg }` ).join( '; ' );

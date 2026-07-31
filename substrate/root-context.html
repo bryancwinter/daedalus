@@ -112,11 +112,13 @@ the Model Context Protocol server heavily: editing by hand is the fallback, not 
 
 ## Lenses
 
-`!name` at the start of a session compiles that lens's context — `!render`, `!main`,
-`!mcp` — via `kcd_compile { lenses: ["name"] }`, rather than opening the lens file
-directly. Stack them as `!render !mcp`: pass every active lens in one ordered array,
-first is primary and overrules on conflict — that ordering rule belongs to the tool
-itself, not a convention layered on top of it. The roster is in the entry document.
+`!name` at the start of a session compiles that lens's context — `!lens-crafter` compiles
+the authoring lens, which is the one lens a freshly installed vault has — via
+`kcd_compile { lenses: ["name"] }`, rather than opening the lens file directly. Stack them
+by naming more than one, `!lens-crafter !some-other`: every active lens goes in one ordered
+array, first is primary and overrules on conflict — that ordering rule belongs to the tool
+itself, not a convention layered on top of it. The roster is in the entry document, and it
+is the authority on what names actually resolve here.
 </script>
 	</section>
 

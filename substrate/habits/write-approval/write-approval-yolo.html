@@ -11,7 +11,7 @@
 
 	<dl data-kcd-frontmatter>
 		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">write-approval-yolo</dd>
-		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">Writes anywhere proceed without confirmation — no pre-approval gate at all. Only the hard, unconditional exceptions (kcd/, CLAUDE.md) still refuse without an explicit command. The loosest pole of the write-approval mutual-exclusion class.</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">Writes anywhere proceed without confirmation — no pre-approval gate at all. Only the hard, unconditional exception (CLAUDE.md) still refuses without an explicit command. The loosest pole of the write-approval mutual-exclusion class.</dd>
 		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">habit</dd>
 		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">active</dd>
 		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
@@ -36,9 +36,9 @@
 		<p>The loosest pole — "YOLO" is a statement about this lens's own approval friction, not license
 		to gamble with shared state. Two hard exceptions survive even here because they protect the
 		framework root and the one file governing every lens, not any single lens's day-to-day writes:
-		<code>_Claude/kcd/</code> is read-only (write only on explicit command) and <code>CLAUDE.md</code>
-		is read-only to all but <code>lens_crafter</code> (which drafts to
-		<code>_Claude/work/lens_crafter/plans/</code> and gets approval first). A corrupted copy of either
+		<code>CLAUDE.md</code>
+		is read-only to all but <code>lens-crafter</code> (which drafts to
+		<code>_Claude/work/lens-crafter/plans/</code> and gets approval first). A corrupted copy of either
 		would break every other lens in the session.</p>
 	</section>
 
@@ -46,8 +46,7 @@
 		<h3>Rules</h3>
 		<ul>
 			<li>writes anywhere — execute directly, no clearance</li>
-			<li><code>_Claude/kcd/</code> — never write without an explicit user command during the session</li>
-			<li><code>CLAUDE.md</code> — only <code>lens_crafter</code> edits it, via drafted-and-approved changes</li>
+			<li><code>CLAUDE.md</code> — only <code>lens-crafter</code> edits it, via drafted-and-approved changes</li>
 		</ul>
 	</section>
 

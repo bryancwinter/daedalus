@@ -11,7 +11,7 @@
 
 	<dl data-kcd-frontmatter>
 		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">kcd-primitives</dd>
-		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">The KCD SDK object model — the artifact type discriminators and their classes, the role model, the serialized wire shape, and the error types. The conceptual skeleton; the parse/serialize mechanics moved to HTML in the Phase-2 cutover (see the staleness note). Shared by lens_crafter, render, and mcp.</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">The KCD SDK object model — the artifact type discriminators and their classes, the role model, the serialized wire shape, and the error types. The conceptual skeleton; the parse/serialize mechanics moved to HTML in the Phase-2 cutover (see the staleness note). Shared by lens-crafter, render, and mcp.</dd>
 		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">reference</dd>
 		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">active</dd>
 		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
@@ -71,8 +71,8 @@
 				<tr><td><code>analyzer</code></td><td><code>AnalyzerObject</code></td><td>frontmatter <code>type: analyzer</code> + <code>analyzers/</code> directory</td></tr>
 				<tr><td><code>habit</code></td><td><code>HabitObject</code></td><td>frontmatter <code>type: habit</code> + <code>habits/</code> directory</td></tr>
 				<tr><td><code>contract</code></td><td><code>ContractObject</code></td><td>frontmatter <code>type: contract</code> + <code>contracts/</code> directory</td></tr>
-				<tr><td><code>template</code></td><td><code>TemplateObject</code></td><td>directory convention (<code>kcd/templates/</code>); frontmatter check skipped</td></tr>
-				<tr><td><code>framework</code></td><td><code>FrameworkObject</code></td><td>directory convention (<code>kcd/</code>, not <code>kcd/templates/</code>); frontmatter check skipped</td></tr>
+				<tr><td><code>template</code></td><td><code>TemplateObject</code></td><td>directory convention (the package's <code>templates/</code>); frontmatter check skipped</td></tr>
+				<tr><td><code>framework</code></td><td><code>FrameworkObject</code></td><td>vault root, not a templates directory; frontmatter check skipped</td></tr>
 				<tr><td><code>unknown</code></td><td><code>KCDPrimitive</code> (base)</td><td>fallback; nav-index files (<code>nav-index.html</code>) and unclassified paths</td></tr>
 			</tbody>
 		</table>
@@ -230,7 +230,7 @@
 		<p><code>kcd_sdk/src/primitives/framework/FrameworkObject.ts</code></p>
 		<p>
 			Conceptual foundations and conventions for the KCD system. Identified by directory
-			(<code>kcd/</code> but not <code>kcd/templates/</code>); frontmatter type check is skipped. No
+			(the vault root, not a templates directory); frontmatter type check is skipped. No
 			required sections.
 		</p>
 		<p><strong>Role:</strong> <code>'know'</code> (inherited)</p>
@@ -239,7 +239,7 @@
 
 		<p><code>kcd_sdk/src/primitives/framework/TemplateObject.ts</code></p>
 		<p>
-			Scaffolds for authoring a specific artifact type. Identified by <code>kcd/templates/</code>
+			Scaffolds for authoring a specific artifact type. Identified by the package's <code>templates/</code>
 			directory; frontmatter type check is skipped. No required sections.
 		</p>
 		<p><strong>Role:</strong> <code>'know'</code> (inherited)</p>

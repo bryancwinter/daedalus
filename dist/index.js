@@ -244,7 +244,9 @@ var require_KcdAddress = __commonJS({
     var HtmlTree_1 = require_HtmlTree();
     exports2.KcdAddress = new class KcdAddress {
       // ── The closed sets ( protocol §2, §4 ) ──────────────────────────────────────
-      TYPES = ["lens", "plan", "reference", "note", "how-to", "framework", "template", "nav-index", "habit", "contract", "generator", "analyzer", "audit"];
+      /** `note` and `how-to` were retired 2026-07-30 — they duplicated what the folder already says
+       *  ( see ArtifactType ). Twelve documents declared one; all became `reference`. */
+      TYPES = ["lens", "plan", "reference", "framework", "template", "nav-index", "habit", "contract", "generator", "analyzer", "audit"];
       STATUSES = ["draft", "active", "observation", "composed", "disabled", "deployed", "complete", "retired", "paused"];
       AUDIENCES = ["human", "agent", "both"];
       MERGES = ["additive", "declarative", "union"];
@@ -286,7 +288,13 @@ var require_KcdAddress = __commonJS({
         "data-kcd-chrome",
         "data-kcd-live",
         "data-kcd-script",
-        "data-kcd-address"
+        "data-kcd-address",
+        // The §10 host-seed idiom ( `root-context.html` ): a `<script type="text/kcd-md">` payload
+        // plus WHICH host it is for and WHICH file it lands in. Absent here since the idiom was
+        // written, which made the seed source — the one document the installer reads BEFORE a vault
+        // exists — fail validation and stay invisible to scan / health / get.
+        "data-kcd-seed",
+        "data-kcd-target"
       ];
       // ── Patterns ──────────────────────────────────────────────────────────────────
       // slug: kebab, optional single leading `_` sort-prefix ( `_lens-base` ); internal `_` is illegal.
@@ -458,6 +466,9 @@ var require_VaultLayout = __commonJS({
       },
       // ── Data / output layer — what a project accumulates as it runs ──
       {
+        // No `accepts` row: every document here is a `reference`. The subfolders ARE the categories, and
+        // there is deliberately no type per category — `note` and `how-to` briefly had one and were
+        // retired for exactly that reason ( see ArtifactType ).
         dir: "references",
         type: "reference",
         layer: "data",
@@ -476,6 +487,10 @@ var require_VaultLayout = __commonJS({
         type: "utility",
         layer: "data",
         indexed: true,
+        // `utility` is not a document type — the protocol says so outright — so a directory implying it
+        // accepts NO document at all unless this says otherwise. The registry the purpose line names is a
+        // document about utilities, which is a reference.
+        accepts: ["utility", "reference", "nav-index"],
         purpose: "The registered tool tier \u2014 draft/ (unapproved) and deployed/ (approved), with a registry."
       },
       {
@@ -533,10 +548,13 @@ var require_VaultLayout = __commonJS({
         purpose: "The dev command deck \u2014 JSON-declared scripts run against the project, not governed artifacts."
       }
     ];
-    var NAV_INDEX_FILE = "nav-index.html";
     var FRAMEWORK_ROOT_FILES = ["root.html", "root-context.html", "kcd_framework.html"];
     var LENS_MAX_DEPTH = 3;
-    var VaultLayout = class _VaultLayout {
+    var VaultLayout2 = class _VaultLayout {
+      /** The filename that IS a nav-index, wherever it sits — the name carries the type, so a nav-index
+       *  under any other filename is not one. Public because three places had their own copy of the
+       *  string; the table that owns the taxonomy should own this too. */
+      static NAV_INDEX_FILE = "nav-index.html";
       /** Every row, in table order — for the doc generator and anything enumerating the structure. */
       static all() {
         return LAYOUT;
@@ -570,7 +588,7 @@ var require_VaultLayout = __commonJS({
         const norm = relPath.replace(/\\/g, "/");
         if (!norm.startsWith(docRoot + "/"))
           return "unknown";
-        if (norm.endsWith("/" + NAV_INDEX_FILE))
+        if (norm.endsWith("/" + _VaultLayout.NAV_INDEX_FILE))
           return "nav-index";
         const sub = norm.slice(docRoot.length + 1);
         if (FRAMEWORK_ROOT_FILES.includes(sub))
@@ -583,6 +601,32 @@ var require_VaultLayout = __commonJS({
         if (entry.dir === "lenses" && sub.split("/").length > LENS_MAX_DEPTH)
           return "reference";
         return entry.type;
+      }
+      /**
+       * Every document type that may legally be WRITTEN at this path — the write-time counterpart of
+       * `classify`. Classification answers "what is here"; this answers "what may land here", and the two
+       * differ wherever a directory holds a family rather than a single type.
+       *
+       * Always includes what `classify` returns, so the two can never disagree about the obvious case. An
+       * empty array means anything goes: `unknown` is scratch space, and scratch that refused writes would
+       * be useless.
+       */
+      static acceptedTypes(relPath, docRoot = "_Claude") {
+        const implied = _VaultLayout.classify(relPath, docRoot);
+        if (implied === "unknown")
+          return [];
+        const norm = relPath.replace(/\\/g, "/");
+        const entry = _VaultLayout.entryFor(norm.slice(docRoot.length + 1));
+        const extra = entry?.accepts ?? [];
+        return extra.includes(implied) ? extra : [implied, ...extra];
+      }
+      /**
+       * May a document declaring `declared` be written at this path? The one question a write guard should
+       * ask. An empty accepted set is untyped space and takes anything.
+       */
+      static accepts(relPath, declared, docRoot = "_Claude") {
+        const allowed = _VaultLayout.acceptedTypes(relPath, docRoot);
+        return allowed.length === 0 || allowed.includes(declared);
       }
       /**
        * The top-level directory names the library index descends into — the scanner's whitelist gates
@@ -628,7 +672,7 @@ var require_VaultLayout = __commonJS({
         return top !== void 0 && _VaultLayout.ephemeralDirs().includes(top);
       }
     };
-    exports2.VaultLayout = VaultLayout;
+    exports2.VaultLayout = VaultLayout2;
   }
 });
 
@@ -665,7 +709,12 @@ var require_KcdValidate = __commonJS({
         "dredge-depth": { type: "number" },
         scope: { type: "enum", pattern: this.SCOPE_RE },
         "habit-class": { type: "slug" },
-        lens: { type: "slug" },
+        // lens is a LIST, in invocation order — the lenses a session was wearing when it authored this.
+        // Singular was a lie the corpus kept telling: real work is cross-lens, which is why 18 plans had
+        // resorted to a fake lens named "cross" that named nothing and resolved to nothing. A list says
+        // the true thing ( which lenses, and which led ) and the `cross` placeholder retires with it.
+        // itemType keeps each entry under the same slug rules the scalar form enforced.
+        lens: { type: "list", itemType: "slug" },
         // todo / completed are ADDRESSES, not paths ( protocol §1.1 ). A lens declares WHERE its log
         // lives; it does not assert that one has been written. Most lenses name a log file that does
         // not exist yet, and that is a legal state rather than a defect.
@@ -733,7 +782,7 @@ var require_KcdValidate = __commonJS({
           }
           seen[key] = true;
           if (spec.type === "list") {
-            this.checkList(field, key, err);
+            this.checkList(field, key, spec, err);
             if (key === "name")
               name = HtmlTree_1.HtmlTree.textOf(field).trim();
             continue;
@@ -909,11 +958,24 @@ var require_KcdValidate = __commonJS({
             err("ephemeral-link", "address", `"${href}" links into ephemeral space ( ${VaultLayout_1.VaultLayout.ephemeralDirs().join(", ")} ), which is not installed into a vault \u2014 use <code data-kcd-address> instead`);
         }
       }
-      checkList(field, key, err) {
+      checkList(field, key, spec, err) {
         const tags = HtmlTree_1.HtmlTree.collect(field, (el) => KcdAddress_1.KcdAddress.isTag(el));
-        for (const t of tags)
-          if (HtmlTree_1.HtmlTree.textOf(t).trim() === "")
+        for (const t of tags) {
+          const value = HtmlTree_1.HtmlTree.textOf(t).trim();
+          if (value === "") {
             err("empty-tag", `field:${key}`, "empty chip in a list field");
+            continue;
+          }
+          if (!spec.itemType)
+            continue;
+          if (!KcdAddress_1.KcdAddress.validates(spec.itemType, value))
+            err("bad-value", `field:${key}`, `"${value}" is not a valid ${spec.itemType}`);
+          if (spec.itemType === "slug") {
+            const fix = this.slugUnderscore(value);
+            if (fix)
+              err("underscore-slug", `field:${key}`, `"${value}" has internal underscores \u2014 slugs are hyphenated ( use "${fix}" )`);
+          }
+        }
       }
       nameOk(v) {
         return v.length <= 64 && KcdAddress_1.KcdAddress.SLUG_RE.test(v) && !/claude|anthropic/i.test(v);
@@ -1173,37 +1235,25 @@ var require_KcdEmit = __commonJS({
     var HtmlTree_1 = require_HtmlTree();
     var KcdAddress_1 = require_KcdAddress();
     var KcdValidate_1 = require_KcdValidate();
-    var CSS_HOME = "kcd.css";
+    var CSS_FALLBACK = "kcd.css";
     exports2.KcdEmit = new class KcdEmit {
       /**
        * A full artifact → a full HTML document string ( doctype through `</html>` ).
        *
-       * `vaultPath` is the artifact's VAULT-RELATIVE destination ( `plans/x.html` ), and it exists for
-       * one reason: the stylesheet link is a plain relative href, so its correct value depends on how
-       * deep the document sits. Omit it and the link is emitted bare — correct only at the vault root.
-       * Every caller that WRITES TO DISK must pass it; a preview or a test that never lands a file can
-       * leave it off. ( Deliberately not inferred from `artifact.path`: that field is absent on the
-       * agent-supplied save shape and carries a different form depending on who built it, so guessing
-       * from it would emit a confidently wrong depth. )
+       * `cssHref` is the stylesheet link, handed in whole. It used to be COMPUTED here from the
+       * document's own depth ( one `../` per level up to the vault root ), and that shape was wrong twice
+       * over: the depth math had to be MIRRORED in a corpus-wide sweep to stay honest, and a document
+       * that moved carried a link that silently stopped resolving. The href is now one configured
+       * ABSOLUTE value every document shares — resolved by whoever knows the install ( `Config`, in
+       * daedalus ), passed down, never derived. kcd_sdk sits below that config and does not read it.
+       *
+       * Omitted, it falls back to the bare filename — correct only at the vault root, and meant for a
+       * caller that never lands a file. A WRITE path that omits it is a bug.
        */
-      emit(artifact, vaultPath) {
+      emit(artifact, cssHref = CSS_FALLBACK) {
         const dl = this.frontmatterBlock(artifact.frontmatter);
         const article = this.spliceFrontmatter(artifact.body, dl);
-        return this.document(artifact.type, this.titleOf(artifact), article, this.cssHref(vaultPath));
-      }
-      /**
-       * The stylesheet href for a document living at `vaultPath` — one `../` per directory level, then
-       * `kcd.css` at the vault root. The mirror of `VaultUtilities.fixStylesheetLinks`'s depth math, so
-       * a freshly emitted document already agrees with what the corpus-wide sweep would rewrite it to.
-       *
-       * An absent or root-level path yields the bare filename. Backslashes are normalized first, since
-       * a Windows-shaped path would otherwise count as a single segment and silently emit depth 0.
-       */
-      cssHref(vaultPath) {
-        const rel = (vaultPath ?? "").replace(/\\/g, "/").replace(/^\/+/, "");
-        if (!rel)
-          return CSS_HOME;
-        return "../".repeat(rel.split("/").length - 1) + CSS_HOME;
+        return this.document(artifact.type, this.titleOf(artifact), article, cssHref);
       }
       /** frontmatter → `<dl data-kcd-frontmatter>…</dl>`, the inverse of `KcdParse.frontmatter()`.
        *  Keys are emitted in the record's own iteration order; an absent / empty-string value is
@@ -1264,9 +1314,9 @@ ${rows.join("\n")}
        *  the sanitized body is styled by the renderer's own ported rules, which is why a wrong href
        *  here stays invisible until someone opens the file in a browser ), and the body.
        *
-       *  `cssHref` defaults to the bare filename ( vault-root depth ). Callers reach this through
-       *  `emit`, which computes it from the destination path — see `cssHref`. */
-      document(type, title, articleInner, cssHref = CSS_HOME) {
+       *  `cssHref` defaults to the bare filename ( vault-root only ). Callers reach this through `emit`,
+       *  which takes the configured absolute href from its own caller — see `emit`. */
+      document(type, title, articleInner, cssHref = CSS_FALLBACK) {
         return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2865,6 +2915,134 @@ var require_primitives = __commonJS({
   }
 });
 
+// ../kcd_sdk/dist/core/InstallManifest.js
+var require_InstallManifest = __commonJS({
+  "../kcd_sdk/dist/core/InstallManifest.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.InstallManifest = void 0;
+    var BASE_LENS_FILE = "_lens-base.html";
+    var MANIFEST = [
+      {
+        bundleSource: `lenses/${BASE_LENS_FILE}`,
+        vaultHome: `lenses/${BASE_LENS_FILE}`,
+        required: true,
+        purpose: "The base lens, auto-loaded into every session. A vault without it has no floor to stand on."
+      },
+      {
+        bundleSource: "lenses/lens-crafter",
+        vaultHome: "lenses/lens-crafter",
+        required: true,
+        purpose: 'The authoring lens. REQUIRED, not a nicety: the bundled kcd-configure skill defers all lens-authoring taste to it ( `kcd_compile { lenses: ["lens-crafter"] }` ) before writing anything, so a vault without it leaves the one shipped skill compiling nothing at the exact step where it starts producing value. Shipped as a directory so the lens keeps its `{name}/{name}.html` + `context/` anatomy.'
+      },
+      {
+        bundleSource: "habits",
+        vaultHome: "habits",
+        required: true,
+        purpose: "Atomic behavior fragments the base lens and every domain lens link into."
+      },
+      {
+        bundleSource: "analyzers/_analyzer_base.html",
+        vaultHome: "analyzers/_analyzer_base.html",
+        required: true,
+        purpose: "The shared analyzer contract every read-anywhere, write-one-report agent extends."
+      },
+      {
+        bundleSource: "generators",
+        vaultHome: "generators",
+        required: true,
+        purpose: "The base generator contract plus the bundled manifest-driven write agents."
+      },
+      {
+        bundleSource: "contracts",
+        vaultHome: "contracts",
+        required: true,
+        purpose: "The behavioral agreements the bundled lenses and generators are evaluated against."
+      },
+      {
+        bundleSource: "references/kcd_sdk",
+        vaultHome: "references/kcd_sdk",
+        required: true,
+        purpose: "The protocol and primitives references the framework itself assumes a vault can link to."
+      },
+      {
+        bundleSource: "references/how-to",
+        vaultHome: "references/how-to",
+        required: true,
+        purpose: 'Procedural references the bundled lenses link into by path. Currently read-a-survey, which lens-crafter loads when proposing artifacts for an unfamiliar codebase \u2014 the "read this INSTEAD of exploring" instruction that the whole survey-as-anchor design rests on.'
+      },
+      {
+        bundleSource: "utilities/deployed",
+        vaultHome: "utilities/deployed",
+        required: false,
+        purpose: "Bundled example utilities for the registered tool tier \u2014 a starting point, not a requirement."
+      },
+      {
+        bundleSource: "root.html",
+        vaultHome: "root.html",
+        required: true,
+        purpose: "THE ENTRY DOCUMENT \u2014 the first thing every session reads, and what the generated CLAUDE.md points at. Required in the strongest sense: `root-context.html` instructs the agent to open it three times over, so a vault without it hands every new user a broken first instruction. It was missing entirely until 2026-07-26. Shipped as a starting point and meant to be edited; `lens-index` splices its Lenses table."
+      },
+      {
+        bundleSource: "root-context.html",
+        vaultHome: "root-context.html",
+        required: true,
+        purpose: "The host-seed carrier \u2014 CLAUDE.md / AGENTS.md / GEMINI.md are generated from this."
+      },
+      {
+        bundleSource: "kcd.css",
+        vaultHome: "kcd.css",
+        required: true,
+        purpose: "The vault-wide stylesheet every governed document links."
+      },
+      {
+        bundleSource: "kcd_framework.html",
+        vaultHome: "kcd_framework.html",
+        required: false,
+        purpose: "The framework's own self-description \u2014 useful context, not load-bearing."
+      }
+    ];
+    var InstallManifest = class {
+      /** The base lens's vault-relative home — THE one place the inheritance floor is named. Every reader
+       *  that has to tell the floor apart from an authored lens ( `Agent.domainLenses`, Starmind's
+       *  `Agents.withBase` / `_lensPathsOf`, `VaultUtilities.compile` ) resolves it through here. */
+      static BASE_LENS = `lenses/${BASE_LENS_FILE}`;
+      /** Is this path the base lens — the auto-loaded floor rather than an authored domain lens? Matches on
+       *  the trailing SEGMENT, so it is true for a vault-relative path, an OS-absolute one, and either slash
+       *  flavour, and false for a same-suffixed name that merely ends in the same characters. Null / empty
+       *  ( an in-memory lens with no path ) is not the base lens. */
+      static isBaseLens(path2) {
+        if (!path2)
+          return false;
+        const segments = path2.replace(/\\/g, "/").split("/");
+        return segments[segments.length - 1] === BASE_LENS_FILE;
+      }
+      /** Every row, in table order. */
+      static all() {
+        return MANIFEST;
+      }
+      /**
+       * The row governing a vault-relative deployed path, or null when nothing in the manifest owns
+       * it. Longest matching `vaultHome` prefix wins, mirroring `VaultLayout.entryFor` — a specific row
+       * ( `references/kcd_sdk` ) can sit inside a directory this table does not otherwise cover.
+       */
+      static entryFor(vaultRelPath) {
+        const norm = vaultRelPath.replace(/\\/g, "/");
+        let best = null;
+        for (const entry of MANIFEST) {
+          if (norm !== entry.vaultHome && !norm.startsWith(entry.vaultHome + "/"))
+            continue;
+          if (best && best.vaultHome.length >= entry.vaultHome.length)
+            continue;
+          best = entry;
+        }
+        return best;
+      }
+    };
+    exports2.InstallManifest = InstallManifest;
+  }
+});
+
 // ../kcd_sdk/dist/agent/Model.js
 var require_Model = __commonJS({
   "../kcd_sdk/dist/agent/Model.js"(exports2) {
@@ -2885,6 +3063,7 @@ var require_Agent = __commonJS({
     var SlotResolver_1 = require_SlotResolver();
     var ContextAssembler_1 = require_ContextAssembler();
     var KcdContext_1 = require_KcdContext();
+    var InstallManifest_1 = require_InstallManifest();
     var KCDPrimitive_1 = require_KCDPrimitive();
     var Model_1 = require_Model();
     function _pathsOfType(nodes, type) {
@@ -2944,10 +3123,11 @@ var require_Agent = __commonJS({
        *  load/save. Empty until materialized ( a draft, or a bare wire ). */
       baseReferenceNodes = [];
       // ── Bound environment: the wire's EXTERNAL layers, injected post-hydration ( `bindEnv` ) ──
-      // The three inputs the compiled context needs that aren't the agent's own object graph: the
-      // model-bound root context, the live MCP tool defs ( for the manifest + suggested surface ), and the
-      // baseline PRELOAD memory. Set from OUTSIDE ( the renderer's Agent store, the main orchestrator ) the
-      // same way `baseHabitNodes` is — never persisted, never crosses the wire, flush-and-filled on change.
+      // The inputs the compiled context needs that aren't the agent's own object graph: the model-bound
+      // root context, the live MCP tool defs ( for the manifest + suggested surface ), the baseline PRELOAD
+      // memory + its tag vocabulary, and the session's attachments. Set from OUTSIDE ( the renderer's Agent
+      // store, the main orchestrator ) the same way `baseHabitNodes` is — never persisted, never crosses the
+      // wire, flush-and-filled on change.
       // With these bound, the agent answers `compiledContext()`/`wireSystem()`/`estimateTokens()` ALONE.
       /** The model-bound root-context text ( CLAUDE.md / Winston.html et al. ) — leads the compiled context.
        *  '' when the agent's model declares none. */
@@ -2958,6 +3138,16 @@ var require_Agent = __commonJS({
       /** The baseline PRELOAD memory prose ( the system-fired top-N selection ). Rides only when the agent's
        *  own `system.memoryEnabled` gate is on. '' until bound / when the query came back dry. */
       memory = "";
+      /** The memory store's WHOLE tag vocabulary — one list every agent shares ( no params, never varies by
+       *  agent, changes only when we seed a new tag ). Bound like `memory`; `[]` when no memory store is
+       *  wired at all, which is what lets `memoryVocabulary()` fall silent instead of rendering an empty
+       *  header. Read by that one method — see it for why this rides the band instead of a tool. */
+      memoryTags = [];
+      /** The bound session's PREFILL attachments, already composed ( `Session.attachmentManifest()` ). A
+       *  STRING like rootContext and memory, not the entry array: the array lives on the session, which owns
+       *  it and composes it, and an agent reaching into `session/` would invert the layering — a session is a
+       *  run of an agent, not the reverse. '' when nothing is attached. */
+      attachments = "";
       constructor(id, name, icon, color, model, systemPrompt, lenses, baseTools, baseHabits, baseReferences, basePlans, toolModes, referenceOff, referenceModes, habitOff, habitModes, fields, system, createdAt, folder, notes) {
         this.id = id;
         this.name = name;
@@ -2983,16 +3173,69 @@ var require_Agent = __commonJS({
         this.compose();
       }
       // ── Static entry points ──────────────────────────────────────────────────
-      /** Compose an agent. A lensless draft is legal — running is what demands a lens. */
+      /** Compose an agent. A lensless draft is legal — running is what demands a lens. The unnamed-agent
+       *  fallback takes the first AUTHORED lens's name, never `lenses[ 0 ]`: the base floor now rides on every
+       *  agent including a draft ( see `domainLenses` ), and a draft named `_lens-base` would be the floor
+       *  leaking out as identity. A draft with no name given is just `'agent'`, as it always was. */
       static create(opts = {}) {
         const lenses = opts.lenses ?? [];
-        return new _Agent(opts.id ?? crypto.randomUUID(), opts.name ?? lenses[0]?.getName() ?? "agent", opts.icon ?? null, opts.color ?? null, opts.model ?? Model_1.DEFAULT_MODEL_KEY, opts.systemPrompt ?? null, lenses, opts.baseTools ?? [], opts.baseHabits ?? [], opts.baseReferences ?? [], opts.basePlans ?? [], opts.toolModes ?? {}, opts.referenceOff ?? [], opts.referenceModes ?? {}, opts.habitOff ?? [], opts.habitModes ?? {}, opts.fields ?? [], opts.system ?? {}, Date.now(), opts.folder, opts.notes ?? null);
+        const domain = lenses.filter((l) => !InstallManifest_1.InstallManifest.isBaseLens(l.getPath()));
+        return new _Agent(
+          opts.id ?? crypto.randomUUID(),
+          opts.name ?? domain[0]?.getName() ?? "agent",
+          opts.icon ?? null,
+          opts.color ?? null,
+          // `=== undefined`, never `??` — the two differ exactly where it matters. ABSENT means "give me the
+          // default" ( an authored agent built without a model ); explicit NULL means "this agent never
+          // dispatches" ( the vault case ). `??` collapses both to the default, which would hand a vault
+          // agent the Test Brain and quietly reintroduce the dishonest field this widening removed.
+          opts.model === void 0 ? Model_1.DEFAULT_MODEL_KEY : opts.model,
+          opts.systemPrompt ?? null,
+          lenses,
+          opts.baseTools ?? [],
+          opts.baseHabits ?? [],
+          opts.baseReferences ?? [],
+          opts.basePlans ?? [],
+          opts.toolModes ?? {},
+          opts.referenceOff ?? [],
+          opts.referenceModes ?? {},
+          opts.habitOff ?? [],
+          opts.habitModes ?? {},
+          opts.fields ?? [],
+          opts.system ?? {},
+          Date.now(),
+          opts.folder,
+          opts.notes ?? null
+        );
       }
       /** Rebuild from the wire / DB seed — each lens hydrates through its own registered hydrator;
        *  the constructor re-runs compose() so the materialized graph arrives fresh, never stale. */
       static fromSerialized(json) {
         const lenses = (json.lenses ?? []).map((l) => LensObject_1.LensObject.fromSerialized(l));
-        const agent = new _Agent(json.id, json.name, json.icon, json.color, json.model ?? Model_1.DEFAULT_MODEL_KEY, json.systemPrompt ?? null, lenses, json.baseTools ?? [], json.baseHabits ?? [], json.baseReferences ?? [], json.basePlans ?? [], json.toolModes ?? {}, json.referenceOff ?? [], json.referenceModes ?? {}, json.habitOff ?? [], json.habitModes ?? {}, json.fields ?? [], json.system ?? {}, json.createdAt, json.folder, json.notes ?? null);
+        const agent = new _Agent(
+          json.id,
+          json.name,
+          json.icon,
+          json.color,
+          json.model === void 0 ? Model_1.DEFAULT_MODEL_KEY : json.model,
+          // absent → default; null → stays null ( see create )
+          json.systemPrompt ?? null,
+          lenses,
+          json.baseTools ?? [],
+          json.baseHabits ?? [],
+          json.baseReferences ?? [],
+          json.basePlans ?? [],
+          json.toolModes ?? {},
+          json.referenceOff ?? [],
+          json.referenceModes ?? {},
+          json.habitOff ?? [],
+          json.habitModes ?? {},
+          json.fields ?? [],
+          json.system ?? {},
+          json.createdAt,
+          json.folder,
+          json.notes ?? null
+        );
         agent.baseHabitNodes = (json.baseHabitNodes ?? []).map((n) => KCDPrimitive_1.KCDPrimitive.fromSerialized(n));
         agent.baseReferenceNodes = (json.baseReferenceNodes ?? []).map((n) => KCDPrimitive_1.KCDPrimitive.fromSerialized(n));
         return agent;
@@ -3063,6 +3306,10 @@ var require_Agent = __commonJS({
           this.toolDefs = env.toolDefs;
         if (env.memory !== void 0)
           this.memory = env.memory;
+        if (env.memoryTags !== void 0)
+          this.memoryTags = env.memoryTags;
+        if (env.attachments !== void 0)
+          this.attachments = env.attachments;
       }
       /** What this agent actually carries = bolted-on ∪ inherited-from-lenses. The permissions
        *  gate reads `effectiveTools`; the composer reads each pair to show base (editable here)
@@ -3145,13 +3392,63 @@ var require_Agent = __commonJS({
         return this.referenceModes[path2] ?? this.naturalReferenceMode(path2);
       }
       // ── Lens surface ──────────────────────────────────────────────────────────
-      /** The primary lens, or null for a draft. */
-      get primaryLens() {
-        return this.lenses[0] ?? null;
+      /**
+       * The AUTHORED lenses — the composed stack minus the inherited base floor, in stack order.
+       *
+       * THE distinction this surface exists to draw ( 2026-07-30 ): `lenses` is what COMPILES, `domainLenses`
+       * is what the agent WEARS. `_lens-base` is inherited, not composed — nobody chose it, every agent has
+       * it, and it carries no identity — so every question about the agent's own composition ( is it a draft?
+       * what is its primary? what gets persisted to `agent_lens`? ) has to be asked of this list, never of
+       * `lenses`. Conflating the two is what kept the base floor OUT of a lensless draft's context: Starmind's
+       * `Agents.withBase` refused to append base to an empty stack precisely because `isDraft()` read
+       * `lenses.length`, so appending it would have deployed the draft. With draft-ness asked of the authored
+       * list instead, base can ride on every agent — including a draft — the way inheritance always meant.
+       */
+      get domainLenses() {
+        return this.lenses.filter((l) => !InstallManifest_1.InstallManifest.isBaseLens(l.getPath()));
       }
-      /** A draft cannot run: no lens has been composed onto it yet. */
+      /**
+       * THE base-floor policy — the one place either face decides how the inherited floor joins a lens stack.
+       *
+       * The rule, all of it:
+       *
+       * - **Appended LAST, never first.** `SlotResolver.compilePlan`'s same-rank tie breaks toward the
+       *   FIRST-encountered candidate ( every lens collapses to source layer `'lens'`, with no distinct
+       *   base/primary rank ), so a named lens must PRECEDE base for its own habit to win the class. An
+       *   authored override beating the floor is the entire point of an override.
+       * - **Once.** A stack already carrying a floor is returned untouched, so this is safe at every choke
+       *   point that rebuilds a stack — including ones that start from an already-floored list.
+       * - **Tolerant.** A null base ( missing or unreadable file ) yields the stack unchanged: a half-installed
+       *   or hand-built vault still compiles, just without a floor.
+       *
+       * `base` is passed IN rather than loaded here because loading needs disk and this class is deliberately
+       * Node-free — and because the two faces genuinely resolve it differently ( a `Vault` against its own
+       * root pair, Starmind against the active project's vault path ). What must not differ is the rule, and
+       * that is what lives here.
+       *
+       * CALLER CONTRACT — pass a FRESH instance, never a cached or shared one. A `LensObject` carries mutable
+       * dredge state ( `setIncluded` flips per-agent ), so one shared base would leak one agent's toggles into
+       * every other agent wearing the floor.
+       *
+       * This exists because the rule was previously spelled once per face, kept in step by a comment asking
+       * them to agree — and they silently stopped agreeing: Starmind's copy grew an exception that skipped the
+       * floor for a lensless draft, which the vault-side copy had no way to notice.
+       */
+      static withFloor(lenses, base) {
+        if (!base)
+          return lenses;
+        if (lenses.some((l) => InstallManifest_1.InstallManifest.isBaseLens(l.getPath())))
+          return lenses;
+        return [...lenses, base];
+      }
+      /** The primary lens — the first AUTHORED lens ( base is never primary ), or null for a draft. */
+      get primaryLens() {
+        return this.domainLenses[0] ?? null;
+      }
+      /** A draft cannot run: no lens has been COMPOSED onto it yet. Base doesn't count — it is inherited,
+       *  not chosen, so a base-only agent is still a draft ( it stands on the floor; it has no identity ). */
       isDraft() {
-        return this.lenses.length === 0;
+        return this.domainLenses.length === 0;
       }
       /** The primary lens's path — the agent's path identity — or null for a draft. */
       getPath() {
@@ -3263,7 +3560,9 @@ var require_Agent = __commonJS({
        * The recursive context query as one source-blind string: `getContextBlocks()` run through
        * `SlotResolver` ( habit-class contention resolved — a losing session-log-never never rides alongside
        * the session-log-aggressive it lost to ) and `ContextAssembler` ( merged by `data-kcd-merge-key`,
-       * sorted Care-first / injected-last ). A draft ( no lens ) contributes nothing. ( The `systemPrompt`
+       * sorted Care-first / injected-last ). A DRAFT still contributes its inherited base floor — base rides
+       * on every agent, composed or not ( see `domainLenses` ); the empty-array guard below is the genuinely
+       * lensless case ( an SDK-built agent, or a vault with no base file ), not draft-ness. ( The `systemPrompt`
        * lever rides the wire but is not yet prepended here — that lands with deploy-time assembly; base
        * references + tools join once their own resolver seams turn them into objects, the way base habits
        * now do. )
@@ -3290,8 +3589,9 @@ var require_Agent = __commonJS({
        * The body is every loaded artifact's full text, habit-class-resolved ( `SlotResolver` ) then merged
        * + sorted ( `ContextAssembler` ), with NO per-artifact header: a loaded file's identity lives once
        * in the manifest, its content merges into the body at its point. The legacy `stub` ( Available-on-
-       * request ) block is dropped — the References table already carries those rows. A draft ( no lens )
-       * compiles to nothing.
+       * request ) block is dropped — the References table already carries those rows. A draft compiles to its
+       * inherited base floor alone ( base is on every agent — `domainLenses` ); only a genuinely lensless
+       * agent compiles to nothing.
        */
       compile() {
         return this.compiledBlocks().map((b) => b.text).join("\n\n");
@@ -3316,8 +3616,9 @@ var require_Agent = __commonJS({
        * `Session.wireSystemFor` ). A flat trailing array couldn't express "some extras lead, some trail";
        * this is the real positioning the Phase 1 doc comment deferred to Phase 2.
        *
-       * `memory` ( memory-system plan, 2026-07-13 ) — the system-fired PRELOAD baseline ( `Agent.memoryBlock`,
-       * built by the orchestrator from `database.baseline_memories` ). Unlike `before`/`after` it does NOT
+       * `memory` ( memory-system plan, 2026-07-13 ) — the Memory band ( `Agent.memoryBlock` over
+       * `memoryBand()`: the tag-vocabulary constant, then the system-fired PRELOAD baseline the orchestrator
+       * bound from `database.baseline_memories` ). Unlike `before`/`after` it does NOT
        * bracket the join: it joins the BODY block list and sorts into the `memory` tier ( now BETWEEN the
        * Lenses band and Knowledge — `ContextAssembler.tierOf` ), because its position is a property of the
        * merged sort, not a fixed lead/trail slot. Its `## Memory` band heading is spliced by
@@ -3355,7 +3656,7 @@ var require_Agent = __commonJS({
       compiledContext() {
         const manifest = this.toolManifest();
         const suggested = this.suggestedToolDefs();
-        const memory = this.system["memoryEnabled"] !== false ? this.memory : "";
+        const memory = this.system["memoryEnabled"] !== false ? this.memoryBand() : "";
         return this.compiledBlocks({
           before: _Agent.joinSegments([
             // The agent's OWN authored instruction leads everything — it is the most specific statement of
@@ -3369,7 +3670,12 @@ var require_Agent = __commonJS({
           memory: memory ? [_Agent.memoryBlock(memory)] : [],
           after: _Agent.joinSegments([
             manifest ? [_Agent.extraBlock("tool-manifest", manifest)] : [],
-            suggested ? [_Agent.extraBlock("suggested-tools", suggested)] : []
+            suggested ? [_Agent.extraBlock("suggested-tools", suggested)] : [],
+            // Attachments TRAIL the whole system half, deliberately. They are its most volatile part — a
+            // user attaches and detaches mid-conversation while root context and lens identity sit still —
+            // and prefix caching invalidates from the earliest edit forward, so the churning thing belongs
+            // last. Placed beside root context it would re-prefill the lens + tool weight on every attach.
+            this.attachments ? [_Agent.extraBlock("attachments", this.attachments)] : []
           ])
         });
       }
@@ -3469,7 +3775,7 @@ ${JSON.stringify(t.inputSchema, null, 2)}
        *  identity, routing, memory, headings — is Lenses ). One read of a field the block already carries,
        *  no second compilation. */
       static bucketOf(b) {
-        if (b.section === "system-prompt" || b.section === "root-context")
+        if (b.section === "system-prompt" || b.section === "root-context" || b.section === "attachments")
           return "system";
         if (b.section === "tool-manifest" || b.section === "suggested-tools")
           return "tools";
@@ -3478,7 +3784,7 @@ ${JSON.stringify(t.inputSchema, null, 2)}
       /**
        * The by-KIND care bands ( compilation pass, 2026-07-19 ) — Purpose and Philosophy each become ONE
        * block that MERGES every active lens's contribution as a labeled sub-section, instead of one band per
-       * lens. The primary lens leads and is marked `( Primary )` ( disputes resolve in its favor ); `_lens_base`
+       * lens. The primary lens leads and is marked `( Primary )` ( disputes resolve in its favor ); `_lens-base`
        * follows, labeled `Base lens`. This is the true "group by KIND, decouple from source" output — the
        * reader sees each identity kind ONCE, its sources folded underneath — where the earlier per-lens
        * `# {Name} - Lens` band was a half-step ( it repeated base's care into every lens, the duplicate chips ).
@@ -3493,8 +3799,8 @@ ${JSON.stringify(t.inputSchema, null, 2)}
        */
       buildCareBands(careBlocks) {
         const norm = (s) => s.replace(/\\/g, "/");
-        const isBase = (l) => norm(l.getPath() ?? "").endsWith("_lens_base.html");
-        const reals = this.lenses.filter((l) => !isBase(l));
+        const isBase = (l) => InstallManifest_1.InstallManifest.isBaseLens(l.getPath());
+        const reals = this.domainLenses;
         const bases = this.lenses.filter(isBase);
         const ordered = reals.length ? [...reals, ...bases] : bases;
         const allPaths = new Set(this.lenses.map((l) => norm(l.getPath() ?? "")));
@@ -3606,6 +3912,35 @@ ${JSON.stringify(t.inputSchema, null, 2)}
         return { region: "know", section: "memory", mergeKey: null, text, sourceLayer: "agent", path: "", artifactType: "unknown", habitClass: null };
       }
       /**
+       * The Memory band's standing header — the tag vocabulary, as a CONSTANT rather than a tool.
+       *
+       * This replaces the retired `known_tags` tool ( Bryan, 2026-07-31 ). The list is ~20 short strings
+       * that cannot change mid-turn, so a tool round-trip to fetch it was always pure overhead — and worse,
+       * agents were LOOPING on it, spending turns rediscovering something cheap enough to simply carry. A
+       * standing line in the cached system half costs a few tokens once; the tool cost a full schema in
+       * every context ( it rode at mode `suggested` ) plus a round-trip whenever an agent reached for it.
+       *
+       * `lens:*` tags are filtered OUT deliberately: they are system-authoritative — `insertMemory`
+       * find-or-creates `lens:{slug}` on every save — so an agent never passes one, and listing them would
+       * be the bulk of the line for no gain. What remains is the open vocabulary an agent actually selects
+       * from. Empty `memoryTags` ( no memory store wired ) yields '' and the header simply doesn't ride.
+       */
+      memoryVocabulary() {
+        const open = this.memoryTags.filter((t) => !t.startsWith("lens:"));
+        if (!open.length)
+          return "";
+        return `Tags: ${open.join(", ")}
+These are the only tags that exist \u2014 an unlisted tag is dropped on save, and you cannot mint new ones. Your lens tag is applied automatically; never pass one.`;
+      }
+      /** The whole Memory band text — the vocabulary constant, then the baseline prose. Either half may be
+       *  empty ( no store wired, a dry query ), and both empty means no band rides at all — `compiledContext`
+       *  gates on this being truthy, so the reserved-but-empty tier still emits nothing on the wire. THE one
+       *  composer: the live wire, the renderer preview, and the turn's context breakdown all read it, so the
+       *  band can't differ between what is sent, what is previewed, and what is counted. */
+      memoryBand() {
+        return [this.memoryVocabulary(), this.memory].filter(Boolean).join("\n\n");
+      }
+      /**
        * The habit-class slot resolution across this agent's WHOLE composed set — the visualization twin of
        * `contribute()`, for the Slot UI to show every class's candidates and which one won. Reads the exact
        * same `getContextBlocks()` and resolves it through the same `SlotResolver`, so this view can never
@@ -3682,6 +4017,12 @@ ${JSON.stringify(t.inputSchema, null, 2)}
       /** The separator between system-prompt layers — the one place the live turn and the Constellation
        *  commit-bake agree on how the layers join, so they can never drift apart. */
       static SYSTEM_SEP = "\n\n---\n\n";
+      /** The id every `Vault.buildAgent` agent carries — a lens substrate with no authored identity, built to
+       *  compile and then discarded. Reserved and deliberately SHARED across every vault build: it makes "this
+       *  is not an authored agent" legible on the object itself, rather than a fact known only to whoever wrote
+       *  the call site. Never persisted — the database only ever holds authored agents, which is why
+       *  `AgentRow.model` stays concrete while `Agent.model` is nullable. */
+      static VAULT_AGENT_ID = "vault-agent";
       /**
        * Join system layers in order, dropping empties, with the canonical separator. The ONE formula shared
        * by the live turn (the orchestrator's per-round system assembly) and the Constellation commit-bake —
@@ -3799,6 +4140,8 @@ var require_TurnEntry = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.Transcript = exports2.MIN_COMPACTION_TURNS = void 0;
+    exports2.frameFile = frameFile;
+    exports2.framePointer = framePointer;
     exports2.frameCompaction = frameCompaction;
     var KCDPrimitive_1 = require_KCDPrimitive();
     var Assert_1 = require_Assert();
@@ -3807,6 +4150,9 @@ var require_TurnEntry = __commonJS({
     function frameFile(name, text) {
       return `[injected file \u2014 ${name}]
 ${text}`;
+    }
+    function framePointer(name, path2) {
+      return `[available file \u2014 ${name}${path2 ? ` at ${path2}` : ""} \u2014 not in context; read it if you need its contents]`;
     }
     function frameCompaction(summary) {
       return "[compacted summary of the earlier conversation \u2014 a REPORT about what happened, not a transcript of it. Details here are paraphrased and may have lost exact wording; re-read source files rather than trusting quotations below.]\n\n" + summary + "\n\n[end compacted summary]";
@@ -3838,6 +4184,23 @@ ${text}`;
       }
       isEmpty() {
         return this.turns.length === 0;
+      }
+      /**
+       * Every attachment this transcript carries, in order — the gutter's list and the compactor's input.
+       *
+       * `off` entries are INCLUDED, unlike the wire projection: a user who turned a file off still needs to
+       * see it in order to turn it back on, and a list that hid it would look like the file was detached.
+       * What rides is `wireMessages()`'s question, not this one.
+       */
+      attachments() {
+        const out = [];
+        for (const turn of this.turns) {
+          for (const entry of turn.entries) {
+            if (entry.kind === "injected-file" || entry.kind === "image")
+              out.push(entry);
+          }
+        }
+        return out;
       }
       /**
        * This transcript narrowed to the turns a policy admits — a PURE query returning a NEW Transcript
@@ -3882,7 +4245,8 @@ ${text}`;
           startedAt: newest.createdAt,
           entries: [{ at: newest.createdAt, kind: "user", text: frameCompaction(newest.summary) }],
           include: true,
-          compacted: false
+          compacted: false,
+          failed: false
         };
         return new _Transcript([summary, ...this.turns]);
       }
@@ -3891,7 +4255,7 @@ ${text}`;
        *  Born INCLUDED and uncompacted, which is what makes the turn being dispatched right now ride without
        *  anyone having to say so: whether the current turn is in the window was never a policy question. */
       openTurn(id, startedAt) {
-        const turn = { id, startedAt, entries: [], include: true, compacted: false };
+        const turn = { id, startedAt, entries: [], include: true, compacted: false, failed: false };
         this.turns.push(turn);
         return turn;
       }
@@ -3936,13 +4300,76 @@ ${text}`;
         }
         return at + 1;
       }
+      // ── Failure ( the other one-way flag pair ) ──
+      /**
+       * Mark one turn FAILED — `failed: true` and `include: false`, set together, in the one place that sets
+       * either. The rollback for a turn whose dispatch died: it stays in the account ( the itinerary shows it )
+       * and it never rides again. Returns the turn so the caller can persist what it held — the entries a
+       * failed turn accumulated ARE the diagnosis. null when the id names no turn.
+       *
+       * Marking rather than REMOVING is what makes the live path and the reload path the same state: a removal
+       * would show a failure that vanished until the next restart, and would be the only destructive operation
+       * on an append-only structure — for no gain, since `include: false` already keeps the orphaned tool-call
+       * off the wire, which is the whole reason the rollback exists.
+       *
+       * ONE-WAY, like compaction: nothing re-includes a failed turn. The model never saw it land, and
+       * replaying a tool-call whose result never arrived is an invalid request by construction.
+       */
+      failTurn(turnId) {
+        const turn = this.turns.find((t) => t.id === turnId);
+        if (!turn)
+          return null;
+        turn.failed = true;
+        turn.include = false;
+        return turn;
+      }
+      // ── The window flags ( every write to `include` goes through one of these two ) ──
+      /**
+       * Flip ONE turn's window flag — the manual toggle's write. Returns false when the id names no turn, and
+       * when it names a COMPACTED or FAILED one: both are history and nothing re-includes either. That refusal
+       * lives HERE, beside the flag pair, rather than in whichever surface happens to offer the control — an
+       * invariant a caller has to remember is one a second caller will forget.
+       */
+      setInclude(turnId, include) {
+        const turn = this.turns.find((t) => t.id === turnId);
+        if (!turn || turn.compacted || turn.failed)
+          return false;
+        turn.include = include;
+        return true;
+      }
+      /**
+       * Reset the window to what a MODE says — the mode switch's CLEAR, and the reason there is no "clear
+       * window" button anywhere in the UI.
+       *
+       * `keep` null opens everything back up ( `all` / `lastN`, whose rules take over at projection ). A set
+       * FREEZES exactly those ids ( entering `manual`, seeded from the window the user can currently see, so
+       * the switch itself changes nothing until they toggle something ).
+       *
+       * COMPACTED and FAILED turns are never touched, in either direction. That exemption is what lets forty
+       * turns of hand-tuning be escaped in one click without also undoing a compaction the user paid a model
+       * turn for, or re-arming a turn whose tool-call never got its result.
+       */
+      resetWindow(keep) {
+        for (const turn of this.turns) {
+          if (turn.compacted || turn.failed)
+            continue;
+          turn.include = keep ? keep.has(turn.id) : true;
+        }
+      }
       // ── Projection: to the WIRE ────────────────────────────────────────────────
       /**
        * Project the transcript to the neutral message list a connector sends. Walks every turn's entries in
        * order and batches them into alternating role messages: assistant text + its tool-calls become ONE
        * assistant message ( text block then tool_use blocks ); tool-results become a following user message
-       * of tool_result blocks; user text and injected files are user messages. `thinking` is SKIPPED — the
-       * scratchpad never rides the wire.
+       * of tool_result blocks; user text and injected files are user messages. `thinking` rides only when
+       * BOTH gates pass — a non-empty provider `signature` AND membership in the LIVE ( last ) turn;
+       * otherwise it is skipped.
+       *
+       * A replayed thinking block must be the FIRST block of its assistant message. That falls out for free
+       * rather than needing a sort: the orchestrator records the provider's content in the order it was sent
+       * ( thinking first ), `_appendBlock` appends in order, and inside a tool loop every assistant response
+       * is preceded by a USER message ( the prior round's tool-results, or the turn's user text ), so the
+       * thinking entry always OPENS a fresh assistant message.
        *
        * No windowing here: it projects whatever turns are bound. The policy that decides WHICH turns ride
        * ( RetentionPolicy ) is applied by the caller binding only the in-window set — a Phase 3 seam.
@@ -3953,21 +4380,32 @@ ${text}`;
        */
       wireMessages(opts) {
         const messages = [];
+        const liveTurn = this.turns[this.turns.length - 1];
         for (const turn of this.turns) {
+          const isLiveTurn = turn === liveTurn;
           for (const entry of turn.entries) {
             switch (entry.kind) {
               case "thinking":
+                if (entry.signature && isLiveTurn)
+                  this._appendBlock(messages, "assistant", { type: "thinking", thinking: entry.text, signature: entry.signature });
                 break;
-              // display-only — never rides
               case "user":
                 messages.push({ role: "user", content: entry.text });
                 break;
-              case "injected-file":
-                this._appendBlock(messages, "user", { type: "text", text: frameFile(entry.name, entry.text) });
+              case "injected-file": {
+                const mode = _Transcript._modeOf(entry);
+                if (mode === "off")
+                  break;
+                this._appendBlock(messages, "user", { type: "text", text: mode === "on" ? framePointer(entry.name, entry.path) : frameFile(entry.name, entry.text) });
                 break;
-              case "image":
-                this._appendBlock(messages, "user", { type: "image", mediaType: entry.mediaType, data: entry.data });
+              }
+              case "image": {
+                const mode = _Transcript._modeOf(entry);
+                if (mode === "off")
+                  break;
+                this._appendBlock(messages, "user", mode === "on" ? { type: "text", text: framePointer(entry.name ?? "(image)", entry.path) } : { type: "image", mediaType: entry.mediaType, data: entry.data });
                 break;
+              }
               case "assistant":
                 this._appendBlock(messages, "assistant", { type: "text", text: entry.text });
                 break;
@@ -3979,6 +4417,8 @@ ${text}`;
                 this._appendBlock(messages, "user", { type: "tool_result", tool_use_id: entry.toolUseId, content: cleared ? "[tool result cleared to save context]" : entry.content, ...entry.isError ? { is_error: true } : {} });
                 break;
               }
+              case "error":
+                break;
               default:
                 Assert_1.Assert.never(entry);
             }
@@ -4014,7 +4454,8 @@ ${text}`;
             id: turn.id,
             startedAt: turn.startedAt,
             rows,
-            tokens: rows.reduce((sum, r) => sum + r.tokens, 0)
+            tokens: rows.reduce((sum, r) => sum + r.tokens, 0),
+            failed: turn.failed
           };
         });
       }
@@ -4052,11 +4493,27 @@ ${text}`;
         return total;
       }
       // ── Per-entry helpers ( static — pure over one entry ) ─────────────────────
+      /** The mode an entry actually rides at. Today it is simply the user's setting; Phase 5 layers policy
+       *  decay here — derived at projection from ( entry, policy, turn-distance ), never baked onto the entry
+       *  — with the explicit user decision still winning. Every projection asks THIS rather than reading
+       *  `.mode`, so that layer lands in one place instead of being hunted for. A kind that cannot be reduced
+       *  answers `suggested`, so callers never branch on kind before asking. */
+      static _modeOf(entry) {
+        if (entry.kind !== "injected-file" && entry.kind !== "image")
+          return "suggested";
+        return entry.mode ?? "suggested";
+      }
       /** The token weight of ONE wire-bearing entry — the one place a kind's cost formula lives. Text kinds
        *  are chars÷4 ( KCDPrimitive._estimateTokens over the body ); an image is priced by pixel area
        *  ( estimateImageTokens ), NOT its text. Callers gate on WIRE_KINDS first, so a display-only kind
        *  ( thinking ) never reaches here. */
       static _entryTokens(entry) {
+        const mode = _Transcript._modeOf(entry);
+        if (mode === "off")
+          return 0;
+        if (mode === "on" && (entry.kind === "injected-file" || entry.kind === "image")) {
+          return KCDPrimitive_1.KCDPrimitive._estimateTokens(framePointer(entry.name ?? "(image)", entry.path));
+        }
         if (entry.kind === "image")
           return estimateImageTokens(entry.width, entry.height);
         return KCDPrimitive_1.KCDPrimitive._estimateTokens(_Transcript._entryText(entry));
@@ -4078,9 +4535,29 @@ ${text}`;
             return frameFile(entry.name, entry.text);
           case "image":
             return (entry.name ?? "(image)") + (entry.width && entry.height ? ` ${entry.width}\xD7${entry.height}` : "");
+          // The COPY-PASTE body, and the reason this entry exists at all: everything known about the
+          // failure, in the order a person reads it, as one selectable block. The provider's own body is
+          // last and VERBATIM — it is the part that names the offending block of a rejected request, and
+          // clipping it here would leave the reader with a summary of the thing they came to read.
+          case "error":
+            return _Transcript._errorText(entry);
           default:
             return Assert_1.Assert.never(entry);
         }
+      }
+      /** An error entry's full text. Sections are dropped when absent rather than printed empty: a socket
+       *  fault has no status and no body, and `status: —` is noise pretending to be information. */
+      static _errorText(entry) {
+        const parts = [];
+        parts.push(entry.status ? `${entry.status} ${entry.code}` : entry.code);
+        if (entry.message)
+          parts.push(entry.message);
+        for (const [key, value] of Object.entries(entry.detail ?? {})) {
+          parts.push(`${key}: ${typeof value === "string" ? value : JSON.stringify(value)}`);
+        }
+        if (entry.body)
+          parts.push(entry.body);
+        return parts.join("\n\n");
       }
       /**
        * How ONE entry presents — the single kind→look table for the whole app ( see RowDisplay ).
@@ -4110,6 +4587,12 @@ ${text}`;
             return { icon: "file", color: "--reference" };
           case "image":
             return { icon: "camera", color: "--external" };
+          // `stop`, deliberately NOT the `warning` a failed tool-result wears. Both are --error, and that is
+          // right — they are the same family — but they are not the same event: a tool that errored is
+          // survivable and the turn carried on past it, while this is the row where the turn ENDED. Sharing
+          // one glyph made a hiccup and a death look identical in a scan down the itinerary.
+          case "error":
+            return { icon: "stop", color: "--error" };
           default:
             return Assert_1.Assert.never(entry);
         }
@@ -4131,6 +4614,10 @@ ${text}`;
             return `file ${entry.name}`;
           case "image":
             return "image";
+          // Leads with the status because "is this mine, theirs, or the network's" is the question a
+          // failed turn is scanned to answer.
+          case "error":
+            return entry.status ? `error ${entry.status} ${entry.code}` : `error ${entry.code}`;
           default:
             return Assert_1.Assert.never(entry);
         }
@@ -4185,6 +4672,12 @@ var require_Session = __commonJS({
        *  arrival via bindCompactions(). Its home of record is the `session_compactions` table. Empty until
        *  bound, so the projection below is a no-op on a session that has never compacted. */
       compactions = [];
+      /** Attachments made but NOT yet carried by a turn. The same species as `transcript`: non-persisted
+       *  object state, never in SerializedSession. They drain onto the turn the orchestrator opens, ahead of
+       *  the user's prompt — which is what makes them persist for free ( the turn's `entries` column is
+       *  written when it ends ) and keeps a Turn atomic: a prompt plus everything that answered it. Before
+       *  the first send there is no turn to hold them, which is the whole reason this list exists. */
+      pendingAttachments = [];
       constructor(id, agentId, title, folder, tags, createdAt, lastActive, status, zoom, fontFamily, policies) {
         this.id = id;
         this.agentId = agentId;
@@ -4335,6 +4828,19 @@ var require_Session = __commonJS({
        *  account of what happened; it is simply no longer context. */
       _projected() {
         return this.transcript.windowed(this.policies.retention).compacted(this.compactions);
+      }
+      /**
+       * Every attachment this session carries — those already on a turn plus anything attached since the
+       * last send. ONE reader, so the gutter and the compactor cannot disagree about a file the user
+       * attached thirty seconds ago and has not sent yet.
+       *
+       * Reads the WHOLE transcript rather than `_projected()`: this answers "what is attached", not "what
+       * rides", and a file whose turn fell out of the window is still attached — it is simply not in
+       * context. Conflating the two is what would make a file vanish from the gutter the moment the window
+       * narrowed, with no way to get it back.
+       */
+      attachments() {
+        return [...this.transcript.attachments(), ...this.pendingAttachments];
       }
       /** The DYNAMIC half of the wire — the projected transcript as neutral messages a connector maps to its
        *  provider format ( thinking excluded ). Joins agent.wireSystem() ( the stable half ) at send: the
@@ -4782,119 +5288,6 @@ var require_constellation = __commonJS({
     __exportStar(require_Constellation(), exports2);
     __exportStar(require_types2(), exports2);
     __exportStar(require_Validation(), exports2);
-  }
-});
-
-// ../kcd_sdk/dist/core/InstallManifest.js
-var require_InstallManifest = __commonJS({
-  "../kcd_sdk/dist/core/InstallManifest.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.InstallManifest = void 0;
-    var MANIFEST = [
-      {
-        bundleSource: "lenses/_lens_base.html",
-        vaultHome: "lenses/_lens_base.html",
-        required: true,
-        purpose: "The base lens, auto-loaded into every session. A vault without it has no floor to stand on."
-      },
-      {
-        bundleSource: "lenses/lens_crafter",
-        vaultHome: "lenses/lens_crafter",
-        required: true,
-        purpose: 'The authoring lens. REQUIRED, not a nicety: the bundled kcd-onboard skill defers all lens-authoring taste to it ( `kcd_compile { lenses: ["lens_crafter"] }` ) before writing anything, so a vault without it leaves the only shipped skill compiling nothing at the exact step where it starts producing value. Shipped as a directory so the lens keeps its `{name}/{name}.html` + `context/` anatomy.'
-      },
-      {
-        bundleSource: "habits",
-        vaultHome: "habits",
-        required: true,
-        purpose: "Atomic behavior fragments the base lens and every domain lens link into."
-      },
-      {
-        bundleSource: "analyzers/_analyzer_base.html",
-        vaultHome: "analyzers/_analyzer_base.html",
-        required: true,
-        purpose: "The shared analyzer contract every read-anywhere, write-one-report agent extends."
-      },
-      {
-        bundleSource: "generators",
-        vaultHome: "generators",
-        required: true,
-        purpose: "The base generator contract plus the bundled manifest-driven write agents."
-      },
-      {
-        bundleSource: "contracts",
-        vaultHome: "contracts",
-        required: true,
-        purpose: "The behavioral agreements the bundled lenses and generators are evaluated against."
-      },
-      {
-        bundleSource: "references/kcd_sdk",
-        vaultHome: "references/kcd_sdk",
-        required: true,
-        purpose: "The protocol and primitives references the framework itself assumes a vault can link to."
-      },
-      {
-        bundleSource: "references/how-to",
-        vaultHome: "references/how-to",
-        required: true,
-        purpose: 'Procedural references the bundled lenses link into by path. Currently read-a-survey, which lens_crafter loads when proposing artifacts for an unfamiliar codebase \u2014 the "read this INSTEAD of exploring" instruction that the whole survey-as-anchor design rests on.'
-      },
-      {
-        bundleSource: "utilities/deployed",
-        vaultHome: "utilities/deployed",
-        required: false,
-        purpose: "Bundled example utilities for the registered tool tier \u2014 a starting point, not a requirement."
-      },
-      {
-        bundleSource: "root.html",
-        vaultHome: "root.html",
-        required: true,
-        purpose: "THE ENTRY DOCUMENT \u2014 the first thing every session reads, and what the generated CLAUDE.md points at. Required in the strongest sense: `root-context.html` instructs the agent to open it three times over, so a vault without it hands every new user a broken first instruction. It was missing entirely until 2026-07-26. Shipped as a starting point and meant to be edited; `lens-index` splices its Lenses table."
-      },
-      {
-        bundleSource: "root-context.html",
-        vaultHome: "root-context.html",
-        required: true,
-        purpose: "The host-seed carrier \u2014 CLAUDE.md / AGENTS.md / GEMINI.md are generated from this."
-      },
-      {
-        bundleSource: "kcd.css",
-        vaultHome: "kcd.css",
-        required: true,
-        purpose: "The vault-wide stylesheet every governed document links."
-      },
-      {
-        bundleSource: "kcd_framework.html",
-        vaultHome: "kcd_framework.html",
-        required: false,
-        purpose: "The framework's own self-description \u2014 useful context, not load-bearing."
-      }
-    ];
-    var InstallManifest = class {
-      /** Every row, in table order. */
-      static all() {
-        return MANIFEST;
-      }
-      /**
-       * The row governing a vault-relative deployed path, or null when nothing in the manifest owns
-       * it. Longest matching `vaultHome` prefix wins, mirroring `VaultLayout.entryFor` — a specific row
-       * ( `references/kcd_sdk` ) can sit inside a directory this table does not otherwise cover.
-       */
-      static entryFor(vaultRelPath) {
-        const norm = vaultRelPath.replace(/\\/g, "/");
-        let best = null;
-        for (const entry of MANIFEST) {
-          if (norm !== entry.vaultHome && !norm.startsWith(entry.vaultHome + "/"))
-            continue;
-          if (best && best.vaultHome.length >= entry.vaultHome.length)
-            continue;
-          best = entry;
-        }
-        return best;
-      }
-    };
-    exports2.InstallManifest = InstallManifest;
   }
 });
 
@@ -9191,7 +9584,6 @@ var require_Vault = __commonJS({
     var core_1 = require_core();
     var scanner_1 = require_scanner2();
     var io_1 = require_io();
-    var NAV_INDEX_FILE = "nav-index.html";
     var Vault2 = class _Vault {
       projectRoot;
       docRoot;
@@ -9228,6 +9620,19 @@ var require_Vault = __commonJS({
       /** Classify a path ( vault-relative or absolute ) into its ArtifactType. */
       classify(anyPath) {
         return core_1.LensObject.classifyByPath(this.toAbs(anyPath), this.projectRoot, this.docRoot);
+      }
+      /** Every document type that may legally be written at this path — `classify`'s write-time
+       *  counterpart. Empty = untyped space, anything goes. */
+      acceptedTypes(anyPath) {
+        return core_1.VaultLayout.acceptedTypes(this.relToProject(anyPath), this.docRoot);
+      }
+      /** May a document declaring `declared` be written at this path? The write guard's one question. */
+      accepts(anyPath, declared) {
+        return core_1.VaultLayout.accepts(this.relToProject(anyPath), declared, this.docRoot);
+      }
+      /** Project-root-relative, forward-slashed — the currency both VaultLayout entry points take. */
+      relToProject(anyPath) {
+        return path2.relative(this.projectRoot, this.toAbs(anyPath)).replace(/\\/g, "/");
       }
       /** Resolve a raw link href to an absolute path, against this vault's project root. */
       resolveHref(href) {
@@ -9292,7 +9697,7 @@ var require_Vault = __commonJS({
               continue;
             }
             const name = entry.name.toLowerCase();
-            if (!name.endsWith(".html") || name === NAV_INDEX_FILE)
+            if (!name.endsWith(".html") || name === core_1.VaultLayout.NAV_INDEX_FILE)
               continue;
             total += 1;
           }
@@ -9323,6 +9728,68 @@ var require_Vault = __commonJS({
           depth: opts?.depth,
           eager: opts?.eager
         });
+      }
+      /** A lens NAME to its vault-relative path, via the `lenses/{name}/{name}.html` anatomy. A value that
+       *  already looks like a path ( carries a separator or an `.htm(l)` suffix ) is passed through as-is, so
+       *  callers can name a lens either way — including the flat, non-directory lenses like the base floor. */
+      lensPath(nameOrPath) {
+        if (nameOrPath.includes("/") || /\.html?$/i.test(nameOrPath))
+          return nameOrPath;
+        return `lenses/${nameOrPath}/${nameOrPath}.html`;
+      }
+      // ── Agent construction ────────────────────────────────────────────────────
+      /**
+       * Build a DUMB agent over the named lenses — the vault face's compile-ready container, and the reason
+       * a vault can compile context at all without Starmind's database behind it.
+       *
+       * It is dumb in the precise sense: a substrate for lenses and a bucket of behavior, with no persisted
+       * identity, no model, and no bound environment. From that point on it is an ordinary `Agent` and the
+       * whole assembly engine — slot resolution, care bands, band headings, the manifest — applies to it
+       * exactly as it does to an authored one. That is the point: one compiler, and the only difference
+       * between the two faces is what each can source.
+       *
+       * Deliberately NOT given: `toolDefs` and `memory`. A vault cannot know a host's live tool schemas or
+       * reach a memory store, and inventing either would be the dishonest-field problem in a new place. A
+       * lens's authored tool MODES still ride, because those are identity and travel with the lens.
+       *
+       * `model` is null on purpose ( see `Agent.model` ): this agent compiles context for delivery as CLI
+       * text or a tool result and never dispatches, so there is no model to name. The name is left to
+       * `Agent.create`, which takes it from the first AUTHORED lens — never the floor.
+       *
+       * This lives on `Vault` and not on `Agent` because an agent cannot construct itself: `Agent` is
+       * deliberately Node-free ( the renderer imports it ), while resolving a lens NAME to a dredged
+       * `LensObject` needs disk, path math, and the ( projectRoot, docRoot ) pair this facade already owns.
+       *
+       * Starmind does NOT route through here. Its agents come from database rows carrying identity and
+       * per-artifact override maps that a list of lens names cannot express; the two faces share the engine
+       * and the floor policy, not the constructor.
+       *
+       * Throws on an empty list or a name that resolves to nothing — an unresolvable lens is a caller error,
+       * not a degraded compile. A MISSING BASE LENS is different and is tolerated: a half-installed or
+       * hand-built vault still compiles, just without a floor.
+       */
+      buildAgent(lensNames) {
+        if (!lensNames.length)
+          throw new Error("buildAgent requires at least one lens");
+        const lenses = lensNames.map((name) => {
+          const rel = this.lensPath(name);
+          if (!fs.existsSync(this.toAbs(rel)))
+            throw new Error(`no lens found for "${name}" ( looked for ${rel} )`);
+          return this.loadLens(rel);
+        });
+        return core_1.Agent.create({
+          id: core_1.Agent.VAULT_AGENT_ID,
+          model: null,
+          lenses: core_1.Agent.withFloor(lenses, this.loadBaseLens())
+        });
+      }
+      /** The base lens, freshly dredged, or null when this vault has none ( half-installed / hand-built —
+       *  tolerated, not fatal ). FRESH every call, never cached: a `LensObject` carries mutable dredge state,
+       *  so a shared floor would leak one agent's toggles into every other agent wearing it. */
+      loadBaseLens() {
+        if (!fs.existsSync(this.toAbs(core_1.InstallManifest.BASE_LENS)))
+          return null;
+        return this.loadLens(core_1.InstallManifest.BASE_LENS);
       }
       // ── Authoring / heal ──────────────────────────────────────────────────────
       /**
@@ -9424,19 +9891,26 @@ var require_Vault = __commonJS({
         this.assertNoResidual(targetAbs, "delete");
         return plan;
       }
-      /** Artifacts that reference `targetAbs` by IDENTITY — a `base` or `lens` frontmatter slug naming it.
-       *  These block a delete ( unlike href links, which heal ). Returns their vault-relative paths. */
+      /** Artifacts that reference `targetAbs` by IDENTITY — a `base` or `lens` frontmatter field naming it.
+       *  These block a delete ( unlike href links, which heal ). Returns their vault-relative paths.
+       *
+       *  `lens` is a LIST ( the lenses a session wore, in invocation order ), so naming the target ANYWHERE
+       *  in that list counts — a plan authored under three lenses depends on all three. `base` stays a
+       *  scalar slug. Both shapes are read through `names()` so a hand-edited document that still carries
+       *  the retired scalar form is matched rather than silently skipped. */
       identityDependents(targetAbs) {
         const files = this.scan();
         const target = files.find((f) => f.path === targetAbs);
         const name = target && typeof target.frontmatter["name"] === "string" ? target.frontmatter["name"] : "";
         if (!name)
           return [];
+        const names = (value) => Array.isArray(value) ? value.map(String) : typeof value === "string" ? [value] : [];
         const out = [];
         for (const f of files) {
           if (f.path === targetAbs)
             continue;
-          if (f.frontmatter["base"] === name || f.frontmatter["lens"] === name)
+          const identities = [...names(f.frontmatter["base"]), ...names(f.frontmatter["lens"])];
+          if (identities.includes(name))
             out.push(f.relativePath);
         }
         return out;
@@ -9624,29 +10098,39 @@ var require_VaultUtilities = __commonJS({
       /**
        * Compile one or more lenses to a context string — Daedalus's LENS-scoped compiler.
        *
-       * Deliberately NOT the agent compiler: it reuses only the stable low-level primitives a lens
-       * already self-compiles through ( `LensObject.getContextBlocks` → `SlotResolver.compile`, exactly
-       * what `LensObject.serializeForContext` does ), and touches none of the agent's environment-folding
-       * ( root context, live MCP tool defs, DB memory ) — those are RUNTIME layers a standalone vault has
-       * no source for, and they belong to Starmind. For a single lens the output equals that lens's own
-       * `serializeForContext()`; multiple lenses fold into one context, cross-lens habit contention resolved
-       * together. The "basic compilation framework" — advanced composition ( full agents ) requires Starmind.
+       * Builds a DUMB agent over the named lenses ( `Vault.buildAgent` ) and compiles that — so the vault face
+       * and Starmind now resolve lenses, apply the inheritance floor, and rank habit-class contention through
+       * exactly the same code. What a vault still cannot supply is the agent's ENVIRONMENT ( root context, live
+       * MCP tool defs, DB memory ): those are runtime layers with no vault-side source, so a vault agent simply
+       * never binds them. That is the whole difference between the faces — not a different compiler.
+       *
+       * There is no longer a second compiler. The text is the agent's own `compile()`, so this face emits the
+       * by-KIND care bands, the band headings, and the bottom-of-context manifest exactly as Starmind does —
+       * and drops the legacy `stub` blocks, whose rows the manifest's routing tables already carry. What used
+       * to sit here was a flat `LensObject.getContextBlocks` → `SlotResolver.compile` pipeline that shipped
+       * none of that; the divergence was invisible because each face's output looked internally consistent.
+       *
+       * THE BASE LENS ALWAYS RIDES, and there is no flag to suppress it ( ruling: Bryan, 2026-07-29 ).
+       * Base is an INHERITANCE mechanism, not an ingredient — a compile that drops it is not a leaner
+       * compile, it is a wrong one. `InstallManifest` already declared the contract this honours ( base is
+       * `required: true` floor whose purpose line reads "auto-loaded into every session; a vault without it
+       * has no floor to stand on" ); until 2026-07-29 this compiler simply never implemented it, so the
+       * Daedalus face silently shipped every session a context missing fourteen habits — `write-approval`
+       * among them. The omission was camouflaged: a lens that re-declares part of the floor makes the missing
+       * rest look present. The rule now lives once, in `Agent.withFloor`, which both faces call — the previous
+       * arrangement spelled it per face and relied on a comment to keep them honest, and they diverged anyway.
        *
        * Each name is a bare lens name ( mapped to the `lenses/{name}/{name}.html` convention ) OR a raw
        * vault-relative path. `[0]` is primary. Throws on an empty list or a name that resolves to nothing.
+       * The returned `lenses` reports what actually COMPILED, base included — reporting only what was asked
+       * for is how the floor stayed invisible in the first place. Because it is read off the built agent, a
+       * lens named by raw path reports its artifact NAME, not the path that was passed in.
        */
       static compile(vault, lensNames) {
-        if (lensNames.length === 0)
-          throw new Error("compile requires at least one lens");
-        const lenses = lensNames.map((name) => {
-          const rel = this.lensPath(name);
-          if (!fs.existsSync(vault.toAbs(rel)))
-            throw new Error(`no lens found for "${name}" ( looked for ${rel} )`);
-          return vault.loadLens(rel);
-        });
-        const blocks = lenses.flatMap((l) => l.getContextBlocks());
-        const text = primitives_1.SlotResolver.compile(blocks);
-        return { lenses: lensNames, text, tokens: primitives_1.KCDPrimitive._estimateTokens(text) };
+        const agent = vault.buildAgent(lensNames);
+        const compiled = agent.lenses.map((l) => l.getName());
+        const text = agent.compile();
+        return { lenses: compiled, text, tokens: primitives_1.KCDPrimitive._estimateTokens(text) };
       }
       /**
        * A lens's compiled-context DETAIL — the structured breakdown behind the `show` chart. Reads the same
@@ -9657,7 +10141,7 @@ var require_VaultUtilities = __commonJS({
        * what you inspect; a multi-lens compile is `compile()` ).
        */
       static lensView(vault, name) {
-        const rel = this.lensPath(name);
+        const rel = vault.lensPath(name);
         if (!fs.existsSync(vault.toAbs(rel)))
           throw new Error(`no lens found for "${name}" ( looked for ${rel} )`);
         const lens = vault.loadLens(rel);
@@ -9718,13 +10202,6 @@ var require_VaultUtilities = __commonJS({
           return "contract";
         return "";
       }
-      /** A bare name → the lens-file convention; a value already carrying a slash or an `.html` tail is a
-       *  raw vault-relative path, used as-is. */
-      static lensPath(nameOrPath) {
-        if (nameOrPath.includes("/") || /\.html?$/i.test(nameOrPath))
-          return nameOrPath;
-        return `lenses/${nameOrPath}/${nameOrPath}.html`;
-      }
       /**
        * The single read-query over a vault — glob, type, and text, AND-combined over one scan.
        * `glob` short-circuits through the Vault's own path filter; `type`/`text` narrow the
@@ -9780,6 +10257,28 @@ var require_VaultUtilities = __commonJS({
         return _VaultUtilities.parseSeedsFrom(vault.read(ROOT_CONTEXT_PATH));
       }
       /**
+       * The project-root-relative FILES an install writes outside the vault — the host entry points, taken
+       * from the §10 seed declarations rather than named here, plus the MCP registration file. One place
+       * answers "what did we put in this repository", so a consumer never re-derives the list and cannot
+       * drift from it.
+       *
+       * Files only, and deliberately: the other two things an install creates ( the vault itself and
+       * `.claude/skills/` ) are DIRECTORIES, which every consumer so far excludes structurally — `Survey`
+       * skips the doc root by name and every dot-directory by rule. Adding them here would imply a
+       * completeness this does not have.
+       *
+       * Tolerant of a vault with no seed carrier yet: nothing has been seeded, so there is nothing to name.
+       * An absent `root-context.html` is a half-built vault, not a failure ( absence is not failure ).
+       */
+      static installedPaths(vault) {
+        const out = [".mcp.json"];
+        try {
+          out.push(...this.parseSeeds(vault).map((s) => s.target));
+        } catch {
+        }
+        return out;
+      }
+      /**
        * The same parse, against raw HTML rather than a deployed vault.
        *
        * The two currencies are genuinely different, not a convenience wrapper: at INSTALL time there is
@@ -9831,14 +10330,16 @@ var require_VaultUtilities = __commonJS({
           }
           return { host: seed.host, target: seed.target, mode: seed.mode, targetExisted: existed, hadManagedBlock: false, changed: changed2, applied: !!opts?.confirm && changed2 };
         }
-        const current = existed ? fs.readFileSync(targetAbs, "utf-8") : "";
+        const raw = existed ? fs.readFileSync(targetAbs, "utf-8") : "";
+        const bom = raw.startsWith("\uFEFF") ? "\uFEFF" : "";
+        const current = raw.slice(bom.length);
         const blockRe = /<!--\s*kcd:begin\s*-->[\s\S]*?<!--\s*kcd:end\s*-->/;
         const hadBlock = blockRe.test(current);
         const block = `<!-- kcd:begin -->
 ${seed.payload}
 <!-- kcd:end -->`;
-        const next = hadBlock ? current.replace(blockRe, block) : block + (current ? "\n\n" + current : "\n");
-        const changed = next !== current;
+        const next = bom + (hadBlock ? current.replace(blockRe, block) : block + (current ? "\n\n" + current : "\n"));
+        const changed = next !== raw;
         if (changed && opts?.confirm) {
           fs.mkdirSync(path2.dirname(targetAbs), { recursive: true });
           fs.writeFileSync(targetAbs, next, "utf-8");
@@ -9988,6 +10489,14 @@ ${entries.join("\n")}
        * target with no covering row ( content the manifest never declared ) simply has no canonical
        * counterpart; that is a normal, reportable outcome, not an error.
        *
+       * CANONICAL IS THE SHIPPING COPY, NOT A PRISTINE ANCESTOR. The bundle was deliberately
+       * genericized so a fresh install validates clean, which means a grown project's copy of the same
+       * document is routinely LONGER and richer than canonical — `differs` is the expected steady state
+       * for most bundled documents, not a signal that something broke. Restoring one therefore
+       * REPLACES local prose rather than repairing corruption. `drift` exists so a caller can size that
+       * before deciding; a caller that reports "differs" without it is handing the user a decision they
+       * cannot make.
+       *
        * CONFIRM-FIRST, per-artifact: called with no `opts` ( or `confirm: false` ), this only
        * reports — `applied` is always `false` and nothing on disk changes. Pass `confirm: true` to
        * actually overwrite, and only once the caller has seen the report. A target already
@@ -9999,19 +10508,56 @@ ${entries.join("\n")}
         const targetAbs = vault.toAbs(rel);
         const entry = core_1.InstallManifest.entryFor(rel);
         if (!entry)
-          return { path: rel, canonicalPath: "", hasCanonical: false, targetExisted: fs.existsSync(targetAbs), identical: false, applied: false };
+          return { path: rel, canonicalPath: "", hasCanonical: false, targetExisted: fs.existsSync(targetAbs), identical: false, applied: false, drift: null };
         const tail = rel === entry.vaultHome ? "" : rel.slice(entry.vaultHome.length + 1);
         const canonicalPath = path2.join(substrateSource, entry.bundleSource, tail);
         const hasCanonical = fs.existsSync(canonicalPath) && fs.statSync(canonicalPath).isFile();
         const targetExisted = fs.existsSync(targetAbs);
         if (!hasCanonical)
-          return { path: rel, canonicalPath, hasCanonical, targetExisted, identical: false, applied: false };
+          return { path: rel, canonicalPath, hasCanonical, targetExisted, identical: false, applied: false, drift: null };
         const canonicalContent = fs.readFileSync(canonicalPath, "utf-8");
-        const identical = targetExisted && fs.readFileSync(targetAbs, "utf-8") === canonicalContent;
+        const deployedContent = targetExisted ? fs.readFileSync(targetAbs, "utf-8") : null;
+        const identical = deployedContent === canonicalContent;
+        const drift = deployedContent === null || identical ? null : _VaultUtilities.lineDrift(deployedContent, canonicalContent);
         const apply = !!opts?.confirm && !identical;
         if (apply)
           vault.write(rel, canonicalContent);
-        return { path: rel, canonicalPath, hasCanonical, targetExisted, identical, applied: apply };
+        return { path: rel, canonicalPath, hasCanonical, targetExisted, identical, applied: apply, drift };
+      }
+      /**
+       * Lines one side holds that the other does not, counted as a multiset — a line appearing twice on
+       * the left and once on the right contributes one. Deliberately NOT a diff: no alignment, no
+       * hunks, no move detection, so a block that shifted position still reads as unchanged content.
+       *
+       * Line-ending and trailing-whitespace insensitive, because a CRLF/LF mismatch is not a content
+       * difference and this project has documents of both conventions ( `root.html` is CRLF,
+       * `CLAUDE.md` is LF ) — counting that as a full rewrite would make every number useless.
+       *
+       * It CANNOT see through reflow, though: a minified document and a wrapped one share no whole
+       * lines at all, so the counts read as a total rewrite. That is why the totals are returned
+       * alongside — the caller needs them to tell the two situations apart.
+       */
+      static lineDrift(left, right) {
+        const bag = (s) => {
+          const m = /* @__PURE__ */ new Map();
+          for (const line of s.split(/\r?\n/)) {
+            const k = line.trimEnd();
+            m.set(k, (m.get(k) ?? 0) + 1);
+          }
+          return m;
+        };
+        const l = bag(left), r = bag(right);
+        let onlyInDeployed = 0, onlyInCanonical = 0;
+        for (const [k, n] of l)
+          onlyInDeployed += Math.max(0, n - (r.get(k) ?? 0));
+        for (const [k, n] of r)
+          onlyInCanonical += Math.max(0, n - (l.get(k) ?? 0));
+        let deployedLines = 0, canonicalLines = 0;
+        for (const n of l.values())
+          deployedLines += n;
+        for (const n of r.values())
+          canonicalLines += n;
+        return { onlyInDeployed, onlyInCanonical, deployedLines, canonicalLines };
       }
       /**
        * Categorize every file under `kcd/` into one of the three real migration states. `overrides`
@@ -10094,36 +10640,43 @@ ${entries.join("\n")}
         return reports;
       }
       /**
-       * Fix every document's stylesheet `<link>` to point at `kcd.css`'s CURRENT location, recomputed
-       * fresh from each file's own depth. Deliberately unconditional — every document in the vault
-       * shares the one stylesheet, so this recomputes every link rather than trying to detect which
-       * ones point at a stale path; a link already correct is simply reported `applied: false`
-       * ( nothing to do ), not skipped.
+       * Normalize every document's stylesheet `<link>` onto `cssHref` — the ONE configured absolute
+       * `file:///` URL every document in the vault shares. Deliberately unconditional: a link already
+       * correct is reported `applied: false` ( nothing to do ), not skipped.
+       *
+       * This used to recompute a RELATIVE href from each file's own depth, mirroring the same math the
+       * emitter ran — and existed largely to keep those two copies of the math agreeing. The href is now
+       * one value handed in by whoever knows the install ( daedalus `Config`, tiers 1–4 ), so there is no
+       * per-file computation left to get wrong and no second copy to drift.
+       *
+       * NOT automatic and not required. Documents written through `kcd_save` are born with the configured
+       * href; the older relative links still resolve on their own. This is the opt-in one-shot for making
+       * an existing corpus uniform, invoked only by `daedalus fix-css confirm`.
+       *
+       * KNOWN GAP ( unchanged, deliberate ): matches one exact `<link rel="stylesheet" href="…">` form and
+       * passes over a document with no link, or a link whose attribute order differs, WITHOUT reporting
+       * it. The totals are "of the links we recognized", not "of every document".
        */
-      static fixStylesheetLinks(vault, cssHome, opts) {
+      static fixStylesheetLinks(vault, cssHref, opts) {
         const reports = [];
         const linkRe = /<link\s+rel="stylesheet"\s+href="([^"]+)"\s*\/?>/;
         for (const f of vault.scan()) {
           const rel = f.relativePath.replace(/\\/g, "/");
-          if (rel === cssHome)
-            continue;
           const raw = vault.read(rel);
           const m = linkRe.exec(raw);
           if (!m)
             continue;
-          const depth = rel.split("/").length - 1;
-          const newHref = (depth === 0 ? "" : "../".repeat(depth)) + cssHome;
           const oldHref = m[1];
-          if (oldHref === newHref) {
-            reports.push({ path: rel, oldHref, newHref, applied: false });
+          if (oldHref === cssHref) {
+            reports.push({ path: rel, oldHref, newHref: cssHref, applied: false });
             continue;
           }
           if (opts?.confirm) {
             const before = raw.slice(0, m.index);
             const after = raw.slice(m.index + m[0].length);
-            vault.write(rel, before + m[0].replace(oldHref, newHref) + after);
+            vault.write(rel, before + m[0].replace(oldHref, cssHref) + after);
           }
-          reports.push({ path: rel, oldHref, newHref, applied: !!opts?.confirm });
+          reports.push({ path: rel, oldHref, newHref: cssHref, applied: !!opts?.confirm });
         }
         return reports;
       }
@@ -10290,7 +10843,7 @@ var require_VaultDeploy = __commonJS({
        *  when absent, and deliberately minimal: it is a starting point the project grows, not a
        *  generated artifact that would fight being edited. */
       static _navIndex(vault, write) {
-        const rel = "nav-index.html";
+        const rel = core_1.VaultLayout.NAV_INDEX_FILE;
         const dest = path2.join(vault, rel);
         const present = fs.existsSync(dest);
         const item = { kind: "file", path: rel, present, note: "the vault entry map" };
@@ -10569,11 +11122,21 @@ var require_Survey = __commonJS({
        * only question this asks. Left unskipped, a freshly installed vault ( ~44 framework documents )
        * swamps a small project entirely, and every agent reading the roster concludes the project is
        * made of KCD HTML. Found 2026-07-25, when a 6-file test project surveyed as 50 files.
+       *
+       * The AGENT SCAFFOLDING is excluded too, by the same argument, via `skipPaths` — the host entry files
+       * and the MCP registration file are configuration for the agent, not substance of the project. The
+       * caller supplies the list ( `VaultUtilities.installedPaths` derives it from the §10 seed declarations )
+       * rather than this module naming those files, which keeps Survey dependency-free over fs+path and keeps
+       * one authority for "what did the install write". Found 2026-07-29: a 26-file corpus surveyed as 30, and
+       * those four files were enough to flip the root component's kind from `unknown` to `docs` — a database
+       * and ops folder reported as documentation, on the strength of three Markdown files the installer had
+       * written seconds earlier. That roster is the walkthrough's entire evidence base.
        */
       static run(projectRoot, opts) {
         const root = path2.resolve(projectRoot);
         const maxFiles = opts?.maxFiles ?? MAX_FILES;
         const docRoot = opts?.docRoot ?? DEFAULT_DOC_ROOT2;
+        const skipPaths = new Set((opts?.skipPaths ?? []).map((p) => p.replace(/\\/g, "/")));
         const files = [];
         const manifests = [];
         let directories = 0, truncated = false;
@@ -10601,12 +11164,15 @@ var require_Survey = __commonJS({
             }
             if (!entry.isFile())
               continue;
+            const relPath = rel(abs);
+            if (skipPaths.has(relPath))
+              continue;
             let size = 0;
             try {
               size = fs.statSync(abs).size;
             } catch {
             }
-            files.push({ rel: rel(abs), size, inTestDir, base: entry.name });
+            files.push({ rel: relPath, size, inTestDir, base: entry.name });
             const eco = MANIFESTS[entry.name] ?? (entry.name.endsWith(".csproj") ? "dotnet" : void 0);
             if (eco)
               manifests.push({ dir: rel(path2.dirname(abs)), file: rel(abs), ecosystem: eco });
@@ -11420,7 +11986,9 @@ var import_kcd_sdk = __toESM(require_dist());
 var HOST_SLICE_ENV = "STARMIND_PACKAGE_STORE";
 var PROJECT_ROOT_ENV = "DAEDALUS_PROJECT_ROOT";
 var DOC_ROOT_ENV = "DAEDALUS_DOC_ROOT";
+var CSS_PATH_ENV = "DAEDALUS_CSS_PATH";
 var DEFAULT_DOC_ROOT = "_Claude";
+var DEFAULT_CSS_FILE = "kcd.css";
 var Config = class _Config {
   static argument = {};
   /**
@@ -11431,8 +11999,10 @@ var Config = class _Config {
   static override(values) {
     const root = _Config.str(values.projectRoot);
     const doc = _Config.str(values.docRoot);
+    const css = _Config.str(values.cssPath);
     if (root) _Config.argument.projectRoot = root;
     if (doc) _Config.argument.docRoot = doc;
+    if (css) _Config.argument.cssPath = css;
   }
   /**
    * Resolve both fields through the tiers. Read fresh on every call: the host slice is a live
@@ -11450,11 +12020,47 @@ var Config = class _Config {
       ["host-slice", slice["projectRoot"]],
       ["environment", process.env[PROJECT_ROOT_ENV]]
     ]) ?? _Config.infer(docRoot.value);
+    const root = path.resolve(projectRoot.value);
+    const cssPath = _Config.pick([
+      ["argument", _Config.argument.cssPath],
+      ["host-slice", slice["cssPath"]],
+      ["environment", process.env[CSS_PATH_ENV]]
+    ]) ?? { value: _Config.deriveCssPath(root, docRoot.value), source: "fallback" };
     return {
-      projectRoot: path.resolve(projectRoot.value),
+      projectRoot: root,
       docRoot: docRoot.value,
-      source: { projectRoot: projectRoot.source, docRoot: docRoot.source }
+      cssPath: cssPath.value,
+      cssHref: _Config.cssUrl(cssPath.value),
+      source: { projectRoot: projectRoot.source, docRoot: docRoot.source, cssPath: cssPath.source }
     };
+  }
+  /**
+   * A configured stylesheet path → the `file:///` URL a document carries.
+   *
+   * A person configures the part AFTER the scheme — a plain absolute path, because that is what
+   * copying a path actually gives you and `C:\…` is what "absolute" MEANS on this platform. The
+   * scheme is ours to add. Total by construction, so a paste in any shape a person actually produces
+   * lands on the same URL:
+   *
+   *   "C:\Code\ContextManager\_Claude\kcd.css"        ← Explorer's Copy as path, quotes and all
+   *   C:\Code\ContextManager\_Claude\kcd.css
+   *   C:/Code/ContextManager/_Claude/kcd.css
+   *   file:///C:/Code/ContextManager/_Claude/kcd.css  ← already a URL; the scheme comes OFF, not doubled
+   *
+   * Applied at RESOLVE rather than at the config screen's commit, because the same value can arrive
+   * from an env var or a spawn flag — a normalizer living in the app would leave both unhandled.
+   */
+  static cssUrl(configured) {
+    const bare = configured.trim().replace(/^["']+|["']+$/g, "").replace(/^file:\/+/i, "").replace(/\\/g, "/").replace(/^\/+/, "");
+    return `file:///${bare}`;
+  }
+  /**
+   * The derived stylesheet path — this vault's own `kcd.css`, bare ( the scheme is added by `cssUrl` ).
+   * Derived rather than hardcoded so an install with nothing configured already emits a working link,
+   * which makes the config field a tuning knob instead of a required setup step.
+   */
+  static deriveCssPath(projectRoot, docRoot) {
+    return path.resolve(projectRoot, docRoot, DEFAULT_CSS_FILE).replace(/\\/g, "/");
   }
   /** The first tier holding a usable value, carrying its name; null when every tier is empty. */
   static pick(tiers) {
@@ -11740,23 +12346,29 @@ var GuardChain = class {
   }
 };
 
+// src/guards/PathGuard.ts
+var import_kcd_sdk3 = __toESM(require_dist());
+
 // src/MCPUtils.ts
 var import_kcd_sdk2 = __toESM(require_dist());
 var MCPUtils = class {
-  static cacheKey = "";
+  static cacheRoot = "";
+  static cacheDocRoot = "";
   static cacheVault = null;
   /**
    * The vault bound to this server's CURRENT configured root. A GETTER, not a fixed field: it
    * resolves config fresh through Config's tiers on each access, so a root a host rewrites is
    * picked up on the next tool call with no respawn. The Vault is cached by config value, so it's
-   * only rebuilt when the root actually changes — repeated accesses are cheap.
+   * only rebuilt when the root actually changes — repeated accesses are cheap. Cached against the two
+   * config values FIELD BY FIELD rather than a concatenated key: there is only ever ONE cached Vault, so
+   * a composite key addressed nothing — it only raised the question of a collision-proof separator.
    */
   static get vault() {
     const { projectRoot, docRoot } = Config.resolve();
-    const key = `${projectRoot}\0${docRoot}`;
-    if (key !== this.cacheKey || this.cacheVault === null) {
+    if (projectRoot !== this.cacheRoot || docRoot !== this.cacheDocRoot || this.cacheVault === null) {
       this.cacheVault = new import_kcd_sdk2.Vault(projectRoot, docRoot);
-      this.cacheKey = key;
+      this.cacheRoot = projectRoot;
+      this.cacheDocRoot = docRoot;
     }
     return this.cacheVault;
   }
@@ -11800,20 +12412,30 @@ var PathGuard = class extends AbstractGuard {
     }
   }
   /**
-   * On a save, assert the artifact's declared type matches the type its target directory implies —
-   * a lens cannot be saved into references/, etc. ( the path itself is jailed by validate() ). A
-   * missing/unknown declared type is left to KcdValidate downstream; this only catches a real mismatch.
+   * On a save, assert the target directory ACCEPTS the artifact's declared type — a lens cannot be
+   * saved into references/, etc. ( the path itself is jailed by validate() ). A missing declared type
+   * is left to KcdValidate downstream; this only catches a real category error.
+   *
+   * Asks `accepts`, not `classify`. This used to compare the declared type against the single type the
+   * directory implies, which is a different question and a stricter one: `references/` implies
+   * `reference` and legitimately holds how-tos and notes, so a valid on-disk document that declared
+   * `how-to` could be read and validated but never saved back. VaultLayout owns the accepted set.
+   *
+   * The message names the whole accepted set deliberately. The old one reported only what the directory
+   * implied, which told a caller its type was wrong without telling it what would be right — a dead end
+   * that costs a round trip, or worse, a hand-edit around the tool.
    */
   checkType(writePath, artifact) {
-    const inferredType = MCPUtils.vault.classify(writePath);
     const fm = typeof artifact === "object" && artifact !== null ? artifact["frontmatter"] : void 0;
     const declaredType = typeof fm === "object" && fm !== null ? String(fm["type"] ?? "") : "";
-    if (declaredType && inferredType !== "unknown" && declaredType !== inferredType) {
-      throw new GuardError(
-        `Type mismatch at "${writePath}": directory implies "${inferredType}", artifact declares "${declaredType}"`,
-        "TYPE_MISMATCH"
-      );
-    }
+    if (!declaredType) return;
+    if (MCPUtils.vault.accepts(writePath, declaredType)) return;
+    const allowed = MCPUtils.vault.acceptedTypes(writePath).map((t) => `"${t}"`).join(" | ");
+    const hint = declaredType === "nav-index" && !writePath.replace(/\\/g, "/").endsWith("/" + import_kcd_sdk3.VaultLayout.NAV_INDEX_FILE) ? ` \u2014 a nav-index is identified by its filename, so it must be named "${import_kcd_sdk3.VaultLayout.NAV_INDEX_FILE}"` : "";
+    throw new GuardError(
+      `Type mismatch at "${writePath}": directory accepts ${allowed}, artifact declares "${declaredType}"${hint}`,
+      "TYPE_MISMATCH"
+    );
   }
   /**
    * Nonce validation slot — inert in Phase 2 (stdio transport).
@@ -11826,7 +12448,7 @@ var PathGuard = class extends AbstractGuard {
 };
 
 // src/tools/discovery.ts
-var import_kcd_sdk3 = __toESM(require_dist());
+var import_kcd_sdk4 = __toESM(require_dist());
 function discoveryTools(chain) {
   return [
     {
@@ -11858,7 +12480,7 @@ function discoveryTools(chain) {
       handler: async (args) => {
         try {
           chain.run({ tool: "kcd_query", params: args });
-          const result = import_kcd_sdk3.VaultUtilities.query(MCPUtils.vault, {
+          const result = import_kcd_sdk4.VaultUtilities.query(MCPUtils.vault, {
             glob: typeof args["glob"] === "string" ? args["glob"] : void 0,
             type: typeof args["type"] === "string" ? args["type"] : void 0,
             text: typeof args["text"] === "string" ? args["text"] : void 0,
@@ -11874,7 +12496,7 @@ function discoveryTools(chain) {
 }
 
 // src/tools/read.ts
-var import_kcd_sdk4 = __toESM(require_dist());
+var import_kcd_sdk5 = __toESM(require_dist());
 function readTools(chain) {
   return [
     {
@@ -11905,7 +12527,7 @@ function readTools(chain) {
             const lens = vault.loadLens(filePath, { depth: depth ?? 1 });
             return MCPUtils.result(lens.serialize());
           }
-          const artifact = import_kcd_sdk4.KCDPrimitive.fromHtml(vault.read(filePath), vault.toAbs(filePath));
+          const artifact = import_kcd_sdk5.KCDPrimitive.fromHtml(vault.read(filePath), vault.toAbs(filePath));
           return MCPUtils.result(artifact.serialize());
         } catch (e) {
           return MCPUtils.error(e instanceof Error ? e.message : String(e));
@@ -11928,7 +12550,7 @@ function readTools(chain) {
       handler: async (args) => {
         try {
           chain.run({ tool: "kcd_links", params: args });
-          const result = import_kcd_sdk4.VaultUtilities.links(MCPUtils.vault, String(args["path"] ?? ""));
+          const result = import_kcd_sdk5.VaultUtilities.links(MCPUtils.vault, String(args["path"] ?? ""));
           return MCPUtils.result(result);
         } catch (e) {
           return MCPUtils.error(e instanceof Error ? e.message : String(e));
@@ -11952,7 +12574,7 @@ function readTools(chain) {
         try {
           chain.run({ tool: "kcd_health", params: args });
           const inputPath = typeof args["path"] === "string" ? args["path"] : "";
-          const report = import_kcd_sdk4.VaultUtilities.health(MCPUtils.vault, inputPath || void 0);
+          const report = import_kcd_sdk5.VaultUtilities.health(MCPUtils.vault, inputPath || void 0);
           return MCPUtils.result(report);
         } catch (e) {
           return MCPUtils.error(e instanceof Error ? e.message : String(e));
@@ -11963,10 +12585,10 @@ function readTools(chain) {
       name: "kcd_compile",
       annotations: { readOnlyHint: true },
       spec: [
-        { label: "compiles a single lens", input: { lenses: ["lens_crafter"] }, assertions: [] }
+        { label: "compiles a single lens", input: { lenses: ["lens-crafter"] }, assertions: [] }
       ],
       description: "Compile one or more lenses into one composed context string \u2014 first lens is primary.",
-      doc: "The LENS compiler \u2014 Daedalus's basic context-compilation surface. Give it lens names ( a bare `parser` maps to `lenses/parser/parser.html`; a vault path is used as-is ) and it dredges each lens to its OWN authored depth, folds their context blocks together, resolves habit-class contention, and assembles one context string ( Care-first, manifest tables ). For a single lens the output equals that lens's own compiled context; multiple lenses compose into one, first = primary. Returns `{ lenses, text, tokens }`. This is lens composition only \u2014 the live runtime layers ( model root context, active MCP tool schemas, session memory ) are Starmind's job, not the vault's. Read-only.",
+      doc: "The LENS compiler \u2014 Daedalus's basic context-compilation surface. Give it lens names ( a bare `parser` maps to `lenses/parser/parser.html`; a vault path is used as-is ) and it dredges each lens to its OWN authored depth, folds their context blocks together, resolves habit-class contention, and assembles one context string ( Care-first, manifest tables ). Multiple lenses compose into one, first = primary. The BASE LENS is always included and cannot be suppressed \u2014 it is the vault's inheritance floor ( project-wide stance plus the universal habits ), appended last so a named lens's own habit wins its class. Returns `{ lenses, text, tokens }`, where `lenses` reports what actually compiled, `_lens-base` included. This is lens composition only \u2014 the live runtime layers ( model root context, active MCP tool schemas, session memory ) are Starmind's job, not the vault's. Read-only.",
       inputSchema: {
         type: "object",
         properties: {
@@ -11983,7 +12605,7 @@ function readTools(chain) {
         try {
           chain.run({ tool: "kcd_compile", params: args });
           const lenses = Array.isArray(args["lenses"]) ? args["lenses"].map(String) : [];
-          const result = import_kcd_sdk4.VaultUtilities.compile(MCPUtils.vault, lenses);
+          const result = import_kcd_sdk5.VaultUtilities.compile(MCPUtils.vault, lenses);
           return MCPUtils.result(result);
         } catch (e) {
           return MCPUtils.error(e instanceof Error ? e.message : String(e));
@@ -12022,8 +12644,8 @@ function readTools(chain) {
         try {
           chain.run({ tool: "kcd_survey", params: args });
           const { projectRoot } = Config.resolve();
-          const report = import_kcd_sdk4.Survey.run(projectRoot);
-          return args["full"] === true ? MCPUtils.result(report) : MCPUtils.text(import_kcd_sdk4.Survey.project(report));
+          const report = import_kcd_sdk5.Survey.run(projectRoot, { skipPaths: import_kcd_sdk5.VaultUtilities.installedPaths(MCPUtils.vault) });
+          return args["full"] === true ? MCPUtils.result(report) : MCPUtils.text(import_kcd_sdk5.Survey.project(report));
         } catch (e) {
           return MCPUtils.error(e instanceof Error ? e.message : String(e));
         }
@@ -12033,7 +12655,7 @@ function readTools(chain) {
 }
 
 // src/tools/write.ts
-var import_kcd_sdk5 = __toESM(require_dist());
+var import_kcd_sdk6 = __toESM(require_dist());
 function writeTools(chain) {
   return [
     {
@@ -12052,7 +12674,7 @@ function writeTools(chain) {
         { label: "refuses an artifact that fails validation", input: { path: "references/domain/x.html", artifact: { type: "reference", frontmatter: {}, body: "" } }, assertions: [{ type: "error_expected" }] }
       ],
       description: "Write an artifact, validated first \u2014 a malformed one is refused and nothing lands.",
-      doc: "Persist one artifact by vault-relative `path` from its `artifact` ( a SerializedArtifact \u2014 the shape kcd_get returns ). Emits HTML with KcdEmit: frontmatter is rebuilt from `artifact.frontmatter`, the `body` passes through \u2014 an existing body has its frontmatter block replaced ( the edit path: kcd_get \u2192 mutate \u2192 kcd_save ), a body with none gets one prepended ( the create path ). The result is validated with KcdValidate BEFORE any write: a structural failure returns a structured error and writes NOTHING ( the write-time gate \u2014 can't save a malformed artifact ). On success it writes and returns `{ saved, warnings }`. PathGuard jails the path and checks the declared type matches the target directory. NOTE: agent-authored body HTML is not yet sanitized here ( the render layer sanitizes on display; a save-time sanitize pass is a named deferral ), and structured section/region/slot synthesis ( create a lens from fields alone ) is not built \u2014 supply body HTML.",
+      doc: "Persist one artifact by vault-relative `path` from its `artifact` ( a SerializedArtifact \u2014 the shape kcd_get returns ). Emits HTML with KcdEmit: frontmatter is rebuilt from `artifact.frontmatter`, the `body` passes through \u2014 an existing body has its frontmatter block replaced ( the edit path: kcd_get \u2192 mutate \u2192 kcd_save ), a body with none gets one prepended ( the create path ). The result is validated with KcdValidate BEFORE any write: a structural failure returns a structured error and writes NOTHING ( the write-time gate \u2014 can't save a malformed artifact ). On success it writes and returns `{ saved, warnings }`. PathGuard jails the path and checks the target directory ACCEPTS the declared type \u2014 a refusal names the accepted set, so the fix is in the error. NOTE: agent-authored body HTML is not yet sanitized here ( the render layer sanitizes on display; a save-time sanitize pass is a named deferral ), and structured section/region/slot synthesis ( create a lens from fields alone ) is not built \u2014 supply body HTML.",
       inputSchema: {
         type: "object",
         properties: {
@@ -12076,8 +12698,8 @@ function writeTools(chain) {
           const filePath = String(args["path"] ?? "");
           const raw = args["artifact"] ?? {};
           const artifact = { ...raw, body: typeof raw["body"] === "string" ? raw["body"] : "" };
-          const html = import_kcd_sdk5.KcdEmit.emit(artifact, filePath);
-          const report = import_kcd_sdk5.KcdValidate.validate(html);
+          const html = import_kcd_sdk6.KcdEmit.emit(artifact, Config.resolve().cssHref);
+          const report = import_kcd_sdk6.KcdValidate.validate(html);
           if (!report.ok) {
             const detail = report.errors.map((e) => `${e.code} @ ${e.where}: ${e.msg}`).join("; ");
             return MCPUtils.error(`kcd_save refused "${filePath}": artifact failed validation \u2014 ${detail}`);
@@ -12219,14 +12841,13 @@ var DaedalusServer = class _DaedalusServer {
    * The lifecycle fields ( installed / exposed / entryPoint ) are Starmind interop and
    * are deliberately kept — see `./mcp/manifest.ts`'s header.
    *
-   * The id was re-keyed `starmind_kcd` → `daedalus` on 2026-07-24 — the full cluster rename an
-   * earlier note deferred to Phase 4. It was pulled forward and done in ONE pass across every
-   * coupled site, because a half-migrated id is where this project keeps drawing blood. The id is
-   * simultaneously the MCP server identity ( here + the plugin manifest ), a key in Starmind's
-   * package registry ( `MasterRegistry.daedalus` ), the partition name of the on-disk config slice
-   * ( `pkg.daedalus.json` — the old `pkg.starmind_kcd.json` is orphaned userData that simply
-   * regenerates ), and the target of the tool-monitor widget and a subscription test. All moved
-   * together; the coupling holds because nothing was left behind.
+   * THE ID IS COUPLED — change it in ONE pass or not at all. `id` is simultaneously the MCP server
+   * identity ( here + the plugin manifest ), a key in Starmind's package registry
+   * ( `MasterRegistry.daedalus` ), the partition name of the on-disk config slice
+   * ( `pkg.daedalus.json` ), and the target of the tool-monitor widget and a subscription test.
+   * A half-migrated id is where this project keeps drawing blood. Note the host's own `.mcp.json`
+   * key is a SEPARATE surface that no cluster-wide rename reaches — under Claude Code that key,
+   * not this id, is what the `mcp__<key>__*` tool prefix is built from.
    */
   static manifest = {
     id: "daedalus",
@@ -12237,7 +12858,22 @@ var DaedalusServer = class _DaedalusServer {
     credentials: [],
     installed: false,
     exposed: false,
-    doc: "The KCD library gate \u2014 read/write access to the artifact vault (lenses, plans, habits, contracts, references, generators, analyzers, utilities, templates). A thin I/O surface over kcd_sdk: one query (kcd_query), reads (get/links/health), writes (save/move/delete), and a batch (kcd_batch) that runs an ordered sequence of calls in one shot. Move and delete HEAL the link graph \u2014 a rename rewrites every inbound reference, a delete cascades through every referrer. Every path is jailed to the vault by the PathGuard before any disk touch; reads are free, writes carry a destructive hint. Judgment lives in the model above and kcd_sdk beneath \u2014 these tools only gate I/O."
+    doc: "The KCD library gate \u2014 read/write access to the artifact vault (lenses, plans, habits, contracts, references, generators, analyzers, utilities, templates). A thin I/O surface over kcd_sdk: one query (kcd_query), reads (get/links/health), writes (save/move/delete), and a batch (kcd_batch) that runs an ordered sequence of calls in one shot. Move and delete HEAL the link graph \u2014 a rename rewrites every inbound reference, a delete cascades through every referrer. Every path is jailed to the vault by the PathGuard before any disk touch; reads are free, writes carry a destructive hint. Judgment lives in the model above and kcd_sdk beneath \u2014 these tools only gate I/O.",
+    // The package's own config screen — `fields` is the flat typed-tunable path the generic renderer
+    // draws under this package's seam. The value is the stylesheet's absolute path WITHOUT a scheme;
+    // `file:///` is added on resolve, so pasting a Windows path works as-is.
+    //
+    // A BLANK default is deliberate: Config.str() treats blank as "no value", so an untouched field
+    // falls through to the DERIVED default rather than pinning an empty path.
+    config: {
+      fields: [{
+        key: "cssPath",
+        label: "Stylesheet path",
+        type: "path",
+        default: "",
+        placeholder: "absolute path to kcd.css"
+      }]
+    }
   };
   server;
   registrations = [];
@@ -12336,7 +12972,8 @@ Census (live): ${census || "empty"}`;
 // src/index.ts
 Config.override({
   projectRoot: flag("--root"),
-  docRoot: flag("--doc-root")
+  docRoot: flag("--doc-root"),
+  cssPath: flag("--css")
 });
 new DaedalusServer().run().catch((err) => {
   process.stderr.write(`daedalus-mcp: fatal: ${err}

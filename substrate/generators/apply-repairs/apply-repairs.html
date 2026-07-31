@@ -69,8 +69,7 @@
 					<td><code>doc-root</code></td>
 					<td>Input</td>
 					<td>Root of the documentation tree. Bounds write authority — apply-repairs never edits a
-					path outside <code>{doc-root}</code>, and never under <code>{doc-root}/kcd/</code>
-					(canonical is read-only).</td>
+					path outside <code>{doc-root}</code>, and never a file the manifest does not name.</td>
 					<td><code>_Claude</code></td>
 				</tr>
 			</tbody>
@@ -94,9 +93,8 @@
 			<li>Executes only what a manifest row specifies — never infers an unlisted repair.</li>
 			<li>A row it cannot apply cleanly (target/locator/<code>from</code> not found) is
 			<strong>skipped and logged</strong>, never guessed.</li>
-			<li>Never writes outside <code>_Claude</code>; <strong>never modifies
-			<code>_Claude/kcd/**</code></strong> — canonical is look-don't-touch, so a manifest row
-			targeting it is a contract violation: skipped and flagged.</li>
+			<li>Never writes outside <code>_Claude</code>, and never writes a file the manifest does not
+			name — a row targeting anything else is a contract violation: skipped and flagged.</li>
 			<li>Never touches the <code>kcd:</code> frontmatter block —
 			<code>cascade-field</code> writes top-level keys only.</li>
 			<li><strong>Idempotent</strong> — a repair already satisfied (the <code>from</code> value
@@ -118,8 +116,8 @@
 		<ul>
 			<li>A row whose <code>target</code>, <code>locator</code>, or <code>from</code> value
 			cannot be located → skip, log under <em>Not applied</em>.</li>
-			<li>A row whose <code>target</code> resolves under <code>kcd/**</code> or outside
-			<code>_Claude</code> → skip, log as a contract violation.</li>
+			<li>A row whose <code>target</code> resolves outside <code>_Claude</code> → skip, log as a
+			contract violation.</li>
 			<li>A malformed/unparseable manifest row (unknown action, missing required column) → skip,
 			log.</li>
 		</ul>
@@ -129,7 +127,7 @@
 		<h2 data-kcd-heading>Path Convention</h2>
 		<p>Every path is relative to <code>_Claude</code> unless it begins with another requirement
 		variable. Manifest <code>target</code> paths are taken as written; apply-repairs verifies
-		each is inside <code>_Claude</code> and not under <code>kcd/</code> before editing.</p>
+		each is inside <code>_Claude</code> before editing.</p>
 	</section>
 
 	<section data-kcd-section="do">
@@ -149,8 +147,7 @@
 				<code>index-add</code>, <code>index-remove</code>, <code>index-create</code>,
 				<code>cascade-field</code>, <code>prune-log</code>).</li>
 				<li>The columns that action requires are present (per the action table below).</li>
-				<li><code>target</code> resolves <strong>inside <code>_Claude</code></strong> and
-				<strong>not under <code>kcd/</code></strong>.</li>
+				<li><code>target</code> resolves <strong>inside <code>_Claude</code></strong>.</li>
 			</ul>
 			<p>A row failing any check is <strong>rejected</strong> (not queued) and recorded for the
 			run log. Validation never modifies a file.</p>
@@ -242,9 +239,8 @@
 			<p>Writes <code>_Claude/audits/apply-repairs.md</code> (the run log, flush-and-fill).
 			<strong>Modifies in-place</strong> the <code>.md</code> files named as manifest
 			<code>target</code>s — link rewrites, index stub add/remove/create, frontmatter field
-			cascades, and log-entry prunes, exactly as the manifest specifies. Modifies nothing under
-			<code>_Claude/kcd/</code>, nothing outside <code>_Claude</code>, and no file not named in
-			the manifest. No console output, logs, or side effects outside the run log and the listed
+			cascades, and log-entry prunes, exactly as the manifest specifies. Modifies nothing outside
+			<code>_Claude</code> and no file not named in the manifest. No console output, logs, or side effects outside the run log and the listed
 			targets.</p>
 			<p>After Phase 4, the <code>run-report</code> habit fires automatically (declared at
 			<code>_generator_base</code>).</p>

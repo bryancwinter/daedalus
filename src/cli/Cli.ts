@@ -1,7 +1,7 @@
 import * as path from 'path';
 import { spawn } from 'child_process';
 import { existsSync, readFileSync, writeFileSync, readdirSync, statSync, mkdirSync, cpSync, rmSync } from 'fs';
-import { Vault, VaultUtilities, VaultDeploy, VaultLayout, Survey, KcdEmit } from 'kcd_sdk';
+import { Vault, VaultUtilities, VaultDeploy, VaultLayout, Survey } from 'kcd_sdk';
 import type { HealthReport, LensView, DeployReport, ArtifactRef, QueryOptions } from 'kcd_sdk';
 import { Config } from '../Config';
 import { Prompt } from './Prompt';
@@ -19,6 +19,7 @@ interface ParsedArgs {
 	positionals: string[];
 	root?:       string;
 	docRoot?:    string;
+	cssPath?:    string;
 	json:        boolean;
 	help:        boolean;
 }
@@ -42,9 +43,9 @@ export class Cli {
 	static async run( argv: string[] ): Promise<void> {
 		const args = this.parse( argv );
 
-		// Root overrides ride the same tier the server entry uses, so `--root`/`--doc-root` place
+		// Root overrides ride the same tier the server entry uses, so `--root`/`--doc-root`/`--css` place
 		// the vault explicitly regardless of cwd — every command resolves through Config after this.
-		Config.override( { projectRoot: args.root, docRoot: args.docRoot } );
+		Config.override( { projectRoot: args.root, docRoot: args.docRoot, cssPath: args.cssPath } );
 
 		if ( args.help || !args.command ) {
 			this.printHelp();
@@ -174,7 +175,7 @@ export class Cli {
 	private static survey( args: ParsedArgs ): void {
 		try {
 			const { projectRoot } = Config.resolve();
-			const report  = Survey.run( projectRoot );
+			const report  = Survey.run( projectRoot, { skipPaths: VaultUtilities.installedPaths( this.vault() ) } );
 			const outAbs  = this.vault().toAbs( 'audits/survey' );
 			const written = Survey.write( report, outAbs );
 
@@ -287,6 +288,16 @@ export class Cli {
 					kept.push( `.claude/skills/${ name } — you edited it, so it stays` );
 				}
 			}
+		}
+
+		// An emptied `.claude/skills/` and `.claude/` are ours to take back — the install created them.
+		// Pruned only when EMPTY, so a skill you edited, a sibling skill, or anything else under `.claude`
+		// keeps them alive. Left behind they are invisible to `git status` ( git does not track empty
+		// directories ), which is exactly why "removes what the install added, and nothing else" read as
+		// true when it was not quite.
+		if ( confirm ) {
+			for ( const dir of [ path.join( projectRoot, '.claude', 'skills' ), path.join( projectRoot, '.claude' ) ] )
+				if ( existsSync( dir ) && readdirSync( dir ).length === 0 ) rmSync( dir, { recursive: true } );
 		}
 
 		// 4 -- our .gitignore block.
@@ -546,7 +557,7 @@ export class Cli {
 			choices.skills = await Prompt.confirm(
 				'Install the bundled skills into .claude/skills/?',
 				true,
-				'kcd-onboard walks you through turning a fresh vault into one about YOUR project.'
+				'kcd-configure interviews you and turns a fresh vault into one about YOUR project.'
 			);
 
 			// Only inside a working tree. This is the one moment the question is genuinely useful —
@@ -781,7 +792,7 @@ export class Cli {
 			process.exit( 2 );
 		}
 
-		const report  = Survey.run( projectRoot );
+		const report  = Survey.run( projectRoot, { skipPaths: VaultUtilities.installedPaths( vault ) } );
 		const written = Survey.write( report, vault.toAbs( 'audits/survey' ) );
 
 		if ( args.json ) { this.emit( report ); process.exit( 0 ); }
@@ -813,8 +824,15 @@ export class Cli {
 			'───────────────────────────────────────────────────────────────────────\n\n' +
 			'   A healthy answer names your real components and reports 0 errors. If the agent says\n' +
 			'   it has no kcd_ tools, the session has not restarted yet — restart and paste it again.\n\n' +
-			`${ this.tint( this.C.bold, 'Then build your vault:' ) } ask your agent to use the ${ this.tint( this.C.bold, 'kcd-onboard' ) } skill.\n` +
-			'   It reads the survey and walks you through authoring lenses for this project.\n\n'
+			`${ this.tint( this.C.bold, 'Then build your vault.' ) } Paste both of these, in order:\n` +
+			'\n' +
+			`       ${ this.tint( this.C.bold, '!lens-crafter' ) }\n` +
+			`       ${ this.tint( this.C.bold, 'use the kcd-configure skill' ) }\n\n` +
+			'   The first compiles the lens that knows how KCD artifacts are written, so the agent reads\n' +
+			'   the framework\'s own documents rather than being told about them second-hand. The second\n' +
+			'   starts the interview: it asks what this project is for and how you want an agent to work in\n' +
+			'   it, then writes the lenses from your answers. Expect questions, not a progress bar — the\n' +
+			'   questions are the part that makes the vault yours.\n\n'
 		);
 		process.exit( 0 );
 	}
@@ -997,7 +1015,10 @@ export class Cli {
 		}
 
 		process.stdout.write( `${ DaedalusServer.manifest.id } v${ DaedalusServer.manifest.version }\n` );
-		process.stdout.write( `vault: ${ config.projectRoot } ( projectRoot: ${ config.source.projectRoot }, docRoot: ${ config.source.docRoot } )\n\n` );
+		process.stdout.write( `vault: ${ config.projectRoot } ( projectRoot: ${ config.source.projectRoot }, docRoot: ${ config.source.docRoot } )\n` );
+		// The stylesheet every emitted document will carry. Printed with its provenance for the same
+		// reason the vault is: "the link is wrong" should be a line of output, not a guess.
+		process.stdout.write( `css:   ${ config.cssHref } ( cssPath: ${ config.source.cssPath } )\n\n` );
 		process.stdout.write( `registered ( would spawn ):  ${ live.length } tools\n` );
 
 		if ( !snap ) {
@@ -1081,22 +1102,33 @@ export class Cli {
 		const root  = this.packageRoot();
 		const entry = path.join( root, 'dist', 'index.js' );
 		const built = existsSync( entry );
-		lines.push( this.checkLine( 'Install', built, root, `run "npm run build" in ${ root }` ) );
+		lines.push( this.checkLine( 'Install', built, root,
+			`dist/ ships committed, so a missing one is a broken install — reinstall with "npm install -g ." from ${ root }` ) );
 		fail( built );
 
 		const onPath = await this.resolveOnPath( 'daedalus' );
 		lines.push( this.checkLine( 'PATH', onPath, onPath ? 'daedalus resolves on PATH' : 'not on PATH', 'run "npm install -g ." from the package root' ) );
 
-		let vaultOk = false, vaultMsg = '';
+		// Three states, not two. An ABSENT vault has no artifacts, so no errors, so an `errors === 0` test
+		// called it healthy and handed a green tick to a project with no install in it — the same defect
+		// class as finding 7's host-seed guard, which read `exists() === false` as normal for a fresh
+		// install. "Nothing is here" and "everything here is fine" must never render identically.
+		let vaultOk = false, vaultMsg = '', vaultFix = 'run "daedalus validate" for the full report';
 		try {
-			const config  = Config.resolve();
-			const health  = VaultUtilities.health( this.vault() );
-			vaultOk  = health.summary.errors === 0;
-			vaultMsg = `${ config.projectRoot } — ${ health.summary.errors } error(s), ${ health.summary.warnings } warning(s)`;
+			const config = Config.resolve();
+			const vault  = this.vault();
+			if ( !existsSync( vault.toAbs( ROOT_CONTEXT ) ) ) {
+				vaultMsg = `no vault at ${ path.join( config.projectRoot, config.docRoot ) }`;
+				vaultFix = 'run "daedalus init confirm" to install one';
+			} else {
+				const health = VaultUtilities.health( vault );
+				vaultOk  = health.summary.errors === 0;
+				vaultMsg = `${ config.projectRoot } — ${ health.summary.errors } error(s), ${ health.summary.warnings } warning(s)`;
+			}
 		} catch ( e ) {
 			vaultMsg = e instanceof Error ? e.message : String( e );
 		}
-		lines.push( this.checkLine( 'Vault', vaultOk, vaultMsg, 'run "daedalus validate" for the full report' ) );
+		lines.push( this.checkLine( 'Vault', vaultOk, vaultMsg, vaultFix ) );
 		fail( vaultOk );
 
 		const probe = built
@@ -1104,7 +1136,7 @@ export class Cli {
 			: { ok: false as const, error: 'entry point missing — build first' };
 		lines.push( this.checkLine( 'MCP', probe.ok,
 			probe.ok ? `handshake ok — ${ probe.toolCount } tools` : ( probe.error ?? 'unknown failure' ),
-			'run "npm run build" then "npm run verify" in the package root' ) );
+			'run "daedalus mcp tools" — if the surface is empty too, reinstall the package' ) );
 		fail( probe.ok );
 
 		process.stdout.write( lines.join( '\n' ) + '\n' );
@@ -1319,7 +1351,7 @@ export class Cli {
 		const leaves: [ string, string ][] = [];
 		for ( const h of choices.hosts ) leaves.push( [ h, hostWhy( h ) ] );
 		if ( choices.mcp )    leaves.push( [ '.mcp.json', 'Registers the kcd_* tools' ] );
-		if ( choices.skills ) leaves.push( [ '.claude/skills/', 'The bundled onboarding skill' ] );
+		if ( choices.skills ) leaves.push( [ '.claude/skills/', 'The bundled onboarding skills' ] );
 
 		leaves.forEach( ( [ name, why ], i ) => {
 			const last = i === leaves.length - 1;
@@ -1424,33 +1456,36 @@ export class Cli {
 	}
 
 	/**
-	 * `daedalus fix-css [confirm]` — recompute every document's stylesheet `<link>` from its own
-	 * depth. No `confirm` previews only, matching `maintain` and `reset`.
+	 * `daedalus fix-css [confirm]` — normalize every document's stylesheet `<link>` onto the configured
+	 * href. No `confirm` previews only, matching `maintain` and `reset`.
 	 *
 	 * This exists because the stylesheet is linked by a plain `<link href>`, not a `data-kcd-*`
-	 * address — so no heal, no validator, and no link-check sees it. `VaultUtilities.fixStylesheetLinks`
-	 * has been able to repair it since the 2026-07-08 cutover left itself a note to run it "once its
-	 * new home is settled"; the home settled and nothing ever called it. A library function with no
-	 * caller is a fix that does not exist, which is why this is a verb and not a script.
+	 * address — so no heal, no validator, and no link-check sees it.
+	 *
+	 * OPTIONAL, and no longer load-bearing. It used to be the thing that kept a per-file depth
+	 * calculation honest across the whole corpus; the href is now ONE configured absolute value
+	 * ( `Config.cssHref` ), so a document written through `kcd_save` is born correct and a document that
+	 * moves stays correct. What remains is a one-shot for making an EXISTING corpus uniform — the older
+	 * depth-relative links resolve perfectly well on their own, so running this is a tidiness choice.
 	 *
 	 * Reports the links it CHANGED, plus a count of those already correct.
 	 *
 	 * KNOWN GAP: `fixStylesheetLinks` matches on `/<link\s+rel="stylesheet"\s+href="([^"]+)"\s*\/?>/`
 	 * — first match only, exact attribute order. A document whose link tag differs ( `href` before
 	 * `rel`, extra attributes, unusual whitespace ) is skipped WITHOUT a report, so it cannot be
-	 * distinguished here from a file that has no link at all. The totals below are therefore
-	 * "of the links we recognized", not "of every document". Teaching the sweep to report unmatched
-	 * files is a small change to `VaultUtilities` and worth making before trusting this at scale.
+	 * distinguished here from a file that has no link at all. It also walks `vault.scan()`, which DROPS
+	 * any document that fails to parse — so a malformed file is invisible to the repair it most needs.
+	 * The totals below are therefore "of the documents that parse, and the links we recognized in
+	 * them", not "of every document".
 	 */
 	private static fixCss( args: ParsedArgs ): void {
 		const confirm = args.positionals[ 0 ] === 'confirm';
 
 		try {
 			const vault   = this.vault();
-			// The stylesheet's vault home, read off the emitter rather than restated here — a second
-			// copy of this string is precisely what broke the corpus in the first place. `cssHref()`
-			// with no path returns the root-level form, which is exactly the sweep's `cssHome`.
-			const reports = VaultUtilities.fixStylesheetLinks( vault, KcdEmit.cssHref(), { confirm } );
+			// The configured absolute href, read off Config rather than restated here — a second copy of
+			// this string is precisely what broke the corpus in the first place.
+			const reports = VaultUtilities.fixStylesheetLinks( vault, Config.resolve().cssHref, { confirm } );
 			if ( args.json ) { this.emit( reports ); process.exit( 0 ); }
 
 			const changed = reports.filter( r => r.oldHref !== r.newHref );
@@ -1508,9 +1543,34 @@ export class Cli {
 			if ( report.applied ) {
 				process.stdout.write( `reset "${ report.path }" from "${ report.canonicalPath }"\n` );
 			} else {
+				// DISCLOSE AT THE DECISION, not after it. "differs" is the steady state for most
+				// bundled documents — canonical is the genericized SHIPPING copy, so a grown project's
+				// version is routinely the richer of the two and overwriting LOSES prose. The line
+				// counts turn "differs" into something a user can actually weigh.
+				// The totals are not decoration. A whole-line measure cannot tell content from
+				// formatting, and this vault holds minified documents whose bundle twin is wrapped —
+				// same bytes, same sections, and drift counts that scream "134 lines missing". Naming
+				// which of the two you are looking at is the difference between an informed decision
+				// and a confident wrong one, so the reading is stated rather than left to be inferred
+				// from two numbers on separate lines.
+				const d      = report.drift;
+				const hi     = d ? Math.max( d.deployedLines, d.canonicalLines ) : 0;
+				const lo     = d ? Math.min( d.deployedLines, d.canonicalLines ) : 0;
+				const reflow = !!d && lo > 0 && hi / lo > 1.5;
+
 				process.stdout.write(
-					`"${ report.path }" differs from canonical "${ report.canonicalPath }"` +
-					`${ report.targetExisted ? '' : ' ( target does not exist yet )' } — pass "confirm" to overwrite\n`
+					`\n"${ report.path }" differs from canonical\n` +
+					`   canonical: ${ report.canonicalPath }\n` +
+					( d ? `   ${ d.onlyInDeployed } line(s) only in your copy, ${ d.onlyInCanonical } only in canonical\n` : '' ) +
+					( d ? `   ${ d.deployedLines } lines vs ${ d.canonicalLines } — ` + ( reflow
+						? `${ this.tint( this.C.bold, 'very different formatting' ) }, so the counts above are mostly REFLOW, not content\n`
+						: 'comparable, so the counts above are about CONTENT\n' ) : '' ) +
+					( report.targetExisted ? '' : '   ( target does not exist yet )\n' ) +
+					`\n   ${ this.tint( this.C.bold, 'Canonical is the SHIPPING copy and is deliberately thinner than a grown project\'s.' ) }\n` +
+					'   "differs" is the normal state here, not a defect — most bundled documents differ by\n' +
+					'   construction. Overwriting REPLACES your copy with the bundle\'s, including any prose\n' +
+					'   your project has grown. Diff the two paths above before deciding.\n\n' +
+					'   pass "confirm" to overwrite\n\n'
 				);
 			}
 			process.exit( 0 );
@@ -1629,7 +1689,7 @@ export class Cli {
 	/**
 	 * argv → ParsedArgs. Deliberately hand-rolled and small: the first bare token is the command,
 	 * later bare tokens are its positionals, and a short fixed set of flags is recognised. Value
-	 * flags ( --root, --doc-root ) consume the following token; boolean flags ( --json, --help ) do
+	 * flags ( --root, --doc-root, --css ) consume the following token; boolean flags ( --json, --help ) do
 	 * not. Unknown `--flags` are ignored here rather than erroring, so a command can grow its own
 	 * without a central schema to update.
 	 */
@@ -1641,6 +1701,7 @@ export class Cli {
 
 			if ( token === '--root'     ) { out.root    = argv[ ++i ]; continue; }
 			if ( token === '--doc-root' ) { out.docRoot = argv[ ++i ]; continue; }
+			if ( token === '--css'      ) { out.cssPath = argv[ ++i ]; continue; }
 			if ( token === '--json'     ) { out.json    = true;        continue; }
 			if ( token === '--help' || token === '-h' ) { out.help = true; continue; }
 
@@ -1669,7 +1730,7 @@ export class Cli {
 			'  mcp call <tool> [json-args]   Invoke a tool in-process and print its result.\n' +
 			'  doctor            Five checks — Node, install, PATH, vault, MCP end-to-end — each with a fix.\n' +
 			'  maintain [fill]   Vault STRUCTURE vs VaultLayout ( preview only, unless "fill" ).\n' +
-			'  reset <path> [confirm]   Restore one artifact to canonical from the substrate ( preview only, unless "confirm" ).\n' +
+			'  reset <path> [confirm]   Restore one artifact to the bundle\'s copy, DISCARDING local edits ( preview only, unless "confirm" ).\n' +
 			'  fix-css [confirm]        Recompute every document\'s stylesheet link from its own depth ( preview only, unless "confirm" ).\n' +
 			'  query [json-filter]   Find artifacts by glob/type/text, or census by type ( e.g. \'{"groupBy":"type"}\' ).\n' +
 			'  links <path>      An artifact\'s outbound links/addresses, plus everything pointing back at it.\n' +
@@ -1679,6 +1740,7 @@ export class Cli {
 			'Options:\n' +
 			'  --root <dir>      Project root the vault sits under ( default: inferred by walking up ).\n' +
 			'  --doc-root <dir>  Doc root within the project ( default: the standard vault folder ).\n' +
+			'  --css <path>      Absolute path to kcd.css, no scheme ( default: derived from the vault ).\n' +
 			'  --json            Emit the raw result object instead of formatted lines.\n' +
 			'  -h, --help        Show this help.\n\n' +
 			'Exit codes: 0 = clean, 1 = errors found, 2 = usage error.\n'

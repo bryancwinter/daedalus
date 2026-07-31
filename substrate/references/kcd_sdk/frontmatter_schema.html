@@ -91,7 +91,7 @@
 			<li><strong><code>disabled</code> in canonical <code>kcd/</code> = a deployable seed</strong>
 			— inert until deployed; the deploy script flips the deployed copy to <code>active</code>.
 			Applies to the artifacts that are <strong>copied</strong> into the deployed tree: deployable
-			lenses (including <code>_lens_base</code>), habits, and canonical generators/analyzers.
+			lenses (including <code>_lens-base</code>), habits, and canonical generators/analyzers.
 			<code>disabled</code> excludes the artifact from standalone loading (the compiler skips it; a
 			link-follower reads it as "use the deployed twin").</li>
 			<li><strong><code>composed</code> = a live-in-place base</strong> — read directly and composed
@@ -131,8 +131,6 @@
 				<tr><td><code>lens</code></td><td><code>base</code>, <code>dredge-depth</code>, <code>audience</code>, <code>tags</code>, <code>todo_path</code>, <code>completed_path</code></td><td><code>todo_path</code>/<code>completed_path</code> are log paths (populated at deploy); <code>_lens-base</code> is auto-loaded. <strong>No invocation command</strong> — lenses are description-triggered (protocol §7).</td></tr>
 				<tr><td><code>plan</code></td><td><code>lens</code>, <code>created</code>, <code>updated</code></td><td><code>lens: {name｜cross}</code>; live states (<code>draft｜active｜paused</code>) require a <code>phases</code> section.</td></tr>
 				<tr><td><code>reference</code></td><td><code>domain</code>, <code>updated</code></td><td>references live in <code>references/{domain}/</code> only; they do not travel.</td></tr>
-				<tr><td><code>note</code></td><td><code>updated</code></td><td>a forward-looking observation — keeps its open / candidate sections (unlike a reference); legal status <code>observation</code>.</td></tr>
-				<tr><td><code>how-to</code></td><td><code>updated</code></td><td>a procedural recipe — keeps its own step shape.</td></tr>
 				<tr><td><code>contract</code></td><td><code>scope</code></td><td><code>universal｜lens:{name}</code>.</td></tr>
 				<tr><td><code>generator</code></td><td><code>base</code></td><td><code>base: _generator-base</code>; deployed copy records its ancestor via <code>origin</code>. (<code>model</code> is a <strong>parameter</strong>, not frontmatter.)</td></tr>
 				<tr><td><code>analyzer</code></td><td><code>lens</code>, <code>base</code></td><td><code>lens</code> = the lens it composes with, so it can run cold. (<code>model</code> is a <strong>parameter</strong>, not frontmatter.)</td></tr>
@@ -146,10 +144,10 @@
 
 	<section data-kcd-section="artifact-types">
 		<h3>Artifact types</h3>
-		<p>The <code>type</code> discriminator is one of the twelve:</p>
-		<p><code>lens</code> · <code>plan</code> · <code>reference</code> · <code>note</code> ·
-		<code>how-to</code> · <code>framework</code> · <code>template</code> · <code>nav-index</code> ·
-		<code>habit</code> · <code>contract</code> · <code>generator</code> · <code>analyzer</code>.</p>
+		<p>The <code>type</code> discriminator is one of the eleven:</p>
+		<p><code>lens</code> · <code>plan</code> · <code>reference</code> ·
+		<code>framework</code> · <code>template</code> · <code>nav-index</code> ·
+		<code>habit</code> · <code>contract</code> · <code>generator</code> · <code>analyzer</code> · <code>audit</code>.</p>
 		<p><code>type</code> is also a drift guard: a <code>type</code>↔location mismatch is a signal.
 		(<code>command</code>, <code>pipeline</code>, <code>index</code>, <code>doc</code>,
 		<code>utility</code>, and the <code>category</code> field are retired — superseded respectively

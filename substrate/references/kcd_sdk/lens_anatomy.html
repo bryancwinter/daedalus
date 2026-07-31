@@ -44,13 +44,14 @@
 	<p><strong>Lens locations.</strong> Most lenses are <strong>drafted in place</strong> at
 	<code>_Claude/lenses/{name}/{name}.html</code> — <code>status: active</code>, project-specific,
 	never round-tripped through <code>kcd/</code>. A small set are <strong>deployable</strong>: they
-	live at <code>_Claude/kcd/lenses/{name}/{name}.html</code> with <code>status: disabled</code>, must
-	be project-agnostic (no hardcoded paths or domain vocabulary specific to one project), and are
-	copied into <code>_Claude/lenses/</code> via the
-	<a href="_Claude/contracts/deploy-lens.html">deploy-lens</a> contract. The schema is identical
-	in both locations — what differs is provenance and portability constraints. If a draft in
-	<code>kcd/lenses/</code> carries project-specific content, it does not belong there; move it to
-	<code>_Claude/lenses/</code>.</p>
+	live at the same path, but originate in the Daedalus bundle and are written into the vault by
+	<code>daedalus init</code> — <code>_lens-base</code> and <code>lens-crafter</code> are the two that
+	ship today. A bundled lens must stay <strong>project-agnostic</strong>: no hardcoded paths and no
+	vocabulary specific to one project, because it lands in vaults nobody has seen.
+	There is one location either way — a lens is never staged somewhere else first and copied in. Once
+	installed, a bundled lens is <em>yours</em>, and editing it is expected; the bundle keeps its own
+	copy and the two diverge by design. <code>daedalus reset &lt;path&gt;</code> puts the shipped version
+	back, overwriting what you have rather than repairing it — it overwrites rather than repairs, so reach for it deliberately.</p>
 
 	<section data-kcd-section="know">
 		<h3>Know</h3>
@@ -98,14 +99,14 @@
 		<table>
 			<thead><tr><th>Layer</th><th>Purpose</th></tr></thead>
 			<tbody>
-				<tr><td><strong>Habits</strong></td><td>Atomic single-step behaviors. Source lives in <code>_Claude/kcd/habits/{class}/</code>; the Where column in a deployed lens links to the deployed copy at <code>_Claude/habits/{class}/</code> — the class subfolder (the habit's slot) is preserved on deploy, never flattened. <code>_lens_base</code> supplies the universal ones (write-approval, work-routing, session/completed logging, no-subagents); a lens lists only what it adds. <code>_lens_base</code> is the one exception — its links stay at <code>_Claude/kcd/</code> because it is the canonical floor.</td></tr>
-				<tr><td><strong>Contracts</strong></td><td>Behavioral agreements this lens follows. Source lives in <code>_Claude/kcd/contracts/</code>; the Where column in a deployed lens links to the deployed copy at <code>_Claude/contracts/</code>.</td></tr>
-				<tr><td><strong>Working Space</strong></td><td>Where this lens drops output. Inherited from the <code>work-routing</code> habit in <code>_lens_base</code>. All work goes to <code>_Claude/work/{name}/</code> (<code>AI/</code>, <code>human/</code>, <code>plans/</code>). Never promoted without the user's explicit direction.</td></tr>
+				<tr><td><strong>Habits</strong></td><td>Atomic single-step behaviors. Source lives in <code>_Claude/habits/{class}/</code>; the Where column in a deployed lens links to the deployed copy at <code>_Claude/habits/{class}/</code> — the class subfolder (the habit's slot) is preserved on deploy, never flattened. <code>_lens-base</code> supplies the universal ones (write-approval, work-routing, session/completed logging, no-subagents); a lens lists only what it adds. <code>_lens-base</code> is no exception: its links are ordinary <code>_Claude/</code> links like every other lens's.</td></tr>
+				<tr><td><strong>Contracts</strong></td><td>Behavioral agreements this lens follows. Source lives in <code>_Claude/contracts/</code>; the Where column in a deployed lens links to the deployed copy at <code>_Claude/contracts/</code>.</td></tr>
+				<tr><td><strong>Working Space</strong></td><td>Where this lens drops output. Inherited from the <code>work-routing</code> habit in <code>_lens-base</code>. All work goes to <code>_Claude/work/{name}/</code> (<code>AI/</code>, <code>human/</code>, <code>plans/</code>). Never promoted without the user's explicit direction.</td></tr>
 			</tbody>
 		</table>
 		<p>A lens does <strong>not</strong> carry a list of generators or analyzers — those are
 		referenced by name and registered centrally, not enumerated per lens. The
-		<code>work-routing</code> habit is inherited from <code>_lens_base</code> and applies
+		<code>work-routing</code> habit is inherited from <code>_lens-base</code> and applies
 		automatically; lenses do not redeclare it unless they need a domain-specific override.</p>
 	</section>
 
@@ -145,7 +146,7 @@
 			<li><strong>Where</strong> — a real <code>&lt;a&gt;</code> to the file or folder whose
 			<code>href</code> is both the value and the navigation. Path is
 			<strong>vault-root-relative</strong> — written from the project root with no leading slash
-			(e.g. <code>_Claude/kcd/...</code>), not relative to the lens file. The link must be a true
+			(e.g. <code>_Claude/references/...</code>), not relative to the lens file. The link must be a true
 			<code>&lt;a href&gt;</code>, never a bare code span, so the cross-link is followable.</li>
 			<li><strong>Why</strong> — when to load this reference / what role it plays.</li>
 		</ul>
@@ -172,12 +173,12 @@
       &lt;div data-kcd-head&gt;&lt;span&gt;What&lt;/span&gt;&lt;span&gt;Where&lt;/span&gt;&lt;span&gt;Why&lt;/span&gt;&lt;/div&gt;
       &lt;div data-kcd-slot="reference" data-kcd-mode="on"&gt;
         &lt;span data-kcd-field="what"  data-kcd-type="text"&gt;Framework concepts&lt;/span&gt;
-        &lt;a    data-kcd-field="where" data-kcd-type="path" href="_Claude/kcd/kcd_framework.html"&gt;kcd_framework&lt;/a&gt;
+        &lt;a    data-kcd-field="where" data-kcd-type="path" href="_Claude/kcd_framework.html"&gt;kcd_framework&lt;/a&gt;
         &lt;span data-kcd-field="why"   data-kcd-type="text"&gt;When designing or reviewing the system&lt;/span&gt;
       &lt;/div&gt;
       &lt;div data-kcd-slot="reference"&gt;
         &lt;span data-kcd-field="what"  data-kcd-type="text"&gt;Lens anatomy&lt;/span&gt;
-        &lt;a    data-kcd-field="where" data-kcd-type="path" href="_Claude/kcd/docs/lens_anatomy.html"&gt;lens_anatomy&lt;/a&gt;
+        &lt;a    data-kcd-field="where" data-kcd-type="path" href="_Claude/references/kcd_sdk/lens_anatomy.html"&gt;lens_anatomy&lt;/a&gt;
         &lt;span data-kcd-field="why"   data-kcd-type="text"&gt;When building or auditing a lens&lt;/span&gt;
       &lt;/div&gt;
     &lt;/div&gt;
@@ -209,12 +210,12 @@
 
   &lt;section data-kcd-section="habits"&gt;
     &lt;h3&gt;Habits&lt;/h3&gt;
-    &lt;p&gt;&lt;em&gt;Atomic single-step behaviors. &lt;code&gt;_lens_base&lt;/code&gt; supplies the universal ones; list only additions.&lt;/em&gt;&lt;/p&gt;
+    &lt;p&gt;&lt;em&gt;Atomic single-step behaviors. &lt;code&gt;_lens-base&lt;/code&gt; supplies the universal ones; list only additions.&lt;/em&gt;&lt;/p&gt;
     &lt;div data-kcd-table&gt;
       &lt;div data-kcd-head&gt;&lt;span&gt;What&lt;/span&gt;&lt;span&gt;Where&lt;/span&gt;&lt;span&gt;Why&lt;/span&gt;&lt;/div&gt;
       &lt;div data-kcd-slot="habit" data-kcd-mode="on"&gt;
         &lt;span data-kcd-field="what"  data-kcd-type="text"&gt;add-todo&lt;/span&gt;
-        &lt;a    data-kcd-field="where" data-kcd-type="path" href="_Claude/kcd/habits/todo-policy/add-todo.html"&gt;add-todo&lt;/a&gt;
+        &lt;a    data-kcd-field="where" data-kcd-type="path" href="_Claude/habits/todo-policy/add-todo.html"&gt;add-todo&lt;/a&gt;
         &lt;span data-kcd-field="why"   data-kcd-type="text"&gt;When a deferred item surfaces&lt;/span&gt;
       &lt;/div&gt;
     &lt;/div&gt;
@@ -226,14 +227,14 @@
     &lt;div data-kcd-table&gt;
       &lt;div data-kcd-head&gt;&lt;span&gt;What&lt;/span&gt;&lt;span&gt;Where&lt;/span&gt;&lt;span&gt;Why&lt;/span&gt;&lt;/div&gt;
       &lt;div data-kcd-slot="contract" data-kcd-mode="on"&gt;
-        &lt;span data-kcd-field="what"  data-kcd-type="text"&gt;Deploy lens&lt;/span&gt;
-        &lt;a    data-kcd-field="where" data-kcd-type="path" href="_Claude/contracts/deploy-lens.html"&gt;deploy-lens&lt;/a&gt;
-        &lt;span data-kcd-field="why"   data-kcd-type="text"&gt;When deploying a lens from kcd to a project&lt;/span&gt;
+        &lt;span data-kcd-field="what"  data-kcd-type="text"&gt;Plan&lt;/span&gt;
+        &lt;a    data-kcd-field="where" data-kcd-type="path" href="_Claude/contracts/plan.html"&gt;plan&lt;/a&gt;
+        &lt;span data-kcd-field="why"   data-kcd-type="text"&gt;Before acting on anything that needs a plan first&lt;/span&gt;
       &lt;/div&gt;
     &lt;/div&gt;
   &lt;/section&gt;
 &lt;/section&gt;</code></pre>
-		<p>Working space is inherited from <code>_lens_base</code> via <code>work-routing</code>.
+		<p>Working space is inherited from <code>_lens-base</code> via <code>work-routing</code>.
 		Output goes to <code>_Claude/work/{name}/</code>. No table needed in individual lenses unless
 		overriding the default.</p>
 	</section>
@@ -243,7 +244,7 @@
 		<p>When multiple lenses are active simultaneously, treat them as a single conceptual
 		personality. References merge into one Know graph. Care sections fold together. Habits combine.
 		The reader doesn't experience N lenses — they experience one composite.</p>
-		<p>The base lens at <code>_Claude/lenses/_lens_base.html</code> is stacked on every session
+		<p>The base lens at <code>_Claude/lenses/_lens-base.html</code> is stacked on every session
 		without explicit invocation. It carries Care (project-wide stance) and the standing Do habits
 		(<code>write-approval</code>, <code>work-routing</code>, <code>session-log-aggressive</code>,
 		<code>completed-log-aggressive</code>). Specific lenses extend it; they do not replace it.</p>

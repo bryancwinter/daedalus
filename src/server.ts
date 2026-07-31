@@ -62,6 +62,21 @@ export class DaedalusServer {
 			'Every path is jailed to the vault by the PathGuard before any disk touch; reads are free, writes ' +
 			'carry a destructive hint. Judgment lives in the model above and ' +
 			'kcd_sdk beneath — these tools only gate I/O.',
+		// The package's own config screen — `fields` is the flat typed-tunable path the generic renderer
+		// draws under this package's seam. The value is the stylesheet's absolute path WITHOUT a scheme;
+		// `file:///` is added on resolve, so pasting a Windows path works as-is.
+		//
+		// A BLANK default is deliberate: Config.str() treats blank as "no value", so an untouched field
+		// falls through to the DERIVED default rather than pinning an empty path.
+		config: {
+			fields: [ {
+				key:         'cssPath',
+				label:       'Stylesheet path',
+				type:        'path',
+				default:     '',
+				placeholder: 'absolute path to kcd.css',
+			} ],
+		},
 	};
 
 	private server:        McpServer;

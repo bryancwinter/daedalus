@@ -1,5 +1,7 @@
 import { AbstractGuard, GuardError } from './AbstractGuard';
 import type { ToolRequest } from './AbstractGuard';
+import { VaultLayout } from 'kcd_sdk';
+import type { ArtifactType } from 'kcd_sdk';
 import { MCPUtils } from '../MCPUtils';
 
 /**
@@ -7,8 +9,8 @@ import { MCPUtils } from '../MCPUtils';
  *
  * 1. Path jail      — every path param must resolve inside the vault root.
  *                     Prevents path-traversal attacks (../../etc/passwd etc.).
- * 2. Write typing   — on kcd_save, each path's directory-implied type must match
- *                     the artifact's declared frontmatter type.
+ * 2. Write typing   — on kcd_save, the target directory must ACCEPT the artifact's
+ *                     declared frontmatter type ( VaultLayout owns the accepted set ).
  * 3. Nonce slot     — always passes in Phase 2 (stdio; OS isolation is the boundary).
  *                     NonceGuard or an extension here activates it for named-pipe transport.
  */
@@ -42,25 +44,43 @@ export class PathGuard extends AbstractGuard {
 	}
 
 	/**
-	 * On a save, assert the artifact's declared type matches the type its target directory implies —
-	 * a lens cannot be saved into references/, etc. ( the path itself is jailed by validate() ). A
-	 * missing/unknown declared type is left to KcdValidate downstream; this only catches a real mismatch.
+	 * On a save, assert the target directory ACCEPTS the artifact's declared type — a lens cannot be
+	 * saved into references/, etc. ( the path itself is jailed by validate() ). A missing declared type
+	 * is left to KcdValidate downstream; this only catches a real category error.
+	 *
+	 * Asks `accepts`, not `classify`. This used to compare the declared type against the single type the
+	 * directory implies, which is a different question and a stricter one: `references/` implies
+	 * `reference` and legitimately holds how-tos and notes, so a valid on-disk document that declared
+	 * `how-to` could be read and validated but never saved back. VaultLayout owns the accepted set.
+	 *
+	 * The message names the whole accepted set deliberately. The old one reported only what the directory
+	 * implied, which told a caller its type was wrong without telling it what would be right — a dead end
+	 * that costs a round trip, or worse, a hand-edit around the tool.
 	 */
 	private checkType( writePath: string, artifact: unknown ): void {
-		const inferredType = MCPUtils.vault.classify( writePath );
-		const fm           = typeof artifact === 'object' && artifact !== null
+		const fm = typeof artifact === 'object' && artifact !== null
 			? ( artifact as Record<string, unknown> )['frontmatter']
 			: undefined;
 		const declaredType = typeof fm === 'object' && fm !== null
 			? String( ( fm as Record<string, unknown> )['type'] ?? '' )
 			: '';
 
-		if ( declaredType && inferredType !== 'unknown' && declaredType !== inferredType ) {
-			throw new GuardError(
-				`Type mismatch at "${writePath}": directory implies "${inferredType}", artifact declares "${declaredType}"`,
-				'TYPE_MISMATCH'
-			);
-		}
+		if ( !declaredType ) return;
+		if ( MCPUtils.vault.accepts( writePath, declaredType as ArtifactType ) ) return;
+
+		const allowed = MCPUtils.vault.acceptedTypes( writePath ).map( t => `"${t}"` ).join( ' | ' );
+
+		// One type is decided by the FILENAME, not the folder, so for it the accepted-set message names the
+		// wrong cause and invites the wrong fix: an agent told "references/ accepts reference" will retry as
+		// a reference and get a document that no index will ever treat as an index. Name the real condition.
+		const hint = declaredType === 'nav-index' && !writePath.replace( /\\/g, '/' ).endsWith( '/' + VaultLayout.NAV_INDEX_FILE )
+			? ` — a nav-index is identified by its filename, so it must be named "${VaultLayout.NAV_INDEX_FILE}"`
+			: '';
+
+		throw new GuardError(
+			`Type mismatch at "${writePath}": directory accepts ${allowed}, artifact declares "${declaredType}"${hint}`,
+			'TYPE_MISMATCH'
+		);
 	}
 
 	/**

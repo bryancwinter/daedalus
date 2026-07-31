@@ -41,7 +41,7 @@
 		<code>CLAUDE.md</code> / <code>AGENTS.md</code> / <code>GEMINI.md</code> file at the project root
 		is a <strong>pointer to this document and nothing more</strong>. It is generated from
 		<a href="_Claude/root-context.html">root-context</a>, so edit that rather than the emitted file.</p>
-		<p><a href="_Claude/lenses/_lens_base.html">_lens_base</a> is the auto-loaded floor. It carries the
+		<p><a href="_Claude/lenses/_lens-base.html">_lens-base</a> is the auto-loaded floor. It carries the
 		project-wide stance and the universal habits every other lens extends. No lens replaces it.</p>
 	</section>
 
@@ -52,9 +52,10 @@
 		<ol>
 			<li><strong>Run <code>daedalus get-started</code></strong> if you have not. It surveys the
 			project and hands you a prompt to verify the tools actually work against your own code.</li>
-			<li><strong>Author the first lens.</strong> The <code>kcd-onboard</code> skill installed
-			alongside this vault walks it: read the survey, agree the boundaries with whoever owns the
-			project, write one lens rather than five. A lens that is honestly about one component beats a
+			<li><strong>Author the first lens.</strong> Compile <code>!lens-crafter</code>, then use the
+			<code>kcd-configure</code> skill installed alongside this vault. It is an interview, not a
+			generator: it agrees the boundaries with whoever owns the project and writes the lenses from
+			their answers. Write one lens rather than five — a lens honestly about one component beats a
 			survey of everything.</li>
 			<li><strong>Edit this document.</strong> The hard rules below are the installer's defaults and
 			are almost certainly wrong for you in at least one place. Replacing them is the point — this
@@ -104,9 +105,9 @@
 		<div data-kcd-table>
 			<div data-kcd-head><span>What</span><span>Where</span><span>Why</span></div>
 			<div data-kcd-slot="reference" data-kcd-mode="on">
-				<span data-kcd-field="what"  data-kcd-type="text">lens_crafter</span>
-				<a    data-kcd-field="where" data-kcd-type="path" href="_Claude/lenses/lens_crafter/lens_crafter.html">lens_crafter</a>
-				<span data-kcd-field="why"   data-kcd-type="text">Designs and deploys KCD artifacts — lenses, generators, analyzers, and habits. Use when authoring, restructuring, or auditing a lens or other KCD artifact, or restoring a deployed artifact from the installed bundle.</span>
+				<span data-kcd-field="what"  data-kcd-type="text">lens-crafter</span>
+				<a    data-kcd-field="where" data-kcd-type="path" href="_Claude/lenses/lens-crafter/lens-crafter.html">lens-crafter</a>
+				<span data-kcd-field="why"   data-kcd-type="text">Designs and deploys KCD artifacts — lenses, generators, analyzers, and habits. Use when authoring, restructuring, or deploying a lens or other KCD artifact, or restoring a deployed artifact from the installed bundle.</span>
 			</div>
 		</div>
 	</section>

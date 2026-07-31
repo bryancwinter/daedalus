@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!-- ============================================================================
      GENERATOR — apply-canonical-sync (canonical). Migrated from apply-canonical-sync.md.
-     Full format law: _Claude/kcd/references/kcd_sdk/kcd-document-protocol.html. Parameters §3.
+     Full format law: _Claude/references/kcd_sdk/kcd-document-protocol.html. Parameters §3.
      ============================================================================ -->
 <html lang="en">
 <head>
@@ -27,9 +27,8 @@
 
 	<p><em>Generic across any KCD-structured project. Applies a canonical sync manifest — a table of
 	section-level text replacements — to one or more deployed artifacts whose canonical parent changed.
-	The deployed copy is the target; the manifest is the input; the generator decides nothing. Ships
-	<code>disabled</code> here in <code>kcd/generators/</code>; deployment activates the deployed
-	copy.</em></p>
+	The deployed copy is the target; the manifest is the input; the generator decides nothing. Ships <code>disabled</code>: it was written for a canonical/deployed split
+	that no longer exists, and is retained only as a record.</em></p>
 
 	<p>Base rules: <a href="_Claude/generators/_generator_base.html">_generator_base</a> —
 	composition model, requirement resolution, fail behavior, output conventions.</p>
@@ -78,7 +77,7 @@
 				<tr><td><code>section</code></td><td>Heading (e.g. <code>## Composition Model</code>) or <code>frontmatter</code> — scopes the replacement to prevent false matches when the same substring appears elsewhere.</td></tr>
 				<tr><td><code>from</code></td><td>Exact text to find within that section. Must match the file verbatim (whitespace included).</td></tr>
 				<tr><td><code>to</code></td><td>Replacement text. May be empty (pure deletion).</td></tr>
-				<tr><td><code>note</code></td><td>Provenance — why this is safe/mechanical (e.g. <code>canonical: _Claude/kcd/analyzers/_analyzer_base.md</code>).</td></tr>
+				<tr><td><code>note</code></td><td>Provenance — why this is safe/mechanical (e.g. <code>canonical: the bundled copy in daedalus/substrate/analyzers/_analyzer_base.html</code>).</td></tr>
 			</tbody>
 		</table>
 	</section>
@@ -103,7 +102,7 @@
 		<ul>
 			<li>Files outside <code>{doc-root}</code> — no manifest row may target a path outside the doc root.</li>
 			<li>The sync manifest itself.</li>
-			<li>The <code>kcd/</code> canonical tree — deployed artifacts only.</li>
+			
 		</ul>
 		<p><strong>Surfaces (logs, does not block):</strong></p>
 		<ul>

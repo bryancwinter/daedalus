@@ -32,9 +32,9 @@
 			as an HTML document. Drift here is costly — it ripples through the parser, the validator,
 			the renderer, the editor, and every authored and crystallized artifact. Change this only
 			with an explicit ruling, never incidentally. Reference implementation:
-			<code data-kcd-address>_Claude/work/lens_crafter/html-proposal/lens.html</code> +
-			<code data-kcd-address>_Claude/kcd/kcd.css</code>. Origin trial:
-			<code data-kcd-address>_Claude/work/lens_crafter/html-proposal/</code>. Migration plan:
+			<code data-kcd-address>_Claude/work/lens-crafter/html-proposal/lens.html</code> +
+			<code data-kcd-address>_Claude/kcd.css</code>. Origin trial:
+			<code data-kcd-address>_Claude/work/lens-crafter/html-proposal/</code>. Migration plan:
 			html-substrate.
 		</p>
 	</blockquote>
@@ -168,7 +168,7 @@
 			<tbody>
 				<tr><td><code>name</code></td><td>universal · required</td><td>slug</td><td><strong>Skill standard</strong> — kebab, ≤64 chars, <code>[a-z0-9-]</code>, no "claude"/"anthropic"</td></tr>
 				<tr><td><code>description</code></td><td>universal · required</td><td>text</td><td><strong>Skill standard</strong> — what it does <strong>+ when to use it</strong> (the trigger), ≤1024</td></tr>
-				<tr><td><code>type</code></td><td>universal · required</td><td>enum</td><td>the discriminator — the closed artifact-type set: <code>lens</code>, <code>plan</code>, <code>reference</code>, <code>note</code>, <code>how-to</code>, <code>framework</code>, <code>template</code>, <code>nav-index</code>, <code>habit</code>, <code>contract</code>, <code>generator</code>, <code>analyzer</code></td></tr>
+				<tr><td><code>type</code></td><td>universal · required</td><td>enum</td><td>the discriminator — the closed artifact-type set: <code>lens</code>, <code>plan</code>, <code>reference</code>, <code>framework</code>, <code>template</code>, <code>nav-index</code>, <code>habit</code>, <code>contract</code>, <code>generator</code>, <code>analyzer</code></td></tr>
 				<tr><td><code>status</code></td><td>universal · required</td><td>enum</td><td><code>draft|active|observation|composed|disabled|deployed|complete|retired|paused</code>; <strong><code>active</code> ⇒ validated</strong>. <code>composed</code> = a live-in-place base (read directly, never deployed or run standalone); <code>observation</code> = a note's forward-looking, not-yet-built status</td></tr>
 				<tr><td><code>schema-version</code></td><td>universal</td><td>text</td><td>the protocol version this doc targets — the migration hook for a locked schema</td></tr>
 				<tr><td><code>author</code></td><td>universal</td><td>text</td><td>the author block — <code>Name &lt;email&gt;</code></td></tr>
@@ -243,14 +243,14 @@
 
 		<h3 data-kcd-heading>8.1 · The stylesheet path (interim rule, 2026-07-01)</h3>
 		<p><strong>Canonical file:</strong> <a href="_Claude/kcd.css">kcd.css</a>. One copy, no duplicates. <code>kcd/</code> is the project's canonical framework library — the right home for a shared, framework-wide asset.</p>
-		<p><strong>Why this needs a rule at all.</strong> A KCD document is meant to open directly in a browser — <code>file://</code>, no server, no virtual root — so <code>&lt;link rel="stylesheet"&gt;</code> can only ever be a real filesystem-relative path. There is no <code>/absolute</code> that resolves the same way from every checkout, and a bare <code>href="kcd.css"</code> (what most of the corpus currently has) only works if a copy of the file sits in the <em>same directory</em> as the document — which, outside the original <code data-kcd-address="_Claude/work/lens_crafter/html-proposal/">html-proposal</code> origin trial, is not true anywhere. This is exactly the "dangling reference" class of bug the 2026-07-01 corpus audit surfaced.</p>
+		<p><strong>Why this needs a rule at all.</strong> A KCD document is meant to open directly in a browser — <code>file://</code>, no server, no virtual root — so <code>&lt;link rel="stylesheet"&gt;</code> can only ever be a real filesystem-relative path. There is no <code>/absolute</code> that resolves the same way from every checkout, and a bare <code>href="kcd.css"</code> (what most of the corpus currently has) only works if a copy of the file sits in the <em>same directory</em> as the document — which, outside the original <code data-kcd-address="_Claude/work/lens-crafter/html-proposal/">html-proposal</code> origin trial, is not true anywhere. This is exactly the "dangling reference" class of bug the 2026-07-01 corpus audit surfaced.</p>
 		<p><strong>The rule, for now:</strong> compute the relative path from the document's own directory up to <code>_Claude/</code>, then down into <code>kcd/kcd.css</code> — one <code>../</code> per directory level under <code>_Claude/</code>.</p>
 		<table>
 			<thead>
 				<tr><th>Document location (under <code>_Claude/</code>)</th><th>Levels under <code>_Claude/</code></th><th>Correct <code>href</code></th></tr>
 			</thead>
 			<tbody>
-				<tr><td><code>lenses/_lens_base.html</code></td><td>1</td><td><code>../kcd/kcd.css</code></td></tr>
+				<tr><td><code>lenses/_lens-base.html</code></td><td>1</td><td><code>../kcd/kcd.css</code></td></tr>
 				<tr><td><code>habits/{name}.html</code></td><td>1</td><td><code>../kcd/kcd.css</code></td></tr>
 				<tr><td><code>contracts/{name}.html</code></td><td>1</td><td><code>../kcd/kcd.css</code></td></tr>
 				<tr><td><code>lenses/{name}/{name}.html</code></td><td>2</td><td><code>../../kcd/kcd.css</code></td></tr>
@@ -264,7 +264,7 @@
 	<section data-kcd-section="scope-non-html">
 		<h2 data-kcd-heading>9 · Scope — what stays outside the substrate</h2>
 		<p><strong>The rule:</strong> every KCD primitive — lens, contract, habit, generator, analyzer,
-		template, reference, plan, nav-index, note, how-to — and every document that describes or points at
+		template, reference, plan, nav-index — and every document that describes or points at
 		one, is authored as <code>.html</code> per this protocol. No exceptions, and no new primitive type
 		is ever authored as <code>.md</code>. <code>work/</code> is the sole grandfather clause: pre-2026-07-01
 		drafts left there are not back-converted, but anything <em>new</em> written to <code>work/</code> is
@@ -366,7 +366,7 @@ Markdown, verbatim.
 			</div>
 			<div data-kcd-slot="reference">
 				<span data-kcd-field="what"  data-kcd-type="text">Exemplar (lens.html)</span>
-				<span data-kcd-field="where" data-kcd-type="address">_Claude/work/lens_crafter/html-proposal/lens.html</span>
+				<span data-kcd-field="where" data-kcd-type="address">_Claude/work/lens-crafter/html-proposal/lens.html</span>
 				<span data-kcd-field="why"   data-kcd-type="text">The reference-implementation exemplar this spec was validated against.</span>
 			</div>
 		</div>

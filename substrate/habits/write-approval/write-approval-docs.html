@@ -11,7 +11,7 @@
 
 	<dl data-kcd-frontmatter>
 		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">write-approval-docs</dd>
-		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">Pre-approves writes inside _Claude/, requires approval outside it, and hard-blocks writes to kcd/ and CLAUDE.md; fires before any write operation. The default pole of the write-approval mutual-exclusion class.</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">Pre-approves writes inside _Claude/, requires approval outside it, and hard-blocks writes to CLAUDE.md; fires before any write operation. The default pole of the write-approval mutual-exclusion class.</dd>
 		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">habit</dd>
 		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">active</dd>
 		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
@@ -23,7 +23,7 @@
 
 	<section data-kcd-section="why">
 		<h3>Why</h3>
-		<p>any write operation is about to occur (inherited by every lens via <code>_lens_base</code>
+		<p>any write operation is about to occur (inherited by every lens via <code>_lens-base</code>
 		unless a more specific source swaps in another <code>write-approval</code> pole)</p>
 	</section>
 
@@ -38,11 +38,10 @@
 		<p>The default pole because a typical project's real risk surface is outside <code>_Claude/</code>
 		— application code, config, anything that ships — while writes inside <code>_Claude/</code> are
 		documentation and framework artifacts, cheap to revert and expected to churn every session; gating
-		those on approval would just be noise. Two paths refuse regardless of lens and override the
-		pre-approval: <code>_Claude/kcd/</code> is read-only (the framework root — corrupting it breaks
-		everything downstream), and <code>CLAUDE.md</code> is read-only to all but
-		<code>lens_crafter</code>, which drafts changes to
-		<code>_Claude/work/lens_crafter/plans/</code> and gets explicit approval before applying.</p>
+		those on approval would just be noise. One path refuses regardless of lens and overrides the
+		pre-approval: <code>CLAUDE.md</code> is read-only to all but
+		<code>lens-crafter</code>, which drafts changes to
+		<code>_Claude/work/lens-crafter/plans/</code> and gets explicit approval before applying.</p>
 	</section>
 
 	<section data-kcd-section="rules">
@@ -50,8 +49,7 @@
 		<ul>
 			<li>inside <code>_Claude/</code> — pre-approved; execute, no confirmation</li>
 			<li>outside <code>_Claude/</code> — state path + change, then wait for clearance</li>
-			<li><code>_Claude/kcd/</code> — never write without an explicit user command during the session</li>
-			<li><code>CLAUDE.md</code> — only <code>lens_crafter</code> edits it, via drafted-and-approved changes</li>
+			<li><code>CLAUDE.md</code> — only <code>lens-crafter</code> edits it, via drafted-and-approved changes</li>
 		</ul>
 	</section>
 

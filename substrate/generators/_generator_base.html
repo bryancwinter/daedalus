@@ -22,17 +22,16 @@
 
 	<p data-kcd-audience="human"><em>Base for all Generator procedures. Every canonical generator
 	references this file the way a lens references
-	<a href="_Claude/lenses/_lens_base.html">_lens_base</a>. It carries the rules shared by all
-	generators so individual procedures never repeat them. Carries the live-in-place role — it is read
-	directly from <code>kcd/generators/</code>; it is never deployed and never run standalone (it is
-	composed into every canonical generator).</em></p>
+	<a href="_Claude/lenses/_lens-base.html">_lens-base</a>. It carries the rules shared by all
+	generators so individual procedures never repeat them. It is composed into every generator in this vault and never run
+	standalone.</em></p>
 
 	<section data-kcd-section="generator-invariant">
 		<h3>The generator invariant</h3>
 		<p>A <strong>generator executes a spec; it does not improvise.</strong> Broad write authority is
 		only safe because the work is mechanically specified. The generator is the <strong>executing
 		end</strong> of the composing-side rule in
-		<a href="_Claude/lenses/_lens_base.html">_lens_base</a> — <em>"delegation is by manifest, not
+		<a href="_Claude/lenses/_lens-base.html">_lens-base</a> — <em>"delegation is by manifest, not
 		brief."</em> It receives a manifest with every consequence resolved in advance and applies it
 		flush-and-fill.</p>
 		<p>A generator carries <strong>no lens and no judgment.</strong> Where a choice is genuinely open
@@ -50,16 +49,16 @@
 		<table>
 			<thead><tr><th>Layer</th><th>Location</th><th>Owns</th></tr></thead>
 			<tbody>
-				<tr><td><code>_generator_base</code></td><td><code>_Claude/kcd/generators/_generator_base.html</code></td><td>rules shared by all generators (this file)</td></tr>
-				<tr><td>Canonical</td><td><code>_Claude/kcd/generators/{name}/{name}.html</code></td><td>generic logic; <strong>declares</strong> requirements</td></tr>
+				<tr><td><code>_generator_base</code></td><td><code>_Claude/generators/_generator_base.html</code></td><td>rules shared by all generators (this file)</td></tr>
+				<tr><td>Canonical</td><td><code>_Claude/generators/{name}/{name}.html</code></td><td>generic logic; <strong>declares</strong> requirements</td></tr>
 				<tr><td>Deployed</td><td><code>_Claude/generators/{name}/{name}.html</code></td><td>full copy; <strong>solves</strong> requirements with project values</td></tr>
-				<tr><td>Context</td><td><code>_Claude/kcd/generators/{name}/context/</code></td><td>context specific to this generator</td></tr>
+				<tr><td>Context</td><td><code>_Claude/generators/{name}/context/</code></td><td>context specific to this generator</td></tr>
 			</tbody>
 		</table>
 		<p>The canonical declares requirements generically (no project values); the deployed copy is a
 		full self-contained copy that solves them. The deployed tree mirrors the canonical family layout
 		— a deployed generator sits at <code>_Claude/generators/{name}/</code> exactly as its canonical
-		sits at <code>_Claude/kcd/generators/{name}/</code>.</p>
+		sits at <code>_Claude/generators/{name}/</code>.</p>
 	</section>
 
 	<section data-kcd-section="naming">
@@ -71,7 +70,7 @@
 		<table>
 			<thead><tr><th>Reference</th><th>Derived value</th></tr></thead>
 			<tbody>
-				<tr><td>Canonical file</td><td><code>_Claude/kcd/generators/{name}/{name}.html</code></td></tr>
+				<tr><td>Canonical file</td><td><code>_Claude/generators/{name}/{name}.html</code></td></tr>
 				<tr><td>Deployed file</td><td><code>_Claude/generators/{name}/{name}.html</code></td></tr>
 				<tr><td>Test-mode output</td><td><code>_Claude/audits/{name}.html</code></td></tr>
 			</tbody>

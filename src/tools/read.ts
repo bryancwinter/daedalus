@@ -123,18 +123,20 @@ export function readTools( chain: GuardChain ): ( ToolDefinition & { spec?: Test
 			name:        'kcd_compile',
 			annotations: { readOnlyHint: true },
 			spec: [
-				{ label: 'compiles a single lens', input: { lenses: [ 'lens_crafter' ] }, assertions: [] },
+				{ label: 'compiles a single lens', input: { lenses: [ 'lens-crafter' ] }, assertions: [] },
 			],
 			description: 'Compile one or more lenses into one composed context string — first lens is primary.',
 			doc:
 				'The LENS compiler — Daedalus\'s basic context-compilation surface. Give it lens names ' +
 				'( a bare `parser` maps to `lenses/parser/parser.html`; a vault path is used as-is ) and it ' +
 				'dredges each lens to its OWN authored depth, folds their context blocks together, resolves ' +
-				'habit-class contention, and assembles one context string ( Care-first, manifest tables ). For a ' +
-				'single lens the output equals that lens\'s own compiled context; multiple lenses compose into one, ' +
-				'first = primary. Returns `{ lenses, text, tokens }`. This is lens composition only — the live ' +
-				'runtime layers ( model root context, active MCP tool schemas, session memory ) are Starmind\'s ' +
-				'job, not the vault\'s. Read-only.',
+				'habit-class contention, and assembles one context string ( Care-first, manifest tables ). ' +
+				'Multiple lenses compose into one, first = primary. The BASE LENS is always included and cannot ' +
+				'be suppressed — it is the vault\'s inheritance floor ( project-wide stance plus the universal ' +
+				'habits ), appended last so a named lens\'s own habit wins its class. Returns ' +
+				'`{ lenses, text, tokens }`, where `lenses` reports what actually compiled, `_lens-base` ' +
+				'included. This is lens composition only — the live runtime layers ( model root context, active ' +
+				'MCP tool schemas, session memory ) are Starmind\'s job, not the vault\'s. Read-only.',
 			inputSchema: {
 				type:       'object',
 				properties: {
@@ -209,7 +211,7 @@ export function readTools( chain: GuardChain ): ( ToolDefinition & { spec?: Test
 					// opposite scope from every other tool, which read the artifact store. One engine,
 					// two faces: this same call backs the CLI `survey` command.
 					const { projectRoot } = Config.resolve();
-					const report = Survey.run( projectRoot );
+					const report = Survey.run( projectRoot, { skipPaths: VaultUtilities.installedPaths( MCPUtils.vault ) } );
 
 					return args[ 'full' ] === true
 						? MCPUtils.result( report )
