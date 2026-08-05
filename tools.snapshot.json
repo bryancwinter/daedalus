@@ -145,10 +145,10 @@
 			},
 			"example": {
 				"lenses": [
-					"lens_crafter"
+					"lens-crafter"
 				]
 			},
-			"doc": "The LENS compiler — Daedalus's basic context-compilation surface. Give it lens names ( a bare `parser` maps to `lenses/parser/parser.html`; a vault path is used as-is ) and it dredges each lens to its OWN authored depth, folds their context blocks together, resolves habit-class contention, and assembles one context string ( Care-first, manifest tables ). Multiple lenses compose into one, first = primary. The BASE LENS is always included and cannot be suppressed — it is the vault's inheritance floor ( project-wide stance plus the universal habits ), appended last so a named lens's own habit wins its class. Returns `{ lenses, text, tokens }`, where `lenses` reports what actually compiled, `_lens_base` included. This is lens composition only — the live runtime layers ( model root context, active MCP tool schemas, session memory ) are Starmind's job, not the vault's. Read-only."
+			"doc": "The LENS compiler — Daedalus's basic context-compilation surface. Give it lens names ( a bare `parser` maps to `lenses/parser/parser.html`; a vault path is used as-is ) and it dredges each lens to its OWN authored depth, folds their context blocks together, resolves habit-class contention, and assembles one context string ( Care-first, manifest tables ). Multiple lenses compose into one, first = primary. The BASE LENS is always included and cannot be suppressed — it is the vault's inheritance floor ( project-wide stance plus the universal habits ), appended last so a named lens's own habit wins its class. Returns `{ lenses, text, tokens }`, where `lenses` reports what actually compiled, `_lens-base` included. This is lens composition only — the live runtime layers ( model root context, active MCP tool schemas, session memory ) are Starmind's job, not the vault's. Read-only."
 		},
 		{
 			"name": "kcd_survey",
@@ -195,13 +195,81 @@
 							},
 							"body": {
 								"type": "string",
-								"description": "Body HTML, no frontmatter block. Omit only when creating from fields alone (not yet supported — supply body HTML)."
+								"description": "PASSTHROUGH path — body HTML, no frontmatter block, preserved byte-for-byte. Use for an edit (kcd_get → mutate → kcd_save). Mutually exclusive with `content`."
+							},
+							"content": {
+								"type": "object",
+								"description": "AUTHORING path — supply CONTENT and the structure is derived from the type's shape (section order, nesting, headings, faux-tables). Mutually exclusive with `body`.",
+								"properties": {
+									"title": {
+										"type": "string",
+										"description": "The document's <h1>. Defaults to frontmatter.name."
+									},
+									"summary": {
+										"type": "string",
+										"description": "One line under the title, rendered as a blockquote."
+									},
+									"sections": {
+										"type": "object",
+										"additionalProperties": {
+											"type": "string"
+										},
+										"description": "Section name → prose (plain text is fine; blank lines become paragraphs, \"- \" lines a list). Names and order come from the type's shape; a nested child like \"phase-2\" is placed inside its parent automatically."
+									},
+									"slots": {
+										"type": "array",
+										"description": "Rows for the sections that carry records rather than prose (a lens's habits, a nav-index's entries).",
+										"items": {
+											"type": "object",
+											"properties": {
+												"section": {
+													"type": "string",
+													"description": "Which section these rows belong to."
+												},
+												"kind": {
+													"type": "string",
+													"description": "Slot kind; defaults to the kind the shape declares for that section."
+												},
+												"rows": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"what": {
+																"type": "string",
+																"description": "The label."
+															},
+															"where": {
+																"type": "string",
+																"description": "Vault-root-relative path (_Claude/...), emitted as a real link."
+															},
+															"why": {
+																"type": "string",
+																"description": "When or why this row applies."
+															},
+															"mode": {
+																"type": "string",
+																"description": "off | on | suggested."
+															}
+														},
+														"required": [
+															"what"
+														]
+													}
+												}
+											},
+											"required": [
+												"section",
+												"rows"
+											]
+										}
+									}
+								}
 							}
 						},
 						"required": [
 							"type",
-							"frontmatter",
-							"body"
+							"frontmatter"
 						]
 					}
 				},
@@ -226,7 +294,7 @@
 					"body": "<h1>My Note</h1>\n<p>The body content.</p>"
 				}
 			},
-			"doc": "Persist one artifact by vault-relative `path` from its `artifact` ( a SerializedArtifact — the shape kcd_get returns ). Emits HTML with KcdEmit: frontmatter is rebuilt from `artifact.frontmatter`, the `body` passes through — an existing body has its frontmatter block replaced ( the edit path: kcd_get → mutate → kcd_save ), a body with none gets one prepended ( the create path ). The result is validated with KcdValidate BEFORE any write: a structural failure returns a structured error and writes NOTHING ( the write-time gate — can't save a malformed artifact ). On success it writes and returns `{ saved, warnings }`. PathGuard jails the path and checks the declared type matches the target directory. NOTE: agent-authored body HTML is not yet sanitized here ( the render layer sanitizes on display; a save-time sanitize pass is a named deferral ), and structured section/region/slot synthesis ( create a lens from fields alone ) is not built — supply body HTML."
+			"doc": "Persist one artifact by vault-relative `path` from its `artifact` ( a SerializedArtifact — the shape kcd_get returns ). Emits HTML with KcdEmit: frontmatter is rebuilt from `artifact.frontmatter`, the `body` passes through — an existing body has its frontmatter block replaced ( the edit path: kcd_get → mutate → kcd_save ), a body with none gets one prepended ( the create path ). The result is validated with KcdValidate BEFORE any write: a structural failure returns a structured error and writes NOTHING ( the write-time gate — can't save a malformed artifact ). On success it writes and returns `{ saved, warnings }`. PathGuard jails the path and checks the target directory ACCEPTS the declared type — a refusal names the accepted set, so the fix is in the error. TWO WAYS IN, exactly one per call. Pass `artifact.content` to AUTHOR: give sections as prose ( plus rows for the record-bearing ones ) and the structure — section order, nesting, heading levels, faux-tables, the whole data-kcd grammar — is DERIVED from that type's declared shape, so you supply content and never markup. Pass `artifact.body` instead to EDIT, where existing structured HTML is preserved byte-for-byte ( kcd_get → mutate → kcd_save ). Supplying both is refused rather than resolved by precedence. Content mode also returns advisories naming any required or expected section left out, and — on a closed type — any section the compiler will not read. NOTE: agent-authored body HTML is not yet sanitized here ( the render layer sanitizes on display; a save-time sanitize pass is a named deferral )."
 		},
 		{
 			"name": "kcd_move",

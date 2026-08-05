@@ -246,7 +246,7 @@ var require_KcdAddress = __commonJS({
       // ── The closed sets ( protocol §2, §4 ) ──────────────────────────────────────
       /** `note` and `how-to` were retired 2026-07-30 — they duplicated what the folder already says
        *  ( see ArtifactType ). Twelve documents declared one; all became `reference`. */
-      TYPES = ["lens", "plan", "reference", "framework", "template", "nav-index", "habit", "contract", "generator", "analyzer", "audit"];
+      TYPES = ["lens", "plan", "reference", "framework", "template", "prompt-partial", "nav-index", "habit", "contract", "generator", "analyzer", "audit"];
       STATUSES = ["draft", "active", "observation", "composed", "disabled", "deployed", "complete", "retired", "paused"];
       AUDIENCES = ["human", "agent", "both"];
       MERGES = ["additive", "declarative", "union"];
@@ -499,6 +499,16 @@ var require_VaultLayout = __commonJS({
         layer: "data",
         indexed: true,
         purpose: "Promoted plans that authorize action, plus the plans_complete/ and plans_deferred/ buckets beneath."
+      },
+      {
+        // `data`, not `agent`: a partial is never composed INTO an agent. It is appended after context
+        // compilation as part of the user message, which is exactly why it sits with what a project produces
+        // rather than with what an agent is built from.
+        dir: "prompts",
+        type: "prompt-partial",
+        layer: "data",
+        indexed: true,
+        purpose: "Reusable prompt wording a human fills in \u2014 the text a task sends, kept where it can be read and edited."
       },
       // ── Data / output layer, untyped ──
       // Real, expected directories that hold no governed artifacts. Listed rather than omitted so a
@@ -2023,18 +2033,31 @@ var require_ContextAssembler = __commonJS({
        *  link ) keys on its own `what`+`why` instead, since it has no other identity to dedupe by. See
        *  the class doc for why this reads structured data rather than pattern-matching rendered text. */
       mergeManifest(members, title) {
+        return [title, ...this.manifestRows(members).map((r) => r.text)].join("\n");
+      }
+      /**
+       * The deduped manifest rows, still ADDRESSABLE — each surviving row paired with the `where` it is keyed
+       * on. `mergeManifest` is a join over this, so the dedup rule lives once.
+       *
+       * Exposed because a routing row is the ONLY thing an `on` artifact contributes to the compiled context,
+       * which makes this the sole place its real cost can be read. Priced from the merged table it cannot be
+       * ( the table is one block of text ), and re-derived independently it would be an estimate sitting beside
+       * real numbers — the exact drift this whole collapse exists to remove. `Agent.composition` reads it to
+       * give every file a true weight.
+       */
+      manifestRows(members) {
         const seen = /* @__PURE__ */ new Set();
-        const lines = [];
+        const out = [];
         for (const m of members) {
           for (const row of m.rows ?? []) {
             const key = row.where || `${row.what} ${row.why}`;
             if (seen.has(key))
               continue;
             seen.add(key);
-            lines.push(KcdContext_1.KcdContext.renderRow(row));
+            out.push({ where: row.where ?? "", text: KcdContext_1.KcdContext.renderRow(row) });
           }
         }
-        return [title, ...lines].join("\n");
+        return out;
       }
       /** The canonical merged manifest table for one section ( `references` | `habits` ) across many source
        *  blocks — the building block of `Agent.compile`'s bottom-of-context manifest. Reuses `mergeManifest` +
@@ -2608,12 +2631,33 @@ var require_TemplateObject = __commonJS({
   }
 });
 
+// ../kcd_sdk/dist/primitives/framework/PromptPartialObject.js
+var require_PromptPartialObject = __commonJS({
+  "../kcd_sdk/dist/primitives/framework/PromptPartialObject.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.PromptPartialObject = void 0;
+    var KCDPrimitive_1 = require_KCDPrimitive();
+    var PromptPartialObject = class _PromptPartialObject extends KCDPrimitive_1.KCDPrimitive {
+      constructor(filePath) {
+        super(filePath, "prompt-partial");
+      }
+      static fromSerialized(json) {
+        const obj = new _PromptPartialObject(json.path);
+        obj.hydrateFrom(json);
+        return obj;
+      }
+    };
+    exports2.PromptPartialObject = PromptPartialObject;
+  }
+});
+
 // ../kcd_sdk/dist/primitives/framework/index.js
 var require_framework = __commonJS({
   "../kcd_sdk/dist/primitives/framework/index.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.TemplateObject = exports2.ReferenceObject = exports2.IndexObject = exports2.PlanObject = exports2.FrameworkObject = exports2.SlotResolver = exports2.ContextAssembler = exports2.LensObject = exports2.classifyRelPath = exports2.classifyHref = exports2.clampDepth = exports2.DREDGE_MAX = exports2.KCDPrimitive = void 0;
+    exports2.PromptPartialObject = exports2.TemplateObject = exports2.ReferenceObject = exports2.IndexObject = exports2.PlanObject = exports2.FrameworkObject = exports2.SlotResolver = exports2.ContextAssembler = exports2.LensObject = exports2.classifyRelPath = exports2.classifyHref = exports2.clampDepth = exports2.DREDGE_MAX = exports2.KCDPrimitive = void 0;
     var KCDPrimitive_1 = require_KCDPrimitive();
     Object.defineProperty(exports2, "KCDPrimitive", { enumerable: true, get: function() {
       return KCDPrimitive_1.KCDPrimitive;
@@ -2661,6 +2705,10 @@ var require_framework = __commonJS({
     var TemplateObject_1 = require_TemplateObject();
     Object.defineProperty(exports2, "TemplateObject", { enumerable: true, get: function() {
       return TemplateObject_1.TemplateObject;
+    } });
+    var PromptPartialObject_1 = require_PromptPartialObject();
+    Object.defineProperty(exports2, "PromptPartialObject", { enumerable: true, get: function() {
+      return PromptPartialObject_1.PromptPartialObject;
     } });
   }
 });
@@ -2895,6 +2943,7 @@ var require_primitives = __commonJS({
     var ReferenceObject_1 = require_ReferenceObject();
     var FrameworkObject_1 = require_FrameworkObject();
     var TemplateObject_1 = require_TemplateObject();
+    var PromptPartialObject_1 = require_PromptPartialObject();
     var HabitObject_1 = require_HabitObject();
     var ContractObject_1 = require_ContractObject();
     var GeneratorObject_1 = require_GeneratorObject();
@@ -2907,6 +2956,7 @@ var require_primitives = __commonJS({
     KCDPrimitive_1.KCDPrimitive.registerHydrator("reference", ReferenceObject_1.ReferenceObject.fromSerialized);
     KCDPrimitive_1.KCDPrimitive.registerHydrator("framework", FrameworkObject_1.FrameworkObject.fromSerialized);
     KCDPrimitive_1.KCDPrimitive.registerHydrator("template", TemplateObject_1.TemplateObject.fromSerialized);
+    KCDPrimitive_1.KCDPrimitive.registerHydrator("prompt-partial", PromptPartialObject_1.PromptPartialObject.fromSerialized);
     KCDPrimitive_1.KCDPrimitive.registerHydrator("habit", HabitObject_1.HabitObject.fromSerialized);
     KCDPrimitive_1.KCDPrimitive.registerHydrator("contract", ContractObject_1.ContractObject.fromSerialized);
     KCDPrimitive_1.KCDPrimitive.registerHydrator("generator", GeneratorObject_1.GeneratorObject.fromSerialized);
@@ -3440,6 +3490,108 @@ var require_Agent = __commonJS({
         if (lenses.some((l) => InstallManifest_1.InstallManifest.isBaseLens(l.getPath())))
           return lenses;
         return [...lenses, base];
+      }
+      /**
+       * THE composition surface — every file in this agent's compiled context, priced at what it really costs.
+       *
+       * The read a composition view wants, as opposed to `compiledBlocks()`, which is the read the WIRE wants.
+       * Same underlying compile, projected by artifact instead of by block, so a chart built on this and the
+       * text that ships can never disagree. Rows come out in load order: each lens, then the files it brings.
+       *
+       * Where each weight comes from:
+       *
+       * - **A lens** — its own non-care body plus its share of the merged care bands. The bands merge every
+       *   lens's prose into one block, so a share is apportioned proportionally against the band's REAL weight
+       *   rather than by summing the parts ( the merge strips each section's heading and adds its own labels,
+       *   so the parts do not equal the whole ). Without this the inheritance floor prices at zero, because
+       *   base is care prose and routing tables and nothing else.
+       * - **`suggested`** — the artifact's own blocks in the compiled body. Real text, real weight.
+       * - **`on`** — its surviving row in the deduped manifest ( `ContextAssembler.manifestRows` ). An `on`
+       *   artifact contributes a pointer, not a body, and that row is the only text it puts on the wire.
+       * - **`off`, or a slot nothing fills** — zero, and still listed. What an object declines is part of how
+       *   it is composed, so the inventory keeps it.
+       *
+       * Walks POLICY rather than the dredged node list, because the dredge drops `off` targets and plans
+       * entirely — the inventory has to survive that. An artifact several lenses declare is attributed once,
+       * to the first, matching the compile's own dedup.
+       */
+      composition() {
+        const norm = (s) => s.replace(/\\/g, "/");
+        const weigh = (t) => t ? KCDPrimitive_1.KCDPrimitive._estimateTokens(t) : 0;
+        const survivors = SlotResolver_1.SlotResolver.compilePlan(this.getContextBlocks()).survivors;
+        const isIndex = (b) => b.section !== null && _Agent.INDEX_SECTIONS.has(b.section);
+        const body = survivors.filter((b) => !isIndex(b) && b.section !== "stub");
+        const careBlocks = body.filter((b) => b.region === "care");
+        const core = /* @__PURE__ */ new Map();
+        for (const b of body.filter((b2) => b2.region !== "care"))
+          if (b.path)
+            core.set(norm(b.path), (core.get(norm(b.path)) ?? 0) + weigh(b.text));
+        const bandTotal = this.buildCareBands(careBlocks).reduce((s, b) => s + weigh(b.text), 0);
+        const careRaw = /* @__PURE__ */ new Map();
+        for (const b of careBlocks)
+          careRaw.set(norm(b.path), (careRaw.get(norm(b.path)) ?? 0) + weigh(b.text));
+        const rawTotal = [...careRaw.values()].reduce((s, w) => s + w, 0);
+        const careFor = (p) => rawTotal ? Math.round(bandTotal * (careRaw.get(p) ?? 0) / rawTotal) : 0;
+        const rowWeight = /* @__PURE__ */ new Map();
+        for (const r of ContextAssembler_1.ContextAssembler.manifestRows(survivors.filter(isIndex)))
+          rowWeight.set(norm(r.where), weigh(r.text));
+        const root = this.primaryLens;
+        const rel = (abs) => norm((root ?? this.lenses[0])?.vaultRelative(abs) ?? abs);
+        const slotOf = (n) => n?.getFrontmatter()["habit-class"] ?? null;
+        const out = [];
+        const seen = /* @__PURE__ */ new Set();
+        for (const lens of this.lenses) {
+          const lp = norm(lens.getPath() ?? "");
+          seen.add(lp);
+          out.push({
+            path: lp,
+            name: lens.getName(),
+            kind: "lens",
+            source: lens.getName(),
+            slot: null,
+            mode: "suggested",
+            tokens: (core.get(lp) ?? 0) + careFor(lp)
+          });
+          for (const entry of lens.getPolicy()) {
+            const href = entry.href?.trim() ?? "";
+            if (href === "" || /^\{.*\}$/.test(href)) {
+              out.push({ path: "", name: entry.what || "( unnamed )", kind: "unknown", source: lens.getName(), slot: null, mode: "off", tokens: 0 });
+              continue;
+            }
+            const node = lens.getNodes().find((n) => norm(n.getPath()).endsWith(norm(href))) ?? null;
+            const p = node ? norm(node.getPath()) : norm(href);
+            if (seen.has(p))
+              continue;
+            seen.add(p);
+            const mode = this.habitModes[p] ?? this.referenceModes[p] ?? entry.mode;
+            out.push({
+              path: p,
+              name: entry.what || node?.getName() || p.split("/").pop() || href,
+              kind: node?.getType() ?? "unknown",
+              source: lens.getName(),
+              slot: slotOf(node),
+              mode,
+              tokens: mode === "off" ? 0 : core.get(p) ?? rowWeight.get(node ? rel(node.getPath()) : norm(href)) ?? 0
+            });
+          }
+        }
+        for (const node of [...this.baseHabitNodes, ...this.baseReferenceNodes]) {
+          const p = norm(node.getPath());
+          if (seen.has(p))
+            continue;
+          seen.add(p);
+          const mode = this.habitModes[p] ?? this.referenceModes[p] ?? "suggested";
+          out.push({
+            path: p,
+            name: node.getName(),
+            kind: node.getType(),
+            source: "agent",
+            slot: slotOf(node),
+            mode,
+            tokens: mode === "off" ? 0 : core.get(p) ?? rowWeight.get(rel(node.getPath())) ?? 0
+          });
+        }
+        return out;
       }
       /** The primary lens — the first AUTHORED lens ( base is never primary ), or null for a draft. */
       get primaryLens() {
@@ -4142,10 +4294,23 @@ var require_TurnEntry = __commonJS({
     exports2.Transcript = exports2.MIN_COMPACTION_TURNS = void 0;
     exports2.frameFile = frameFile;
     exports2.framePointer = framePointer;
+    exports2.frameFailedInjection = frameFailedInjection;
+    exports2.frameRemoved = frameRemoved;
     exports2.frameCompaction = frameCompaction;
     var KCDPrimitive_1 = require_KCDPrimitive();
     var Assert_1 = require_Assert();
     var WIRE_KINDS = /* @__PURE__ */ new Set(["user", "assistant", "tool-call", "tool-result", "injected-file", "image"]);
+    var ENTRY_SPECS = {
+      "user": { text: "string" },
+      "assistant": { text: "string" },
+      "thinking": { text: "string" },
+      "tool-call": { id: "string", name: "string" },
+      "tool-result": { toolUseId: "string", content: "string" },
+      "injected-file": { path: "string", name: "string", mediaType: "string", bytes: "number" },
+      "image": { path: "string", name: "string", mediaType: "string" },
+      "error": { code: "string", message: "string" },
+      "unreadable": {}
+    };
     exports2.MIN_COMPACTION_TURNS = 4;
     function frameFile(name, text) {
       return `[injected file \u2014 ${name}]
@@ -4153,6 +4318,12 @@ ${text}`;
     }
     function framePointer(name, path2) {
       return `[available file \u2014 ${name}${path2 ? ` at ${path2}` : ""} \u2014 not in context; read it if you need its contents]`;
+    }
+    function frameFailedInjection(name, path2, reason) {
+      return `[injection failed \u2014 ${name} at ${path2} could not be read: ${reason}]`;
+    }
+    function frameRemoved(name) {
+      return `[removed \u2014 ${name} \u2014 dropped from context at the next compaction]`;
     }
     function frameCompaction(summary) {
       return "[compacted summary of the earlier conversation \u2014 a REPORT about what happened, not a transcript of it. Details here are paraphrased and may have lost exact wording; re-read source files rather than trusting quotations below.]\n\n" + summary + "\n\n[end compacted summary]";
@@ -4186,15 +4357,29 @@ ${text}`;
         return this.turns.length === 0;
       }
       /**
-       * Every attachment this transcript carries, in order — the gutter's list and the compactor's input.
+       * The attachments still IN CONTEXT, in order — the gutter's list. A compacted turn's attachments are
+       * not among them: a summary stands in for that turn, so its files stopped riding when it did, and a chip
+       * still sitting there would claim context the model no longer has.
        *
-       * `off` entries are INCLUDED, unlike the wire projection: a user who turned a file off still needs to
-       * see it in order to turn it back on, and a list that hid it would look like the file was detached.
-       * What rides is `wireMessages()`'s question, not this one.
+       * NOTHING IS DESTROYED to make that true. The entries stay on their turns, in the table, and in the
+       * itinerary — a user who wants a file back scrolls to where it was injected and injects it again. This
+       * is a projection, exactly as the window and the summary are; the account of what happened is never
+       * edited to express a preference about it.
+       *
+       * COMPACTION is the line, not the retention window. Compaction is one-way — a covered turn is history
+       * and nothing re-includes it — so a chip leaving is permanent and honest. Retention is a policy the user
+       * can widen back, and hiding on it would make chips flicker in and out as the window slides.
+       *
+       * `removed` does not filter here either. A removed file keeps riding until its turn is compacted, so it
+       * keeps its chip ( wearing the red tone ) until then. What removal actually buys is that the file is
+       * left out of the SUMMARY too — see `digestText` — so it leaves context outright instead of being
+       * carried forward in paraphrase.
        */
       attachments() {
         const out = [];
         for (const turn of this.turns) {
+          if (turn.compacted)
+            continue;
           for (const entry of turn.entries) {
             if (entry.kind === "injected-file" || entry.kind === "image")
               out.push(entry);
@@ -4377,13 +4562,19 @@ ${text}`;
        * `opts.clearToolResultsBefore` ( ms ) stubs any tool-result older than the cutoff — the cheapest
        * context-engineering lever ( operate on the transcript, don't just append ); the full text stays on
        * the entry for the inspector. Dormant when absent.
+       *
+       * `opts.imagesAsText` projects an image as its POINTER LINE rather than as an image block, for a tier
+       * whose wire cannot carry one — a text-only model, or a transport that is a string. It exists because
+       * the alternative was each tier dropping the block it could not translate, which turned an injected
+       * image into silence: no bytes, and not even the handle that would have let the agent go read it.
+       * Degrading here rather than at each connector keeps ONE definition of how a file reads.
        */
       wireMessages(opts) {
         const messages = [];
         const liveTurn = this.turns[this.turns.length - 1];
         for (const turn of this.turns) {
           const isLiveTurn = turn === liveTurn;
-          for (const entry of turn.entries) {
+          for (const entry of _Transcript.reconcilePairs(turn.entries)) {
             switch (entry.kind) {
               case "thinking":
                 if (entry.signature && isLiveTurn)
@@ -4392,18 +4583,34 @@ ${text}`;
               case "user":
                 messages.push({ role: "user", content: entry.text });
                 break;
+              // Both attachment arms follow ONE rule: the LIVE turn is the injection, every prior turn is a
+              // handle. That is decay expressed STRUCTURALLY — position in the transcript is the clock, so
+              // there is no policy to evaluate, no flag to flip after a send, and no failed turn that can
+              // burn an injection. Re-injecting is simply attaching again, which the account records as a
+              // second event rather than a mutation of the first.
+              //
+              // `contents` is transient and main-supplied. Absent on the live turn means the read FAILED, and
+              // the model is told so rather than handed silence — a user who injected a file and got
+              // nothing would reasonably assume it arrived, and the agent would answer from thin air.
+              //
+              // REMOVAL IS NOT A WIRE EVENT. A removed entry keeps riding exactly as it rode before, and a
+              // compaction pass drops it for real. Honouring it here would rewrite a prior turn to save a
+              // pointer and re-prefill everything downstream — the trade backwards, and the reason removal
+              // was deferred in the first place. What the user sees change is the gutter and the itinerary.
               case "injected-file": {
-                const mode = _Transcript._modeOf(entry);
-                if (mode === "off")
-                  break;
-                this._appendBlock(messages, "user", { type: "text", text: mode === "on" ? framePointer(entry.name, entry.path) : frameFile(entry.name, entry.text) });
+                this._appendBlock(messages, "user", { type: "text", text: _Transcript._attachmentText(entry, isLiveTurn) });
                 break;
               }
               case "image": {
-                const mode = _Transcript._modeOf(entry);
-                if (mode === "off")
+                if (isLiveTurn && entry.contents) {
+                  if (!opts?.imagesAsText) {
+                    this._appendBlock(messages, "user", { type: "image", mediaType: entry.mediaType, data: entry.contents });
+                    break;
+                  }
+                  this._appendBlock(messages, "user", { type: "text", text: framePointer(entry.name, entry.path) });
                   break;
-                this._appendBlock(messages, "user", mode === "on" ? { type: "text", text: framePointer(entry.name ?? "(image)", entry.path) } : { type: "image", mediaType: entry.mediaType, data: entry.data });
+                }
+                this._appendBlock(messages, "user", { type: "text", text: _Transcript._attachmentText(entry, isLiveTurn) });
                 break;
               }
               case "assistant":
@@ -4417,6 +4624,8 @@ ${text}`;
                 this._appendBlock(messages, "user", { type: "tool_result", tool_use_id: entry.toolUseId, content: cleared ? "[tool result cleared to save context]" : entry.content, ...entry.isError ? { is_error: true } : {} });
                 break;
               }
+              case "unreadable":
+                break;
               case "error":
                 break;
               default:
@@ -4467,15 +4676,9 @@ ${text}`;
           label: _Transcript._label(entry),
           text: _Transcript._entryText(entry),
           tokens: displayOnly ? 0 : _Transcript._entryTokens(entry),
+          ...entry.rowId !== void 0 ? { rowId: entry.rowId } : {},
           displayOnly,
-          display: _Transcript._display(entry),
-          // a non-text row carries its bytes so the inspector can thumbnail it inline
-          ...entry.kind === "image" ? { media: {
-            mediaType: entry.mediaType,
-            data: entry.data,
-            ...entry.width ? { width: entry.width } : {},
-            ...entry.height ? { height: entry.height } : {}
-          } } : {}
+          display: _Transcript._display(entry)
         };
       }
       // ── Cost ───────────────────────────────────────────────────────────────────
@@ -4493,30 +4696,143 @@ ${text}`;
         return total;
       }
       // ── Per-entry helpers ( static — pure over one entry ) ─────────────────────
-      /** The mode an entry actually rides at. Today it is simply the user's setting; Phase 5 layers policy
-       *  decay here — derived at projection from ( entry, policy, turn-distance ), never baked onto the entry
-       *  — with the explicit user decision still winning. Every projection asks THIS rather than reading
-       *  `.mode`, so that layer lands in one place instead of being hunted for. A kind that cannot be reduced
-       *  answers `suggested`, so callers never branch on kind before asking. */
-      static _modeOf(entry) {
-        if (entry.kind !== "injected-file" && entry.kind !== "image")
-          return "suggested";
-        return entry.mode ?? "suggested";
+      /**
+       * How one attachment READS — the single decision every projection asks, replacing `_modeOf` and the
+       * three-state it answered for.
+       *
+       * Three outcomes from one fact ( is this the live turn ) and one supplied value ( did main manage to
+       * read it ). No setting, because there is no longer a setting: the file's contents ride when the user
+       * injects them and a handle rides forever after.
+       *
+       * `removed` is deliberately NOT read here. This is the WIRE reader, and removal is an intent executed at
+       * compaction rather than an edit to what a prior turn says — see the attachment arms in wireMessages().
+       * The display reader ( `_entryText` ) is where it shows.
+       *
+       * ONE reader so the wire, the itinerary and the compactor cannot drift — the same reason `_modeOf`
+       * existed. What changed is that the answer is now derived from where the entry SITS rather than from
+       * something stored on it.
+       */
+      static _attachmentText(entry, isLiveTurn) {
+        if (!isLiveTurn)
+          return framePointer(entry.name, entry.path);
+        if (entry.contents)
+          return frameFile(entry.name, entry.contents);
+        return frameFailedInjection(entry.name, entry.path, "not read");
       }
-      /** The token weight of ONE wire-bearing entry — the one place a kind's cost formula lives. Text kinds
-       *  are chars÷4 ( KCDPrimitive._estimateTokens over the body ); an image is priced by pixel area
-       *  ( estimateImageTokens ), NOT its text. Callers gate on WIRE_KINDS first, so a display-only kind
-       *  ( thinking ) never reaches here. */
-      static _entryTokens(entry) {
-        const mode = _Transcript._modeOf(entry);
-        if (mode === "off")
-          return 0;
-        if (mode === "on" && (entry.kind === "injected-file" || entry.kind === "image")) {
-          return KCDPrimitive_1.KCDPrimitive._estimateTokens(framePointer(entry.name ?? "(image)", entry.path));
+      /**
+       * One entry serialized FOR STORAGE — the two base transients removed.
+       *
+       * `rowId` says where the entry lives, not what it is: persisting it inside the payload would put a
+       * second, copyable answer next to the column that owns it, and a fork duplicates payload text into
+       * rows with different ids. `contents` is main's transient file read, which the whole attachment model
+       * exists to keep OUT of the row — a 3 MB screenshot must cost a few hundred bytes of storage and
+       * nothing at all in memory at boot.
+       *
+       * Here rather than at either call site because there are two of them — the turn INSERT and the
+       * per-entry update — and the invariant is asserted in a dozen doc comments across both processes. A
+       * strip that lives next to the fields it strips cannot fall out of step with an arm someone adds.
+       */
+      static entryPayload(entry) {
+        const { rowId: _rowId, contents: _contents, ...rest } = entry;
+        return JSON.stringify(rest);
+      }
+      /**
+       * The token weight of ONE wire-bearing entry — the one place a kind's cost formula lives. Text kinds
+       * are chars÷4; an image is priced by PIXEL AREA, never by its bytes. Callers gate on WIRE_KINDS first,
+       * so a display-only kind ( thinking ) never reaches here.
+       *
+       * `isLive` defaults FALSE because the question every gauge asks is "what will the NEXT send cost", and
+       * on the next send every entry that already exists is a prior turn — a handle. Only an injection being
+       * composed right now prices at full weight. An attachment prices from its stored METADATA ( `bytes`,
+       * `width`/`height` ), never from its contents, which is what lets the gauge stay honest without opening
+       * a single file.
+       */
+      static _entryTokens(entry, isLive = false) {
+        if (entry.kind === "injected-file" || entry.kind === "image") {
+          if (!isLive)
+            return KCDPrimitive_1.KCDPrimitive._estimateTokens(framePointer(entry.name, entry.path));
+          if (entry.kind === "image")
+            return estimateImageTokens(entry.width, entry.height);
+          return Math.ceil(entry.bytes / 4);
         }
-        if (entry.kind === "image")
-          return estimateImageTokens(entry.width, entry.height);
         return KCDPrimitive_1.KCDPrimitive._estimateTokens(_Transcript._entryText(entry));
+      }
+      /**
+       * Rebuild ONE entry from its stored payload — the single door every hydration path goes through, and a
+       * TOTAL function: it returns a typed entry or an `unreadable` one, never nothing.
+       *
+       * It exists because the inline version it replaced asserted its way past the question. `{ ...payload,
+       * at } as unknown as TurnEntry` checked that `kind` was a string and nothing else, so a `tool-call`
+       * missing its `id` hydrated cleanly, rode the wire, and failed at the PROVIDER as a 400 with nothing
+       * pointing back at the row. A double cast is a claim nobody verified; this is the verification.
+       *
+       * `at` and `rowId` come from the COLUMNS, never from the payload. That is where each actually lives,
+       * and a payload duplicated into a different row by `copyTurns` would otherwise carry a stale id.
+       */
+      static parseEntry(payload, at, rowId) {
+        const unreadable = (originalKind, reason) => {
+          const entry2 = { at, kind: "unreadable", originalKind, reason, payload };
+          if (rowId !== void 0)
+            entry2.rowId = rowId;
+          return entry2;
+        };
+        let raw;
+        try {
+          raw = JSON.parse(payload);
+        } catch {
+          return unreadable(null, "payload is not valid JSON");
+        }
+        if (!raw || typeof raw !== "object")
+          return unreadable(null, "payload is not an object");
+        const kind = raw["kind"];
+        if (typeof kind !== "string")
+          return unreadable(null, "no kind discriminant");
+        const spec = ENTRY_SPECS[kind];
+        if (!spec)
+          return unreadable(kind, `unknown kind '${kind}' \u2014 written by a newer build?`);
+        for (const field of Object.keys(spec)) {
+          if (typeof raw[field] !== spec[field]) {
+            return unreadable(kind, `${kind}: '${field}' must be ${spec[field]}`);
+          }
+        }
+        const entry = { ...raw, at };
+        if (rowId !== void 0)
+          entry.rowId = rowId;
+        return entry;
+      }
+      /**
+       * Enforce the tool-pair invariant WITHIN one turn — every `tool_use` answered by exactly one
+       * `tool_result` and vice versa. Returns the survivors; the caller reports what went missing by
+       * comparing lengths, which is all any caller has needed so far.
+       *
+       * The invariant is the PROVIDER's, not ours: an orphaned `tool_result` is not a smaller request, it is
+       * an invalid one. Turn atomicity does not cover this — it protects pairs against WINDOWING, where a
+       * whole turn rides or does not, and says nothing about an entry going missing from inside a turn that
+       * rides. Hydration does exactly that whenever a payload lands as `unreadable`, which means this has
+       * been reachable since the transcript was first persisted.
+       *
+       * Runs at the PROJECTION and nowhere else. Reconciling what is STORED would erase the trailing
+       * tool-call of a turn that died mid-loop — which is the diagnosis, and the whole reason a failed turn
+       * is kept. It also means a repaired row heals with no further action: nothing was thrown away.
+       */
+      static reconcilePairs(entries) {
+        const callIds = /* @__PURE__ */ new Set();
+        const resultIds = /* @__PURE__ */ new Set();
+        for (const entry of entries) {
+          if (entry.kind === "tool-call")
+            callIds.add(entry.id);
+          if (entry.kind === "tool-result")
+            resultIds.add(entry.toolUseId);
+        }
+        const kept = [];
+        for (const entry of entries) {
+          if (entry.kind === "tool-call" && !resultIds.has(entry.id))
+            continue;
+          if (entry.kind === "tool-result" && !callIds.has(entry.toolUseId))
+            continue;
+          kept.push(entry);
+        }
+        return kept;
       }
       /** The entry's body as text — what it costs and what the itinerary shows. */
       static _entryText(entry) {
@@ -4531,19 +4847,53 @@ ${text}`;
             return `${entry.name} ${JSON.stringify(entry.input ?? {})}`;
           case "tool-result":
             return entry.content;
+          // The RESTING projection, which is what the itinerary shows. An entry's contents are never stored
+          // and never on the row: what the account records is that a file was injected here, and the handle
+          // to go read it. `isLiveTurn: false` is right even for the entry currently being composed — by the
+          // time a person is reading the itinerary, that turn is history like any other.
+          //
+          // This is also the one place removal SHOWS before compaction executes it. The wire deliberately
+          // does not read this — a removed entry rides unchanged, and only a person is told sooner.
           case "injected-file":
-            return frameFile(entry.name, entry.text);
           case "image":
-            return (entry.name ?? "(image)") + (entry.width && entry.height ? ` ${entry.width}\xD7${entry.height}` : "");
+            return entry.removed ? frameRemoved(entry.name) : _Transcript._attachmentText(entry, false);
           // The COPY-PASTE body, and the reason this entry exists at all: everything known about the
           // failure, in the order a person reads it, as one selectable block. The provider's own body is
           // last and VERBATIM — it is the part that names the offending block of a rejected request, and
           // clipping it here would leave the reader with a summary of the thing they came to read.
           case "error":
             return _Transcript._errorText(entry);
+          // The REASON, not the payload. This is what the itinerary shows, and a person scanning it needs to
+          // know what broke and that it is fixable — the raw bytes are on the entry for anyone who wants
+          // them, and the row is still in the table under its own id.
+          case "unreadable":
+            return entry.originalKind ? `[unreadable ${entry.originalKind} entry \u2014 ${entry.reason}]` : `[unreadable entry \u2014 ${entry.reason}]`;
           default:
             return Assert_1.Assert.never(entry);
         }
+      }
+      /**
+       * One entry as a SUMMARISING pass should see it — the third audience for this union, after the wire
+       * and the inspector.
+       *
+       * A 50k file handed whole to the house agent is the thing compaction exists to prevent, arriving
+       * inside compaction itself. So past a limit a body stops being included and starts being DESCRIBED
+       * from its own head, which is all the pass needs: what it is being asked for is a name plus a line on
+       * why a later agent would want this.
+       *
+       * Dispatched by SPECIES, one helper each, because "how much of this is worth showing" has a different
+       * answer per type and those answers will keep diverging — a PDF wants its title page, a spreadsheet
+       * wants its headers. Adding one is a new helper and a new line here, and nothing else moves.
+       *
+       * The fallthrough is deliberate and safe: any kind with no special handling reads as it does in the
+       * inspector, which is honest prose for every remaining kind ( user, assistant, tool-call,
+       * tool-result ). A new kind that needs a digest gets one; a new kind that does not still works.
+       */
+      static digestText(entry) {
+        if (entry.kind === "injected-file" || entry.kind === "image") {
+          return entry.removed ? "" : framePointer(entry.name, entry.path);
+        }
+        return _Transcript._entryText(entry);
       }
       /** An error entry's full text. Sections are dropped when absent rather than printed empty: a socket
        *  fault has no status and no body, and `status: —` is noise pretending to be information. */
@@ -4593,6 +4943,11 @@ ${text}`;
           // one glyph made a hiccup and a death look identical in a scan down the itinerary.
           case "error":
             return { icon: "stop", color: "--error" };
+          // `warning`, not `stop`. A turn that ENDED is a different event from a row we could not read
+          // inside a turn that otherwise completed — and unlike either error case this one is REPAIRABLE,
+          // so it reads as a flag to act on rather than a death to investigate.
+          case "unreadable":
+            return { icon: "warning", color: "--error" };
           default:
             return Assert_1.Assert.never(entry);
         }
@@ -4618,6 +4973,10 @@ ${text}`;
           // failed turn is scanned to answer.
           case "error":
             return entry.status ? `error ${entry.status} ${entry.code}` : `error ${entry.code}`;
+          // Leads with the ROW, because the row id is the repair path ( `database.set_turn_entry` ) and a
+          // label naming only the problem would send the reader to a database to find out which one.
+          case "unreadable":
+            return entry.rowId !== void 0 ? `unreadable row ${entry.rowId}` : "unreadable entry";
           default:
             return Assert_1.Assert.never(entry);
         }
@@ -4834,20 +5193,45 @@ var require_Session = __commonJS({
        * last send. ONE reader, so the gutter and the compactor cannot disagree about a file the user
        * attached thirty seconds ago and has not sent yet.
        *
-       * Reads the WHOLE transcript rather than `_projected()`: this answers "what is attached", not "what
-       * rides", and a file whose turn fell out of the window is still attached — it is simply not in
-       * context. Conflating the two is what would make a file vanish from the gutter the moment the window
-       * narrowed, with no way to get it back.
+       * Reads the whole transcript rather than `_projected()`, and the difference is deliberate: a file the
+       * RETENTION window narrowed past is still attached, because that policy can be widened back and a chip
+       * flickering in and out with the window is unusable. A COMPACTED turn's files are gone from the list —
+       * `Transcript.attachments()` draws that line, and draws it once.
        */
       attachments() {
         return [...this.transcript.attachments(), ...this.pendingAttachments];
       }
+      /**
+       * The attachments that would RIDE — the WINDOW's, not the whole transcript's.
+       *
+       * The other half of the pair above, and the distinction is the same one `_projected()` draws: that one
+       * answers "what is attached" for the gutter, this one answers "what rides". A file on a compacted turn
+       * is still attached and must not ride again — the summary stands in for it, and re-sending it would pay
+       * for that history twice.
+       *
+       * Exists because a NON-REPLAYING tier needs it. Every other caller gets attachments for free inside
+       * `wireMessages()`, which projects the whole window; the harness tier is exempt from replaying that
+       * window and so must ask for this one part of it by name. It reads `_projected()` rather than composing
+       * the policies itself, for the reason that method exists at all: two readers that compose them
+       * separately start disagreeing about what rides the moment either policy changes.
+       *
+       * REMOVED entries come back, exactly as `attachments()` returns them — a removed file keeps riding as a
+       * pointer until its turn is compacted, and filtering here would be a second copy of a rule that lives at
+       * the projection.
+       */
+      projectedAttachments() {
+        return this._projected().attachments();
+      }
       /** The DYNAMIC half of the wire — the projected transcript as neutral messages a connector maps to its
        *  provider format ( thinking excluded ). Joins agent.wireSystem() ( the stable half ) at send: the
        *  whole request is { system: agent.wireSystem(), messages: session.wireMessages() }. Every policy is
-       *  applied HERE, at the projection — the transcript itself is never edited. */
-      wireMessages() {
-        return this._projected().wireMessages();
+       *  applied HERE, at the projection — the transcript itself is never edited.
+       *
+       *  `opts` passes straight through to the transcript. The one a caller supplies today is `imagesAsText`,
+       *  which the dispatcher sets from the model's own `multimodal` declaration — the tier says what it can
+       *  carry, the projection decides what that looks like. */
+      wireMessages(opts) {
+        return this._projected().wireMessages(opts);
       }
       /** The inspector itinerary — one BLOCK per turn, each carrying the entries that happened inside it
        *  ( thinking included ). DELIBERATELY UNWINDOWED: the Turns folder is the account of what actually
@@ -5021,6 +5405,16 @@ var require_RoomSession = __commonJS({
   }
 });
 
+// ../kcd_sdk/dist/session/InjectedItem.js
+var require_InjectedItem = __commonJS({
+  "../kcd_sdk/dist/session/InjectedItem.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.INJECTED_KINDS = void 0;
+    exports2.INJECTED_KINDS = ["file", "folder", "tool"];
+  }
+});
+
 // ../kcd_sdk/dist/session/index.js
 var require_session = __commonJS({
   "../kcd_sdk/dist/session/index.js"(exports2) {
@@ -5045,6 +5439,7 @@ var require_session = __commonJS({
     __exportStar(require_Session(), exports2);
     __exportStar(require_RoomSession(), exports2);
     __exportStar(require_TurnEntry(), exports2);
+    __exportStar(require_InjectedItem(), exports2);
   }
 });
 
@@ -5512,6 +5907,453 @@ var require_EsCsv = __commonJS({
   }
 });
 
+// ../kcd_sdk/dist/core/html/KcdShapes.js
+var require_KcdShapes = __commonJS({
+  "../kcd_sdk/dist/core/html/KcdShapes.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.KcdShapes = exports2.SHAPES = void 0;
+    var SCAFFOLD_NOTE = "scaffold-note";
+    exports2.SHAPES = {
+      // OPEN by evidence. The required three ( goal / phases / current-state ) are the real invariant and
+      // hold across the corpus; the rest of a plan's body is the author's to organize, and 18 documents
+      // use bespoke sections — `decisions`, `findings-transport`, `spec-currency`, `out-of-scope`,
+      // `inventory` — to do exactly that. Closing the vocabulary would flag content that is correctly
+      // authored. ( Two real defects live in that same population — date-stamped section names, and a
+      // `status` restated in the body — but both are CONTRACT violations rather than shape ones, and
+      // catching them here would conflate two different checks. )
+      plan: {
+        purpose: "A durable design artifact: what is being built, in what order, and where it stands now.",
+        open: true,
+        sections: [
+          { name: "goal", tier: "required", hint: "One paragraph. What is true when this is done." },
+          { name: "approach", tier: "expected", hint: "The strategy, and why this sequence rather than another." },
+          { name: "phases", tier: "required", nests: "phase-*", hint: "The spine. Each phase carries a Purpose, an End state, and number-letter checkbox tasks." },
+          { name: "files-affected", tier: "optional", hint: "Optional table of the files or domains this touches." },
+          { name: "open-questions", tier: "optional", hint: "Unknowns that block a named phase. A settled question belongs nowhere." },
+          { name: "notes", tier: "optional", hint: "Decisions already paid for. Not a changelog of the plan's own authoring." },
+          { name: "current-state", tier: "required", hint: "One sentence while active; a completion record once retired." }
+        ]
+      },
+      habit: {
+        purpose: "One atomic behaviour: the trigger it fires on, what to do, and why.",
+        open: true,
+        sections: [
+          { name: "why", tier: "required", hint: "The TRIGGER this fires on. A habit with no why cannot fire." },
+          { name: "action", tier: "expected", hint: "What to do when it fires. A rules-only habit may omit this." },
+          { name: "explanation", tier: "expected", hint: "The rationale the dense projection carries." },
+          { name: "rules", tier: "optional", hint: "Hard constraints, when the behaviour is a prohibition rather than an act." }
+        ]
+      },
+      // THE ONE CLOSED TYPE, and closed by evidence rather than preference: thirteen lenses share one
+      // section vocabulary, and the single deviation the check found ( `tools` ) turned out to be a real
+      // gap in this table rather than a drifting document. A lens is the substrate's own composition
+      // surface — an undeclared section here means the compiler silently drops content — so closure buys
+      // something real. Every other type is open.
+      lens: {
+        purpose: "A Know + Care pair \u2014 a personality. What it loads, what it defends, and how it behaves.",
+        regions: [
+          {
+            name: "know",
+            hint: "Read-only inputs: what this lens loads from the knowledge store.",
+            sections: [
+              { name: "references", tier: "expected", slot: "reference", hint: "Rows pointing at the references this lens always brings." },
+              { name: "domains", tier: "optional", slot: "reference", hint: "Rows pointing at code areas this lens owns." }
+            ]
+          },
+          {
+            name: "care",
+            hint: "The personality: who this lens is and what it defends.",
+            sections: [
+              { name: "purpose", tier: "required", hint: "What this lens governs, and the bet behind it." },
+              { name: "philosophy", tier: "required", hint: "Design stance, push-back style, prerogatives, flags, and what it does NOT do." },
+              { name: "open-questions", tier: "optional", hint: "Live unknowns this lens is carrying." }
+            ]
+          },
+          {
+            name: "do",
+            hint: "Execution layer: how this lens operates and where its work goes.",
+            sections: [
+              { name: "habits", tier: "expected", slot: "habit", hint: "Rows naming the habits this lens carries." },
+              { name: "contracts", tier: "optional", slot: "contract", hint: "Rows naming the contracts that bind it." },
+              { name: "tools", tier: "optional", slot: "tool", hint: "Rows setting this lens's tool exposure; an agent-level override wins over it." }
+            ]
+          }
+        ]
+      },
+      contract: {
+        purpose: "A behavioural agreement: when it activates, the lifecycle it governs, and the standard it holds.",
+        open: true,
+        sections: [
+          { name: "when", tier: "required", hint: "The situations that activate this contract." },
+          { name: "artifact-format", tier: "optional", hint: "The shape of whatever the contract governs." },
+          { name: "lifecycle", tier: "expected", nests: "phase-*", hint: "The staged process, each stage with its trigger and standard." },
+          { name: "standards", tier: "expected", hint: "What good looks like, and the gates that enforce it." },
+          { name: "edge-cases", tier: "optional", hint: "Named exceptions and how each resolves." },
+          { name: "scope-values", tier: "optional", hint: "The declared scope vocabulary, if the contract has one." }
+        ]
+      },
+      generator: {
+        purpose: "A manifest-driven write agent: no judgment, broad write authority, executed from a spec.",
+        open: true,
+        sections: [
+          { name: "care", tier: "expected", hint: "What this generator is for and what it must never do." },
+          { name: "parameters", tier: "required", hint: "The typed inputs it takes \u2014 param rows, four cells each." },
+          { name: "requirements", tier: "expected", hint: "What must be true before it runs." },
+          { name: "do", tier: "required", nests: "phase-*", hint: "The ordered steps it executes." },
+          { name: "deployed-copy", tier: "optional", hint: "Where the generated output lands." }
+        ]
+      },
+      analyzer: {
+        purpose: "A read-anywhere, write-one-report agent.",
+        open: true,
+        sections: [
+          { name: "know", tier: "expected", hint: "What it is allowed to read." },
+          { name: "care", tier: "expected", hint: "What it is looking for and what would make the report wrong." },
+          { name: "parameters", tier: "required", hint: "The typed inputs it takes \u2014 param rows, four cells each." },
+          { name: "do", tier: "required", nests: "phase-*", hint: "The ordered steps it executes." },
+          { name: "report-shape", tier: "expected", hint: "The shape of the one report it writes." }
+        ]
+      },
+      // A nav-index carries NO sections at all — its body is `<h2>` status headings over faux-tables of
+      // `link` slot rows, and not one of the eleven in the corpus wraps them in a `data-kcd-section`.
+      // An earlier draft of this table required an `entries` section, copying the template rather than
+      // the corpus, and failed all eleven. The real invariant here — carries at least one `link` row —
+      // is a SLOT axis, not a section one, so it is left unstated rather than faked as a section.
+      "nav-index": {
+        purpose: "The navigable surface over a corpus \u2014 one row per artifact, grouped by status.",
+        open: true,
+        sections: []
+      },
+      // Loose by construction. A reference is pointer prose — where a thing lives, how to use it, what
+      // state it is in — and its section vocabulary is deliberately wide ( 58 of 60 in the corpus carry
+      // sections, under no shared vocabulary ). Declaring a required set here would invent a rule the
+      // type never had and light up the largest population in the vault.
+      reference: {
+        purpose: "A pointer to a living artifact: where it lives, how to use it, and its current state.",
+        open: true,
+        sections: []
+      },
+      framework: { purpose: "Orientation for the substrate itself.", open: true, sections: [] },
+      "prompt-partial": { purpose: "A reusable fragment composed into a prompt.", open: true, sections: [] },
+      audit: { purpose: "Raw generator output, kept as a record.", open: true, sections: [] }
+    };
+    exports2.KcdShapes = new class KcdShapes {
+      /** The shape for a type, or `undefined` when the type is ungoverned. Never throws — an unknown
+       *  type is a gap in this table, not a defect in the document. */
+      shapeFor(type) {
+        return exports2.SHAPES[type];
+      }
+      /** Every section a type declares, regions flattened, in canonical order. A lens's regions
+       *  contribute their sections in region order, which is the order a lens is authored in. */
+      sectionsFor(type) {
+        const shape = this.shapeFor(type);
+        if (!shape)
+          return [];
+        if (shape.regions)
+          return shape.regions.flatMap((r) => r.sections);
+        return shape.sections ?? [];
+      }
+      /** Just the names, canonical order — what synthesis emits and what a fix follows. */
+      orderFor(type) {
+        return this.sectionsFor(type).map((s) => s.name);
+      }
+      /** The sections of a given tier. `requiredFor` is the write gate's input. */
+      atTier(type, tier) {
+        return this.sectionsFor(type).filter((s) => s.tier === tier).map((s) => s.name);
+      }
+      requiredFor(type) {
+        return this.atTier(type, "required");
+      }
+      expectedFor(type) {
+        return this.atTier(type, "expected");
+      }
+      /** One section's spec by name, across regions. */
+      sectionSpec(type, name) {
+        return this.sectionsFor(type).find((s) => s.name === name);
+      }
+      /** Does this section hold slot ROWS rather than prose, and of which kind? */
+      slotKindOf(type, name) {
+        return this.sectionSpec(type, name)?.slot;
+      }
+      /** A section that is a nested CHILD of a declared parent ( `phase-1` under `phases` ). Matched by
+       *  the parent's `nests` glob, because children are authored rather than enumerated. */
+      isNestedChild(type, name) {
+        return this.sectionsFor(type).some((s) => !!s.nests && this.globMatches(s.nests, name));
+      }
+      /** The one glob form this table uses: a literal prefix and a trailing `*`. Deliberately not a
+       *  general matcher — a shape that needs one has outgrown being a table. */
+      globMatches(glob, value) {
+        if (!glob.endsWith("*"))
+          return glob === value;
+        return value.startsWith(glob.slice(0, -1));
+      }
+      /**
+       * Compare a document's PRESENT section names against its type's shape. Pure, total, and
+       * non-throwing — this is the read gate, and a read that throws cannot report.
+       *
+       * An ungoverned type returns `known: false` and no findings, so a type this table does not yet
+       * carry is silent rather than wrong.
+       */
+      audit(type, present) {
+        const shape = this.shapeFor(type);
+        const order = this.orderFor(type);
+        if (!shape)
+          return { type, known: false, missing: [], thin: [], unexpected: [], order: [] };
+        const have = new Set(present);
+        const declared = new Set(order);
+        const missing = this.atTier(type, "required").filter((n) => !have.has(n));
+        const thin = this.atTier(type, "expected").filter((n) => !have.has(n));
+        const unexpected = shape.open ? [] : present.filter((n) => n !== SCAFFOLD_NOTE && !declared.has(n) && !this.isNestedChild(type, n));
+        return { type, known: true, missing, thin, unexpected, order };
+      }
+      /** True when the document satisfies every `required` section of its type. */
+      conforms(type, present) {
+        return this.audit(type, present).missing.length === 0;
+      }
+      /**
+       * The shape, addressed to an author who has never read a template — served on refusal and by any
+       * future discovery tool. This is what lets an agent create a conforming artifact knowing only
+       * that it wants a reference: the tool tells it the rest at the moment it needs it.
+       */
+      describe(type) {
+        const shape = this.shapeFor(type);
+        if (!shape)
+          return `"${type}" has no declared shape \u2014 its body is ungoverned.`;
+        const line = (s, indent) => {
+          const tier = s.tier === "required" ? "REQUIRED" : s.tier === "expected" ? "expected" : "optional";
+          const kind = s.slot ? ` [rows of kind "${s.slot}", not prose]` : "";
+          const nest = s.nests ? ` [nests "${s.nests}"]` : "";
+          return `${indent}${s.name} ( ${tier} )${kind}${nest} \u2014 ${s.hint}`;
+        };
+        const body = shape.regions ? shape.regions.map((r) => `  region "${r.name}" \u2014 ${r.hint}
+${r.sections.map((s) => line(s, "    ")).join("\n")}`).join("\n") : (shape.sections ?? []).map((s) => line(s, "  ")).join("\n");
+        const openNote = shape.open ? "\nSections outside this list are allowed." : "\nOnly these sections ( plus any nested children ) are allowed.";
+        return `${type} \u2014 ${shape.purpose}
+${body || "  ( no declared sections )"}${openNote}`;
+      }
+    }();
+  }
+});
+
+// ../kcd_sdk/dist/core/html/KcdSynth.js
+var require_KcdSynth = __commonJS({
+  "../kcd_sdk/dist/core/html/KcdSynth.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.KcdSynth = void 0;
+    var HtmlTree_1 = require_HtmlTree();
+    var KcdAddress_1 = require_KcdAddress();
+    var KcdShapes_1 = require_KcdShapes();
+    var BLOCK_START = /^\s*<(p|div|ul|ol|section|table|pre|blockquote|h[1-6]|dl|figure)\b/i;
+    exports2.KcdSynth = new class KcdSynth {
+      /**
+       * Build a body from content. The orchestrator — every real decision is delegated, so this stays
+       * readable and each step is testable on its own.
+       */
+      synthesize(type, input) {
+        const provided = input.sections ?? {};
+        const slotsBy = this.indexSlots(input.slots);
+        const undeclared = this.undeclaredOf(type, Object.keys(provided));
+        const parts = [];
+        parts.push(`<h1>${HtmlTree_1.HtmlTree.escapeText(input.title ?? type)}</h1>`);
+        if (input.summary)
+          parts.push(`<blockquote>
+	<p>${HtmlTree_1.HtmlTree.escapeText(input.summary)}</p>
+</blockquote>`);
+        const shape = KcdShapes_1.KcdShapes.shapeFor(type);
+        if (shape?.regions) {
+          for (const region of shape.regions) {
+            const inner = region.sections.map((spec) => this.renderSection(spec, provided, slotsBy, 3)).filter(Boolean);
+            if (inner.length)
+              parts.push(this.regionEl(region.name, inner.join("\n")));
+          }
+        } else {
+          for (const spec of KcdShapes_1.KcdShapes.sectionsFor(type)) {
+            const html = this.renderSection(spec, provided, slotsBy, 2);
+            if (html)
+              parts.push(html);
+          }
+        }
+        for (const name of undeclared)
+          parts.push(this.sectionEl(name, this.bodyFor(name, provided, slotsBy, void 0), 2));
+        return { body: parts.join("\n\n"), undeclared };
+      }
+      // ── Placement ─────────────────────────────────────────────────────────────────
+      /** Rows keyed by their target section, so section rendering is a lookup rather than a scan. */
+      indexSlots(slots) {
+        const out = {};
+        for (const s of slots ?? [])
+          out[s.section] = s;
+        return out;
+      }
+      /** Provided names that the shape neither declares nor nests. Order-preserving. */
+      undeclaredOf(type, names) {
+        const declared = new Set(KcdShapes_1.KcdShapes.orderFor(type));
+        return names.filter((n) => !declared.has(n) && !KcdShapes_1.KcdShapes.isNestedChild(type, n));
+      }
+      /**
+       * The nested children a parent section claims, in NUMERIC order — `phase-1`, `phase-2`, `phase-10`.
+       *
+       * Deliberately not the order the author supplied. Numbered siblings carry their sequence in their
+       * own names, so emitting `phase-2` above `phase-1` because the caller happened to list it first
+       * produces a document that is wrong in a way nothing downstream can detect. The premise of this
+       * whole module is that ordering is the code's job; a caller who supplies phases out of order is
+       * exactly the case it exists to absorb. Lexicographic sorting would put `phase-10` before
+       * `phase-2`, so the comparison is natural: split each name into digit and non-digit runs and
+       * compare numbers as numbers.
+       */
+      childrenOf(parent, provided) {
+        if (!parent.nests)
+          return [];
+        return Object.keys(provided).filter((n) => KcdShapes_1.KcdShapes.globMatches(parent.nests, n)).sort((a, b) => this.naturalCompare(a, b));
+      }
+      /** Compare two names treating digit runs as numbers ( `phase-2` &lt; `phase-10` ). */
+      naturalCompare(a, b) {
+        const split = (s) => s.match(/\d+|\D+/g) ?? [];
+        const pa = split(a), pb = split(b);
+        for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+          const x = pa[i], y = pb[i];
+          if (x === void 0)
+            return -1;
+          if (y === void 0)
+            return 1;
+          const nx = /^\d/.test(x), ny = /^\d/.test(y);
+          if (nx && ny) {
+            const d = Number(x) - Number(y);
+            if (d !== 0)
+              return d;
+          } else if (x !== y)
+            return x < y ? -1 : 1;
+        }
+        return 0;
+      }
+      /**
+       * Every section name the author actually supplied — prose keys AND the sections addressed by slot
+       * rows. A slot-bearing section ( a lens's `habits` ) is supplied as ROWS and never appears in
+       * `sections`, so auditing the prose keys alone reports it absent when it is right there. This is
+       * the list any conformance check should be handed.
+       */
+      suppliedSections(input) {
+        const names = Object.keys(input.sections ?? {});
+        for (const s of input.slots ?? [])
+          if (s.rows.length && !names.includes(s.section))
+            names.push(s.section);
+        return names;
+      }
+      // ── Rendering ─────────────────────────────────────────────────────────────────
+      /**
+       * One declared section, or `''` when the author supplied nothing for it. Absence is silent here:
+       * emitting an empty section would trip the validator's own `empty-section` rule, and omitting a
+       * section the author skipped is exactly what the required-tier check is for.
+       */
+      renderSection(spec, provided, slotsBy, depth) {
+        const children = this.childrenOf(spec, provided);
+        const body = this.bodyFor(spec.name, provided, slotsBy, spec.slot);
+        if (!body && !children.length)
+          return "";
+        const childHtml = children.map((name) => this.sectionEl(name, this.bodyFor(name, provided, slotsBy, void 0), depth + 1)).join("\n");
+        return this.sectionEl(spec.name, [body, childHtml].filter(Boolean).join("\n"), depth);
+      }
+      /** A section's inner HTML: its slot table if it carries rows, otherwise its prose. */
+      bodyFor(name, provided, slotsBy, declaredKind) {
+        const slots = slotsBy[name];
+        if (slots && slots.rows.length)
+          return this.slotTable(slots.kind ?? declaredKind ?? "table-data", slots.rows);
+        const text = provided[name];
+        return text ? this.proseToHtml(text) : "";
+      }
+      /** `<section data-kcd-section>` with its heading. Depth drives the heading level only. */
+      sectionEl(name, inner, depth) {
+        const level = Math.min(Math.max(depth, 2), 6);
+        return `<section data-kcd-section="${HtmlTree_1.HtmlTree.escapeAttr(name)}">
+	<h${level} data-kcd-heading>${HtmlTree_1.HtmlTree.escapeText(this.headingFor(name))}</h${level}>
+` + this.indent(inner) + `
+</section>`;
+      }
+      /** Lens-only Know/Care/Do wrapper ( protocol §4 ). */
+      regionEl(name, inner) {
+        return `<section data-kcd-region="${HtmlTree_1.HtmlTree.escapeAttr(name)}">
+	<h2 data-kcd-heading>${HtmlTree_1.HtmlTree.escapeText(this.headingFor(name))}</h2>
+` + this.indent(inner) + `
+</section>`;
+      }
+      /** A faux-table of slot rows. Never a real `<table>` — the validator refuses canonical fields
+       *  inside one, because a `<table>` may hold non-canonical chrome only. */
+      slotTable(kind, rows) {
+        const body = rows.map((r) => this.slotRow(kind, r)).join("\n");
+        return `<div data-kcd-table>
+${this.indent(body)}
+</div>`;
+      }
+      /**
+       * One `<div data-kcd-slot="kind">`. `where` is emitted as a real `href` rather than text —
+       * a link cell carrying only text round-trips as an empty link and the validator flags it.
+       */
+      slotRow(kind, row) {
+        const attrs = [`data-kcd-slot="${HtmlTree_1.HtmlTree.escapeAttr(this.kindOrDefault(kind))}"`];
+        if (row.mode)
+          attrs.push(`data-kcd-mode="${HtmlTree_1.HtmlTree.escapeAttr(row.mode)}"`);
+        if (row.habitClass)
+          attrs.push(`data-kcd-habit-class="${HtmlTree_1.HtmlTree.escapeAttr(row.habitClass)}"`);
+        const cells = [`<span data-kcd-field="what" data-kcd-type="text">${HtmlTree_1.HtmlTree.escapeText(row.what)}</span>`];
+        if (row.where)
+          cells.push(`<a data-kcd-field="where" data-kcd-type="path" href="${HtmlTree_1.HtmlTree.escapeAttr(row.where)}">${HtmlTree_1.HtmlTree.escapeText(this.labelFor(row.where))}</a>`);
+        if (row.why)
+          cells.push(`<span data-kcd-field="why" data-kcd-type="text">${HtmlTree_1.HtmlTree.escapeText(row.why)}</span>`);
+        return `<div ${attrs.join(" ")}>
+${this.indent(cells.join("\n"))}
+</div>`;
+      }
+      // ── Text ──────────────────────────────────────────────────────────────────────
+      /**
+       * Plain text → block HTML; already-authored HTML → itself. Blank lines separate paragraphs and a
+       * run of `- ` lines becomes a list. Anything not recognized as markup is ESCAPED — the safe
+       * direction, so a stray `<` in prose can never open a tag.
+       */
+      proseToHtml(text) {
+        const trimmed = text.trim();
+        if (!trimmed)
+          return "";
+        if (BLOCK_START.test(trimmed))
+          return trimmed;
+        return trimmed.split(/\n\s*\n/).map((block) => this.blockToHtml(block.trim())).filter(Boolean).join("\n");
+      }
+      /** One paragraph-or-list block. */
+      blockToHtml(block) {
+        if (!block)
+          return "";
+        const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+        if (lines.length && lines.every((l) => l.startsWith("- "))) {
+          const items = lines.map((l) => `	<li>${HtmlTree_1.HtmlTree.escapeText(l.slice(2).trim())}</li>`).join("\n");
+          return `<ul>
+${items}
+</ul>`;
+        }
+        return `<p>${HtmlTree_1.HtmlTree.escapeText(lines.join(" "))}</p>`;
+      }
+      // ── Helpers ───────────────────────────────────────────────────────────────────
+      /** `current-state` → `Current State`. Hyphens out, words capitalized. */
+      headingFor(name) {
+        return name.split("-").map((w) => w ? w[0].toUpperCase() + w.slice(1) : w).join(" ");
+      }
+      /** A link's display label — the artifact's short name, per the base lens's link rule. */
+      labelFor(href) {
+        const last = href.split("/").pop() ?? href;
+        return last.replace(/\.html?$/i, "");
+      }
+      /** An unknown slot kind falls back to the one kind that carries no dredge role, rather than
+       *  emitting a value the validator would reject outright. */
+      kindOrDefault(kind) {
+        return KcdAddress_1.KcdAddress.SLOT_KINDS.includes(kind) ? kind : "table-data";
+      }
+      indent(html) {
+        return html.split("\n").map((l) => l ? `	${l}` : l).join("\n");
+      }
+    }();
+  }
+});
+
 // ../kcd_sdk/dist/core/html/KcdExcise.js
 var require_KcdExcise = __commonJS({
   "../kcd_sdk/dist/core/html/KcdExcise.js"(exports2) {
@@ -5841,7 +6683,7 @@ var require_html = __commonJS({
   "../kcd_sdk/dist/core/html/index.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.KcdText = exports2.KcdContext = exports2.KcdEdit = exports2.KcdExcise = exports2.KcdEmit = exports2.KcdParse = exports2.KcdValidate = exports2.KcdAddress = exports2.HtmlTree = void 0;
+    exports2.KcdText = exports2.KcdContext = exports2.KcdEdit = exports2.KcdExcise = exports2.KcdEmit = exports2.KcdParse = exports2.KcdSynth = exports2.SHAPES = exports2.KcdShapes = exports2.KcdValidate = exports2.KcdAddress = exports2.HtmlTree = void 0;
     var HtmlTree_1 = require_HtmlTree();
     Object.defineProperty(exports2, "HtmlTree", { enumerable: true, get: function() {
       return HtmlTree_1.HtmlTree;
@@ -5853,6 +6695,17 @@ var require_html = __commonJS({
     var KcdValidate_1 = require_KcdValidate();
     Object.defineProperty(exports2, "KcdValidate", { enumerable: true, get: function() {
       return KcdValidate_1.KcdValidate;
+    } });
+    var KcdShapes_1 = require_KcdShapes();
+    Object.defineProperty(exports2, "KcdShapes", { enumerable: true, get: function() {
+      return KcdShapes_1.KcdShapes;
+    } });
+    Object.defineProperty(exports2, "SHAPES", { enumerable: true, get: function() {
+      return KcdShapes_1.SHAPES;
+    } });
+    var KcdSynth_1 = require_KcdSynth();
+    Object.defineProperty(exports2, "KcdSynth", { enumerable: true, get: function() {
+      return KcdSynth_1.KcdSynth;
     } });
     var KcdParse_1 = require_KcdParse();
     Object.defineProperty(exports2, "KcdParse", { enumerable: true, get: function() {
@@ -9605,7 +10458,35 @@ var require_Vault = __commonJS({
        * so callers passing absolute paths keep working regardless of process cwd.
        */
       toAbs(vaultRelative) {
-        return path2.isAbsolute(vaultRelative) ? path2.normalize(vaultRelative) : path2.resolve(this.root, vaultRelative);
+        if (path2.isAbsolute(vaultRelative))
+          return path2.normalize(vaultRelative);
+        return path2.resolve(this.root, this._stripDocRoot(vaultRelative));
+      }
+      /**
+       * Tolerate a path that already carries the doc-root segment where a vault-relative one is expected —
+       * `_Claude/plans/x.html` and `plans/x.html` name the same artifact.
+       *
+       * Not leniency for its own sake. The vault speaks TWO path currencies by design: an href inside a
+       * document is vault-ROOT-relative, because a browser opening that file from the project root has to be
+       * able to follow it, while a tool parameter is vault-relative, because it resolves against the root
+       * itself. An agent that copies a link out of a document into a tool call is doing the obvious thing.
+       *
+       * Before this it got a DOUBLED path ( `…/_Claude/_Claude/lenses/…` ) and a raw ENOENT — and the path
+       * jail waved it through on the way, because a doubled path is still inside the vault. The one guard
+       * positioned to catch it could not see it.
+       *
+       * Normalizing HERE fixes every tool at once: get, save, move, delete, links and health all reach disk
+       * through this method. The alternative was the same strip repeated at six call sites, or teaching every
+       * agent a distinction the system can simply stop making.
+       *
+       * What this gives up: a genuine `_Claude/_Claude/…` becomes unreachable. That directory does not exist
+       * and should not — a doc root nested inside itself is a mistake, not a layout — so the trade is a real
+       * ambiguity resolved in favour of the case that actually happens.
+       */
+      _stripDocRoot(rel) {
+        const fwd = rel.replace(/\\/g, "/").replace(/^\.?\//, "");
+        const lead = this.docRoot.replace(/\\/g, "/").replace(/\/+$/, "") + "/";
+        return fwd.startsWith(lead) ? fwd.slice(lead.length) : fwd;
       }
       /** Absolute ( or vault-relative ) path → vault-relative path, for return payloads. */
       toVaultRel(anyPath) {
@@ -9775,7 +10656,7 @@ var require_Vault = __commonJS({
           const rel = this.lensPath(name);
           if (!fs.existsSync(this.toAbs(rel)))
             throw new Error(`no lens found for "${name}" ( looked for ${rel} )`);
-          return this.loadLens(rel);
+          return this.loadLens(rel, { eager: true });
         });
         return core_1.Agent.create({
           id: core_1.Agent.VAULT_AGENT_ID,
@@ -9789,7 +10670,7 @@ var require_Vault = __commonJS({
       loadBaseLens() {
         if (!fs.existsSync(this.toAbs(core_1.InstallManifest.BASE_LENS)))
           return null;
-        return this.loadLens(core_1.InstallManifest.BASE_LENS);
+        return this.loadLens(core_1.InstallManifest.BASE_LENS, { eager: true });
       }
       // ── Authoring / heal ──────────────────────────────────────────────────────
       /**
@@ -10098,33 +10979,18 @@ var require_VaultUtilities = __commonJS({
       /**
        * Compile one or more lenses to a context string — Daedalus's LENS-scoped compiler.
        *
-       * Builds a DUMB agent over the named lenses ( `Vault.buildAgent` ) and compiles that — so the vault face
-       * and Starmind now resolve lenses, apply the inheritance floor, and rank habit-class contention through
-       * exactly the same code. What a vault still cannot supply is the agent's ENVIRONMENT ( root context, live
-       * MCP tool defs, DB memory ): those are runtime layers with no vault-side source, so a vault agent simply
-       * never binds them. That is the whole difference between the faces — not a different compiler.
+       * Builds a dumb agent ( `Vault.buildAgent` ) and compiles that, so both faces run one engine. The only
+       * difference between them is the agent's ENVIRONMENT — root context, live MCP tool defs, DB memory —
+       * which has no vault-side source, so a vault agent never binds it.
        *
-       * There is no longer a second compiler. The text is the agent's own `compile()`, so this face emits the
-       * by-KIND care bands, the band headings, and the bottom-of-context manifest exactly as Starmind does —
-       * and drops the legacy `stub` blocks, whose rows the manifest's routing tables already carry. What used
-       * to sit here was a flat `LensObject.getContextBlocks` → `SlotResolver.compile` pipeline that shipped
-       * none of that; the divergence was invisible because each face's output looked internally consistent.
+       * THE BASE LENS ALWAYS RIDES, with no flag to suppress it: base is an inheritance mechanism, not an
+       * ingredient, so a compile that drops it is wrong rather than lean. A lens re-declaring part of the
+       * floor camouflages the missing rest, which is why the rule lives once, in `Agent.withFloor`.
        *
-       * THE BASE LENS ALWAYS RIDES, and there is no flag to suppress it ( ruling: Bryan, 2026-07-29 ).
-       * Base is an INHERITANCE mechanism, not an ingredient — a compile that drops it is not a leaner
-       * compile, it is a wrong one. `InstallManifest` already declared the contract this honours ( base is
-       * `required: true` floor whose purpose line reads "auto-loaded into every session; a vault without it
-       * has no floor to stand on" ); until 2026-07-29 this compiler simply never implemented it, so the
-       * Daedalus face silently shipped every session a context missing fourteen habits — `write-approval`
-       * among them. The omission was camouflaged: a lens that re-declares part of the floor makes the missing
-       * rest look present. The rule now lives once, in `Agent.withFloor`, which both faces call — the previous
-       * arrangement spelled it per face and relied on a comment to keep them honest, and they diverged anyway.
-       *
-       * Each name is a bare lens name ( mapped to the `lenses/{name}/{name}.html` convention ) OR a raw
-       * vault-relative path. `[0]` is primary. Throws on an empty list or a name that resolves to nothing.
-       * The returned `lenses` reports what actually COMPILED, base included — reporting only what was asked
-       * for is how the floor stayed invisible in the first place. Because it is read off the built agent, a
-       * lens named by raw path reports its artifact NAME, not the path that was passed in.
+       * Each name is a bare lens name ( `lenses/{name}/{name}.html` ) or a raw vault-relative path; `[0]` is
+       * primary. Throws on an empty list or an unresolvable name. The returned `lenses` reports what actually
+       * COMPILED, base included — reporting only what was asked for is what keeps a missing floor invisible.
+       * Read off the built agent, so a lens named by raw path reports its artifact NAME.
        */
       static compile(vault, lensNames) {
         const agent = vault.buildAgent(lensNames);
@@ -10133,74 +10999,42 @@ var require_VaultUtilities = __commonJS({
         return { lenses: compiled, text, tokens: primitives_1.KCDPrimitive._estimateTokens(text) };
       }
       /**
-       * A lens's compiled-context DETAIL — the structured breakdown behind the `show` chart. Reads the same
-       * lens-scoped composition `compile()` produces, but keeps it decomposed: `slots[0]` is the lens's OWN
-       * identity ( its Care/Know body + the routing tables it authors ), and each following row is one dredge
-       * SLOT off the lens's policy — its state ( off / on / suggested, or `empty` when the slot is a
-       * placeholder nothing fills ) and the tokens that component contributes. Single lens only ( a lens is
-       * what you inspect; a multi-lens compile is `compile()` ).
+       * The composition behind the `show` chart: what a session WEARING this lens receives, file by file,
+       * inheritance floor included. Priced from the compiled blocks.
+       *
+       * A view of the COMPOSITION, not of the text — what the object is built from, what each file costs, and
+       * which lens brought it, so editing an object and inspecting how it assembles works from the command
+       * line. A thin projection of `Agent.composition()` rather than its own analysis: a chart that recomputed
+       * the composition would be free to disagree with the thing it describes.
+       *
+       * EVERY FILE CARRIES A COST — at `on`, its surviving row in the deduped manifest; at `off`, zero, and
+       * still listed, because what an object declines is part of how it is composed. No aggregate `manifest`
+       * row: pooling those weights makes an `on` file read as free.
+       *
+       * The one non-file row is `structure` — band headings, dividers, block joins, estimator rounding. It is
+       * the REMAINDER against the compiled total, which is what makes the decomposition exact: the estimator
+       * is `round( chars / 4 )`, so per-block weights cannot sum to a single-pile estimate on their own.
        */
       static lensView(vault, name) {
         const rel = vault.lensPath(name);
         if (!fs.existsSync(vault.toAbs(rel)))
           throw new Error(`no lens found for "${name}" ( looked for ${rel} )`);
-        const lens = vault.loadLens(rel);
-        const base = (p) => p.replace(/\\/g, "/").split("/").pop() ?? "";
-        const lensPath = lens.getPath() ?? rel;
-        const slots = [
-          // The lens's own identity — its Care/Know body, always fully in.
-          { what: "identity", kind: "lens", state: "suggested", tokens: lens.bodyTokens() }
-        ];
-        for (const entry of lens.getPolicy()) {
-          const href = entry.href?.trim() ?? "";
-          if (href === "" || /^\{.*\}$/.test(href)) {
-            slots.push({ what: entry.what || "( unnamed )", kind: "", state: "empty", tokens: 0 });
-            continue;
-          }
-          const target = this.tryLoad(vault, href);
-          slots.push({
-            what: entry.what || (target ? target.getName() : base(href)),
-            kind: target ? target.getType() : this.kindFromHref(href),
-            state: entry.mode,
-            // The cost the compile ACTUALLY pays at this slot's mode — `on` reduces to its routing row
-            // ( ~tens of tokens ), `suggested` rides the full body ( ~hundreds ), `off` contributes nothing.
-            // The same `modeTokens` split the Starmind composition UI reads, so the two never disagree.
-            tokens: target ? target.modeTokens(entry.mode, entry.why) : 0
-          });
-        }
-        return {
-          lens: lens.getName() || name,
-          path: lensPath,
-          slots,
-          tokens: slots.reduce((sum, s) => sum + s.tokens, 0)
-        };
-      }
-      /** Resolve a policy href to disk ( the resolver the dredge uses ) and load the full artifact — for the
-       *  `show` breakdown, which prices every slot regardless of mode. Null on an unresolvable or unreadable
-       *  target ( a dangling link ), so the caller falls back to an href-inferred kind and zero weight. */
-      static tryLoad(vault, href) {
-        try {
-          const abs = vault.resolveHref(href);
-          if (!fs.existsSync(abs))
-            return null;
-          return primitives_1.KCDPrimitive.fromHtml(fs.readFileSync(abs, "utf-8"), abs);
-        } catch {
-          return null;
-        }
-      }
-      /** Best-effort artifact kind from an href's path segment — the fallback when a slot's target can't be
-       *  loaded ( a dangling link ), so its real `getType()` is unavailable. */
-      static kindFromHref(href) {
-        const h = href.replace(/\\/g, "/");
-        if (/(^|\/)references?\//.test(h))
-          return "reference";
-        if (/(^|\/)habits?\//.test(h))
-          return "habit";
-        if (/(^|\/)plans?\//.test(h))
-          return "plan";
-        if (/(^|\/)contracts?\//.test(h))
-          return "contract";
-        return "";
+        const agent = vault.buildAgent([name]);
+        const lens = agent.domainLenses[0];
+        const total = primitives_1.KCDPrimitive._estimateTokens(agent.compile());
+        const slots = agent.composition().map((r) => ({
+          what: r.name,
+          kind: r.kind === "unknown" ? "" : r.kind,
+          source: r.source,
+          slot: r.slot ?? "",
+          state: r.path === "" ? "empty" : r.mode,
+          tokens: r.tokens
+        }));
+        const kindRank = (k) => k === "lens" ? 0 : k === "" ? 2 : 1;
+        slots.sort((a, b) => kindRank(a.kind) - kindRank(b.kind) || a.kind.localeCompare(b.kind));
+        const accounted = slots.reduce((sum, s) => sum + s.tokens, 0);
+        slots.push({ what: "structure", kind: "", source: "\u2014", slot: "", state: "fixed", tokens: total - accounted });
+        return { lens: lens?.getName() || name, path: lens?.getPath() ?? vault.toAbs(rel), slots, tokens: total };
       }
       /**
        * The single read-query over a vault — glob, type, and text, AND-combined over one scan.
@@ -12530,7 +13364,13 @@ function readTools(chain) {
           const artifact = import_kcd_sdk5.KCDPrimitive.fromHtml(vault.read(filePath), vault.toAbs(filePath));
           return MCPUtils.result(artifact.serialize());
         } catch (e) {
-          return MCPUtils.error(e instanceof Error ? e.message : String(e));
+          const message = e instanceof Error ? e.message : String(e);
+          if (message.includes("ENOENT")) {
+            return MCPUtils.error(
+              `No artifact at "${String(args["path"] ?? "")}". Paths are vault-relative ( "plans/x.html", not an absolute path ). Use kcd_query to find it by glob or by text.`
+            );
+          }
+          return MCPUtils.error(message);
         }
       }
     },
@@ -12671,10 +13511,13 @@ function writeTools(chain) {
       },
       spec: [
         { label: "jails an out-of-vault path", input: { path: "C:/Windows/x.html", artifact: { type: "reference", frontmatter: {}, body: "" } }, assertions: [{ type: "error_expected" }] },
-        { label: "refuses an artifact that fails validation", input: { path: "references/domain/x.html", artifact: { type: "reference", frontmatter: {}, body: "" } }, assertions: [{ type: "error_expected" }] }
+        { label: "refuses an artifact that fails validation", input: { path: "references/domain/x.html", artifact: { type: "reference", frontmatter: {}, body: "" } }, assertions: [{ type: "error_expected" }] },
+        // The two input paths are mutually exclusive; proving the refusal is the one case that
+        // exercises the content branch WITHOUT landing a file during verify.
+        { label: "refuses content and body together", input: { path: "references/domain/x.html", artifact: { type: "reference", frontmatter: { name: "x", description: "x", type: "reference", status: "active" }, body: "<p>x</p>", content: { sections: { location: "x" } } } }, assertions: [{ type: "error_expected" }] }
       ],
       description: "Write an artifact, validated first \u2014 a malformed one is refused and nothing lands.",
-      doc: "Persist one artifact by vault-relative `path` from its `artifact` ( a SerializedArtifact \u2014 the shape kcd_get returns ). Emits HTML with KcdEmit: frontmatter is rebuilt from `artifact.frontmatter`, the `body` passes through \u2014 an existing body has its frontmatter block replaced ( the edit path: kcd_get \u2192 mutate \u2192 kcd_save ), a body with none gets one prepended ( the create path ). The result is validated with KcdValidate BEFORE any write: a structural failure returns a structured error and writes NOTHING ( the write-time gate \u2014 can't save a malformed artifact ). On success it writes and returns `{ saved, warnings }`. PathGuard jails the path and checks the target directory ACCEPTS the declared type \u2014 a refusal names the accepted set, so the fix is in the error. NOTE: agent-authored body HTML is not yet sanitized here ( the render layer sanitizes on display; a save-time sanitize pass is a named deferral ), and structured section/region/slot synthesis ( create a lens from fields alone ) is not built \u2014 supply body HTML.",
+      doc: "Persist one artifact by vault-relative `path` from its `artifact` ( a SerializedArtifact \u2014 the shape kcd_get returns ). Emits HTML with KcdEmit: frontmatter is rebuilt from `artifact.frontmatter`, the `body` passes through \u2014 an existing body has its frontmatter block replaced ( the edit path: kcd_get \u2192 mutate \u2192 kcd_save ), a body with none gets one prepended ( the create path ). The result is validated with KcdValidate BEFORE any write: a structural failure returns a structured error and writes NOTHING ( the write-time gate \u2014 can't save a malformed artifact ). On success it writes and returns `{ saved, warnings }`. PathGuard jails the path and checks the target directory ACCEPTS the declared type \u2014 a refusal names the accepted set, so the fix is in the error. TWO WAYS IN, exactly one per call. Pass `artifact.content` to AUTHOR: give sections as prose ( plus rows for the record-bearing ones ) and the structure \u2014 section order, nesting, heading levels, faux-tables, the whole data-kcd grammar \u2014 is DERIVED from that type's declared shape, so you supply content and never markup. Pass `artifact.body` instead to EDIT, where existing structured HTML is preserved byte-for-byte ( kcd_get \u2192 mutate \u2192 kcd_save ). Supplying both is refused rather than resolved by precedence. Content mode also returns advisories naming any required or expected section left out, and \u2014 on a closed type \u2014 any section the compiler will not read. NOTE: agent-authored body HTML is not yet sanitized here ( the render layer sanitizes on display; a save-time sanitize pass is a named deferral ).",
       inputSchema: {
         type: "object",
         properties: {
@@ -12685,9 +13528,43 @@ function writeTools(chain) {
             properties: {
               type: { type: "string", description: "Artifact type (lens, plan, habit, reference, \u2026) \u2014 must match the target directory." },
               frontmatter: { type: "object", additionalProperties: true, description: "Frontmatter fields (name, description, status, \u2026) \u2014 rebuilt into the HTML header block." },
-              body: { type: "string", description: "Body HTML, no frontmatter block. Omit only when creating from fields alone (not yet supported \u2014 supply body HTML)." }
+              body: { type: "string", description: "PASSTHROUGH path \u2014 body HTML, no frontmatter block, preserved byte-for-byte. Use for an edit (kcd_get \u2192 mutate \u2192 kcd_save). Mutually exclusive with `content`." },
+              content: {
+                type: "object",
+                description: "AUTHORING path \u2014 supply CONTENT and the structure is derived from the type's shape (section order, nesting, headings, faux-tables). Mutually exclusive with `body`.",
+                properties: {
+                  title: { type: "string", description: "The document's <h1>. Defaults to frontmatter.name." },
+                  summary: { type: "string", description: "One line under the title, rendered as a blockquote." },
+                  sections: { type: "object", additionalProperties: { type: "string" }, description: `Section name \u2192 prose (plain text is fine; blank lines become paragraphs, "- " lines a list). Names and order come from the type's shape; a nested child like "phase-2" is placed inside its parent automatically.` },
+                  slots: {
+                    type: "array",
+                    description: "Rows for the sections that carry records rather than prose (a lens's habits, a nav-index's entries).",
+                    items: {
+                      type: "object",
+                      properties: {
+                        section: { type: "string", description: "Which section these rows belong to." },
+                        kind: { type: "string", description: "Slot kind; defaults to the kind the shape declares for that section." },
+                        rows: {
+                          type: "array",
+                          items: {
+                            type: "object",
+                            properties: {
+                              what: { type: "string", description: "The label." },
+                              where: { type: "string", description: "Vault-root-relative path (_Claude/...), emitted as a real link." },
+                              why: { type: "string", description: "When or why this row applies." },
+                              mode: { type: "string", description: "off | on | suggested." }
+                            },
+                            required: ["what"]
+                          }
+                        }
+                      },
+                      required: ["section", "rows"]
+                    }
+                  }
+                }
+              }
             },
-            required: ["type", "frontmatter", "body"]
+            required: ["type", "frontmatter"]
           }
         },
         required: ["path", "artifact"]
@@ -12697,7 +13574,26 @@ function writeTools(chain) {
           chain.run({ tool: "kcd_save", params: args });
           const filePath = String(args["path"] ?? "");
           const raw = args["artifact"] ?? {};
-          const artifact = { ...raw, body: typeof raw["body"] === "string" ? raw["body"] : "" };
+          const declared = String(raw["type"] ?? "");
+          const content = raw["content"];
+          const hasBody = typeof raw["body"] === "string" && raw["body"].trim() !== "";
+          if (content && hasBody)
+            return MCPUtils.error(`kcd_save refused "${filePath}": supply either "content" ( synthesized ) or "body" ( passthrough ), not both.`);
+          let body = typeof raw["body"] === "string" ? raw["body"] : "";
+          const advisories = [];
+          if (content) {
+            const fm = raw["frontmatter"] ?? {};
+            const title = content.title ?? String(fm["name"] ?? declared);
+            const synth = import_kcd_sdk6.KcdSynth.synthesize(declared, { ...content, title });
+            body = synth.body;
+            const shape = import_kcd_sdk6.KcdShapes.shapeFor(declared);
+            if (synth.undeclared.length && shape && !shape.open)
+              advisories.push(`sections not declared by the "${declared}" shape: ${synth.undeclared.join(", ")} \u2014 the compiler will not read them. Declared: ${import_kcd_sdk6.KcdShapes.orderFor(declared).join(", ")}`);
+            const audit = import_kcd_sdk6.KcdShapes.audit(declared, import_kcd_sdk6.KcdSynth.suppliedSections(content));
+            if (audit.missing.length) advisories.push(`missing required section(s): ${audit.missing.join(", ")}`);
+            if (audit.thin.length) advisories.push(`missing expected section(s): ${audit.thin.join(", ")}`);
+          }
+          const artifact = { ...raw, body };
           const html = import_kcd_sdk6.KcdEmit.emit(artifact, Config.resolve().cssHref);
           const report = import_kcd_sdk6.KcdValidate.validate(html);
           if (!report.ok) {
@@ -12705,7 +13601,7 @@ function writeTools(chain) {
             return MCPUtils.error(`kcd_save refused "${filePath}": artifact failed validation \u2014 ${detail}`);
           }
           const saved = MCPUtils.vault.write(filePath, html);
-          return MCPUtils.result({ saved, warnings: report.warnings });
+          return MCPUtils.result({ saved, warnings: [...report.warnings, ...advisories] });
         } catch (e) {
           return MCPUtils.error(e instanceof Error ? e.message : String(e));
         }

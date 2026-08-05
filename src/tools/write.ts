@@ -1,6 +1,6 @@
-import { KcdEmit, KcdValidate } from 'kcd_sdk';
+import { KcdEmit, KcdValidate, KcdShapes, KcdSynth } from 'kcd_sdk';
 import type { ToolDefinition, TestSpec } from '../mcp';
-import type { SerializedArtifact } from 'kcd_sdk';
+import type { SerializedArtifact, SynthInput } from 'kcd_sdk';
 import { GuardChain } from '../guards';
 import { MCPUtils } from '../MCPUtils';
 import { Config } from '../Config';
@@ -21,6 +21,9 @@ export function writeTools( chain: GuardChain ): ( ToolDefinition & { spec?: Tes
 			spec: [
 				{ label: 'jails an out-of-vault path', input: { path: 'C:/Windows/x.html', artifact: { type: 'reference', frontmatter: {}, body: '' } }, assertions: [ { type: 'error_expected' } ] },
 				{ label: 'refuses an artifact that fails validation', input: { path: 'references/domain/x.html', artifact: { type: 'reference', frontmatter: {}, body: '' } }, assertions: [ { type: 'error_expected' } ] },
+				// The two input paths are mutually exclusive; proving the refusal is the one case that
+				// exercises the content branch WITHOUT landing a file during verify.
+				{ label: 'refuses content and body together', input: { path: 'references/domain/x.html', artifact: { type: 'reference', frontmatter: { name: 'x', description: 'x', type: 'reference', status: 'active' }, body: '<p>x</p>', content: { sections: { location: 'x' } } } }, assertions: [ { type: 'error_expected' } ] },
 			],
 			description: 'Write an artifact, validated first — a malformed one is refused and nothing lands.',
 			doc:
@@ -31,9 +34,16 @@ export function writeTools( chain: GuardChain ): ( ToolDefinition & { spec?: Tes
 				'is validated with KcdValidate BEFORE any write: a structural failure returns a structured error and ' +
 				'writes NOTHING ( the write-time gate — can\'t save a malformed artifact ). On success it writes and ' +
 				'returns `{ saved, warnings }`. PathGuard jails the path and checks the target directory ACCEPTS the ' +
-				'declared type — a refusal names the accepted set, so the fix is in the error. NOTE: agent-authored body HTML is not yet sanitized here ( the render layer ' +
-				'sanitizes on display; a save-time sanitize pass is a named deferral ), and structured ' +
-				'section/region/slot synthesis ( create a lens from fields alone ) is not built — supply body HTML.',
+				'declared type — a refusal names the accepted set, so the fix is in the error. ' +
+				'TWO WAYS IN, exactly one per call. Pass `artifact.content` to AUTHOR: give sections as prose ' +
+				'( plus rows for the record-bearing ones ) and the structure — section order, nesting, heading ' +
+				'levels, faux-tables, the whole data-kcd grammar — is DERIVED from that type\'s declared shape, so ' +
+				'you supply content and never markup. Pass `artifact.body` instead to EDIT, where existing ' +
+				'structured HTML is preserved byte-for-byte ( kcd_get → mutate → kcd_save ). Supplying both is ' +
+				'refused rather than resolved by precedence. Content mode also returns advisories naming any ' +
+				'required or expected section left out, and — on a closed type — any section the compiler will not ' +
+				'read. NOTE: agent-authored body HTML is not yet sanitized here ( the render layer sanitizes on ' +
+				'display; a save-time sanitize pass is a named deferral ).',
 			inputSchema: {
 				type:       'object',
 				properties: {
@@ -44,9 +54,43 @@ export function writeTools( chain: GuardChain ): ( ToolDefinition & { spec?: Tes
 						properties: {
 							type:        { type: 'string', description: 'Artifact type (lens, plan, habit, reference, …) — must match the target directory.' },
 							frontmatter: { type: 'object', additionalProperties: true, description: 'Frontmatter fields (name, description, status, …) — rebuilt into the HTML header block.' },
-							body:        { type: 'string', description: 'Body HTML, no frontmatter block. Omit only when creating from fields alone (not yet supported — supply body HTML).' },
+							body:    { type: 'string', description: 'PASSTHROUGH path — body HTML, no frontmatter block, preserved byte-for-byte. Use for an edit (kcd_get → mutate → kcd_save). Mutually exclusive with `content`.' },
+							content: {
+								type:        'object',
+								description: 'AUTHORING path — supply CONTENT and the structure is derived from the type\'s shape (section order, nesting, headings, faux-tables). Mutually exclusive with `body`.',
+								properties: {
+									title:    { type: 'string', description: 'The document\'s <h1>. Defaults to frontmatter.name.' },
+									summary:  { type: 'string', description: 'One line under the title, rendered as a blockquote.' },
+									sections: { type: 'object', additionalProperties: { type: 'string' }, description: 'Section name → prose (plain text is fine; blank lines become paragraphs, "- " lines a list). Names and order come from the type\'s shape; a nested child like "phase-2" is placed inside its parent automatically.' },
+									slots: {
+										type:        'array',
+										description: 'Rows for the sections that carry records rather than prose (a lens\'s habits, a nav-index\'s entries).',
+										items: {
+											type: 'object',
+											properties: {
+												section: { type: 'string', description: 'Which section these rows belong to.' },
+												kind:    { type: 'string', description: 'Slot kind; defaults to the kind the shape declares for that section.' },
+												rows: {
+													type:  'array',
+													items: {
+														type: 'object',
+														properties: {
+															what:  { type: 'string', description: 'The label.' },
+															where: { type: 'string', description: 'Vault-root-relative path (_Claude/...), emitted as a real link.' },
+															why:   { type: 'string', description: 'When or why this row applies.' },
+															mode:  { type: 'string', description: 'off | on | suggested.' },
+														},
+														required: [ 'what' ],
+													},
+												},
+											},
+											required: [ 'section', 'rows' ],
+										},
+									},
+								},
+							},
 						},
-						required: [ 'type', 'frontmatter', 'body' ],
+						required: [ 'type', 'frontmatter' ],
 					},
 				},
 				required: [ 'path', 'artifact' ],
@@ -57,9 +101,47 @@ export function writeTools( chain: GuardChain ): ( ToolDefinition & { spec?: Tes
 
 					const filePath = String( args[ 'path' ] ?? '' );
 					const raw      = ( args[ 'artifact' ] ?? {} ) as Record<string, unknown>;
+					const declared = String( raw[ 'type' ] ?? '' );
+
+					// TWO WAYS IN, one write. `content` is the AUTHORING path: sections and rows go to
+					// KcdSynth and the markup is DERIVED from the type's shape, so an author supplies
+					// content and never markup. `body` is the PASSTHROUGH path an edit uses
+					// ( kcd_get → mutate → kcd_save ), where the body is already structured and must
+					// survive byte-for-byte. Supplying both would silently discard one, so the
+					// combination is refused rather than resolved by a precedence rule nobody can see.
+					const content = raw[ 'content' ] as SynthInput | undefined;
+					const hasBody = typeof raw[ 'body' ] === 'string' && ( raw[ 'body' ] as string ).trim() !== '';
+					if ( content && hasBody )
+						return MCPUtils.error( `kcd_save refused "${ filePath }": supply either "content" ( synthesized ) or "body" ( passthrough ), not both.` );
+
 					// coerce body to a string — an absent body is a create with no content ( validation
 					// will then reject it with a helpful message, not a parse crash ).
-					const artifact = { ...raw, body: typeof raw[ 'body' ] === 'string' ? raw[ 'body' ] : '' } as unknown as SerializedArtifact;
+					let body = typeof raw[ 'body' ] === 'string' ? raw[ 'body' ] : '';
+					const advisories: string[] = [];
+
+					if ( content ) {
+						const fm    = ( raw[ 'frontmatter' ] ?? {} ) as Record<string, unknown>;
+						const title = content.title ?? String( fm[ 'name' ] ?? declared );
+						const synth = KcdSynth.synthesize( declared, { ...content, title } );
+						body = synth.body;
+
+						// A CLOSED type ( only `lens` today ) still EMITS an undeclared section, but the
+						// compiler will not read it — say so here rather than let the content go quiet.
+						const shape = KcdShapes.shapeFor( declared );
+						if ( synth.undeclared.length && shape && !shape.open )
+							advisories.push( `sections not declared by the "${ declared }" shape: ${ synth.undeclared.join( ', ' ) } — the compiler will not read them. Declared: ${ KcdShapes.orderFor( declared ).join( ', ' ) }` );
+
+						// Advisory only — KcdValidate stays the SOLE gate. This names the gap while the
+						// author still holds the content, which is the cheapest moment to close it.
+						// Audit what was SUPPLIED, prose and rows alike — a slot-bearing section arrives as
+						// rows and never appears in `sections`, so auditing the prose keys alone reports it
+						// missing when it is right there.
+						const audit = KcdShapes.audit( declared, KcdSynth.suppliedSections( content ) );
+						if ( audit.missing.length ) advisories.push( `missing required section(s): ${ audit.missing.join( ', ' ) }` );
+						if ( audit.thin.length )    advisories.push( `missing expected section(s): ${ audit.thin.join( ', ' ) }` );
+					}
+
+					const artifact = { ...raw, body } as unknown as SerializedArtifact;
 
 					// The CONFIGURED stylesheet href rides along — ONE absolute `file:///` value for every
 					// document in the vault ( Config tiers 1–4 ), so a document's link no longer depends
@@ -73,7 +155,7 @@ export function writeTools( chain: GuardChain ): ( ToolDefinition & { spec?: Tes
 					}
 
 					const saved = MCPUtils.vault.write( filePath, html );
-					return MCPUtils.result( { saved, warnings: report.warnings } );
+					return MCPUtils.result( { saved, warnings: [ ...report.warnings, ...advisories ] } );
 				} catch ( e ) {
 					return MCPUtils.error( e instanceof Error ? e.message : String( e ) );
 				}

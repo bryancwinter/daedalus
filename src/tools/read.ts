@@ -48,7 +48,18 @@ export function readTools( chain: GuardChain ): ( ToolDefinition & { spec?: Test
 					const artifact = KCDPrimitive.fromHtml( vault.read( filePath ), vault.toAbs( filePath ) );
 					return MCPUtils.result( artifact.serialize() );
 				} catch ( e ) {
-					return MCPUtils.error( e instanceof Error ? e.message : String( e ) );
+					const message = e instanceof Error ? e.message : String( e );
+					// A raw ENOENT hands back an ABSOLUTE path the caller never wrote, which tells an agent
+					// nothing it can act on — it reads as "the vault is broken" rather than "that artifact is
+					// not there". Name the path AS ASKED FOR and point at the tool that answers "what exists",
+					// so the next call is a search rather than a second guess at a filename.
+					if ( message.includes( 'ENOENT' ) ) {
+						return MCPUtils.error(
+							`No artifact at "${ String( args[ 'path' ] ?? '' ) }". Paths are vault-relative ` +
+							`( "plans/x.html", not an absolute path ). Use kcd_query to find it by glob or by text.`
+						);
+					}
+					return MCPUtils.error( message );
 				}
 			},
 		},

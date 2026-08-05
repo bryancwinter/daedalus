@@ -133,7 +133,7 @@ daedalus doctor                Environment, PATH, config provenance.
 
 daedalus validate [path]       Validate one artifact, or the whole vault.
 daedalus compile <lens...>     Compile lenses into one composed context string.
-daedalus show <lens>           What a lens carries, slot by slot, with token counts.
+daedalus show <lens>           Everything a session wearing that lens receives, file by file, with token counts.
 daedalus survey                Filename-level census of the project beside the vault.
 daedalus query / links         Find artifacts; inspect a document's link graph.
 daedalus maintain [fill]       Report what a vault is missing; optionally fill it.

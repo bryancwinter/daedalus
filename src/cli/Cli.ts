@@ -141,9 +141,13 @@ export class Cli {
 	}
 
 	/**
-	 * `daedalus show <lens>` — the compiled-context chart for one lens: its identity plus every dredge
-	 * slot, colour-coded by state ( grey off / blue on / green suggested, dim empty ), with per-component
-	 * and total token counts. `--json` emits the `LensView` object.
+	 * `daedalus show <lens>` — the compiled-context chart for one lens: its identity plus every dredge slot,
+	 * colour-coded by state ( grey off / blue on / green suggested / cyan fixed, dim empty ), with a SOURCE
+	 * column and per-component and total token counts. `--json` emits the `LensView` object.
+	 *
+	 * Reports what a SESSION WEARING THIS LENS receives, not what the lens contributes in isolation: the
+	 * numbers come from decomposing a real compile, so the inherited floor is in the chart ( as its own row,
+	 * marked in the SOURCE column ) and the total equals what `compile` reports for the same lens.
 	 */
 	private static show( args: ParsedArgs ): void {
 		const name = args.positionals[ 0 ];
@@ -1585,7 +1589,7 @@ export class Cli {
 	/** ANSI palette — applied only to a TTY, so piped/redirected output stays plain text. */
 	private static readonly C = {
 		reset: '\x1b[0m', dim: '\x1b[2m', bold: '\x1b[1m',
-		grey:  '\x1b[90m', blue: '\x1b[94m', green: '\x1b[92m', red: '\x1b[91m',
+		grey:  '\x1b[90m', blue: '\x1b[94m', green: '\x1b[92m', red: '\x1b[91m', cyan: '\x1b[96m',
 	};
 
 	/** Wrap `s` in an ANSI code, but only when stdout is a terminal. */
@@ -1593,15 +1597,23 @@ export class Cli {
 		return process.stdout.isTTY ? code + s + this.C.reset : s;
 	}
 
-	/** The colour a slot state renders in: grey off, blue on, green suggested, dim empty. */
+	/** The colour a slot state renders in: grey off, blue on, green suggested, cyan fixed, dim empty.
+	 *  `fixed` is not a mode the lens chose — inherited or synthesized content that rides regardless — so it
+	 *  reads in its own colour rather than borrowing one that implies an authoring decision. */
 	private static stateColor( state: string ): string {
 		if ( state === 'suggested' ) return this.C.green;
 		if ( state === 'on' )        return this.C.blue;
 		if ( state === 'off' )       return this.C.grey;
+		if ( state === 'fixed' )     return this.C.cyan;
 		return this.C.dim; // empty
 	}
 
-	/** The lens slot chart — a small, aligned, colour-coded table of the compiled-context breakdown. */
+	/** The lens slot chart — a small, aligned, colour-coded table of the compiled-context breakdown.
+	 *
+	 *  The SOURCE column is what makes the chart honest about inheritance: rows the lens authors carry its own
+	 *  name, the floor's contribution carries the floor's, and content belonging to several sources or none
+	 *  ( a merged care band, the manifest, the structure ) shows `—`. Without it, inherited weight would sit
+	 *  in the total looking like the lens's own. */
 	private static renderLensView( view: LensView ): void {
 		const fmt   = ( n: number ): string => n > 0 ? n.toLocaleString( 'en-US' ) : '—';
 		const rows  = view.slots;
@@ -1609,33 +1621,45 @@ export class Cli {
 		// Column widths from the data ( headers included ), so the table fits its content exactly.
 		const modeW = Math.max( 9, ...rows.map( r => r.state.length ) );         // 'suggested' = 9
 		const compW = Math.max( 'COMPONENT'.length, ...rows.map( r => r.what.length ) );
+		const srcW  = Math.max( 'SOURCE'.length, ...rows.map( r => r.source.length ) );
 		const kindW = Math.max( 'KIND'.length, ...rows.map( r => r.kind.length ) );
+		const slotW = Math.max( 'SLOT'.length, ...rows.map( r => r.slot.length ) );
 		const tokW  = Math.max( 'TOKENS'.length, ...rows.map( r => fmt( r.tokens ).length ) );
-		const ruleW = 3 + modeW + 2 + compW + 2 + kindW + 2 + tokW;
+		const ruleW = 3 + modeW + 2 + compW + 2 + srcW + 2 + kindW + 2 + slotW + 2 + tokW;
 		const rule  = this.tint( this.C.dim, '  ' + '─'.repeat( ruleW - 2 ) );
 
 		const out: string[] = [];
 		out.push( '' );
 		out.push( '  ' + this.tint( this.C.bold, view.lens ) + this.tint( this.C.dim, '  ·  Lens' ) );
+		// Say what the numbers MEAN — this reports a whole session's context, not the lens in isolation.
+		out.push( '  ' + this.tint( this.C.dim, 'what a session wearing this lens receives, inherited floor included' ) );
 		out.push( '' );
 		out.push( this.tint( this.C.dim,
-			'   ' + 'MODE'.padEnd( modeW ) + '  ' + 'COMPONENT'.padEnd( compW ) + '  ' + 'KIND'.padEnd( kindW ) + '  ' + 'TOKENS'.padStart( tokW ) ) );
+			'   ' + 'MODE'.padEnd( modeW ) + '  ' + 'COMPONENT'.padEnd( compW ) + '  ' + 'SOURCE'.padEnd( srcW ) + '  ' + 'KIND'.padEnd( kindW ) + '  ' + 'SLOT'.padEnd( slotW ) + '  ' + 'TOKENS'.padStart( tokW ) ) );
 		out.push( rule );
 
+		// Rows arrive grouped by kind; a rule between groups makes the grouping visible rather than implied.
+		let lastKind: string | null = null;
 		for ( const r of rows ) {
+			if ( lastKind !== null && r.kind !== lastKind ) out.push( rule );
+			lastKind = r.kind;
+
 			const col  = this.stateColor( r.state );
 			const mode = this.tint( col, r.state.padEnd( modeW ) );
 			const comp = this.tint( col, r.what.padEnd( compW ) );
+			// Inherited rows tint their source, so "this came from somewhere else" reads at a glance.
+			const src  = this.tint( r.source === view.lens ? this.C.dim : this.C.cyan, r.source.padEnd( srcW ) );
 			const kind = this.tint( this.C.dim, r.kind.padEnd( kindW ) );
+			const slot = this.tint( this.C.dim, r.slot.padEnd( slotW ) );
 			const tok  = fmt( r.tokens ).padStart( tokW );
-			out.push( '   ' + mode + '  ' + comp + '  ' + kind + '  ' + ( r.tokens > 0 ? tok : this.tint( this.C.dim, tok ) ) );
+			out.push( '   ' + mode + '  ' + comp + '  ' + src + '  ' + kind + '  ' + slot + '  ' + ( r.tokens > 0 ? tok : this.tint( this.C.dim, tok ) ) );
 		}
 
 		out.push( rule );
 
 		// Tally by state ( coloured counts ), then the grand total.
 		const count = ( s: string ): number => rows.filter( r => r.state === s ).length;
-		const tally = ( [ 'suggested', 'on', 'off', 'empty' ] as const )
+		const tally = ( [ 'suggested', 'on', 'off', 'empty', 'fixed' ] as const )
 			.filter( s => count( s ) > 0 )
 			.map( s => this.tint( this.stateColor( s ), `${ s } ${ count( s ) }` ) )
 			.join( '   ' );
