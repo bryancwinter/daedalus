@@ -16,7 +16,7 @@
 		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">active</dd>
 		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
 		<dt>author</dt>        <dd data-kcd-field="author"         data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
-		<dt>updated</dt>       <dd data-kcd-field="updated"        data-kcd-type="date">2026-07-21</dd>
+		<dt>updated</dt>       <dd data-kcd-field="updated"        data-kcd-type="date">2026-08-15</dd>
 	</dl>
 
 	<h1>Vault Layout — SDK Reference</h1>
@@ -45,6 +45,43 @@
 		<p>Before the table these three were written down separately and had already drifted; the
 		whitelist carried a <code>plans_complete/</code> folder that has never existed at the top level.
 		One table is the fix.</p>
+	</section>
+
+	<section data-kcd-section="two-exclusions">
+		<h2 data-kcd-heading>Two ways to be excluded — and they are not interchangeable</h2>
+		<p>A directory can drop out of a whole-vault grading sweep for two different reasons. Both stop
+		the sweep reporting on it; they disagree about everything else, and collapsing them is the
+		mistake this section exists to prevent.</p>
+		<ul>
+			<li><strong>Ephemeral</strong> (<code>indexed: false</code>) — <code>work/</code>,
+			<code>logs/</code>, <code>reports/</code>, <code>audits/</code>, <code>scratch/</code>,
+			<code>dev-utilities/</code>. Never installed into a user's vault at all. Because the content
+			does not ship, a link into it asserts something false by construction, so protocol §1.1
+			<strong>forbids linking there</strong> — use an address instead. Matched on the
+			<em>top-level segment</em> only.</li>
+			<li><strong>Archival</strong> (<code>archival: true</code>) —
+			<code>plans/plans_complete/</code> and <code>plans/plans_deferred/</code>. The opposite on the
+			shipping axis: it <em>does</em> install, and live artifacts link to it for provenance, so it
+			<strong>must stay linkable</strong>. What it stops being is held to the <em>current</em>
+			standard, and the two buckets arrive there from opposite directions — a retired plan outlived
+			the standard, a deferred draft has not met it yet. Either way, grading reports a category
+			error rather than a defect. Matched on the <em>longest declared prefix</em>, which is why a
+			nested bucket can be archival while its parent stays graded.</li>
+		</ul>
+		<p><strong>The wall is at the exit, not the entrance.</strong> A deferred plan authorizes nothing
+		while it sits; it is held to the standard when it is <em>promoted out</em> of the bucket, which is
+		the moment before it authorizes anything. Grading it earlier buys no safety and makes a clean
+		vault harder to reach — drafts in churn are frequently abandoned rather than finished.</p>
+		<p><strong>Naming a file explicitly still grades it.</strong> Both exclusions bind the unscoped
+		sweep only — a validate pointed at one archival plan will validate that plan, because the caller
+		asked for it. That is the release valve: a human or an agent who wants a verdict on a parked draft
+		can always ask for one. The exclusion removes noise nobody can act on; it does not make a document
+		unreachable.</p>
+		<p><strong>Why the distinction is load-bearing.</strong> Folding archival into ephemeral would
+		make every existing provenance link into a retired plan an <code>ephemeral-link</code> error —
+		including the ones in a project's plans index, whose entire job is linking to plans. That is a
+		real regression with no visible symptom until a validator starts rejecting documents that were
+		correct the day before, so it is pinned by test rather than left to this paragraph.</p>
 	</section>
 
 	<section data-kcd-section="authority-note">
@@ -130,7 +167,17 @@
 			<div data-kcd-slot="link">
 				<span data-kcd-field="what" data-kcd-type="text">plans/ — <em>plan</em> · indexed</span>
 				<a data-kcd-field="where" data-kcd-type="path" href="_Claude/plans/">plans/</a>
-				<span data-kcd-field="why" data-kcd-type="text">Promoted plans that authorize action, plus the <code>plans_complete/</code> and <code>plans_deferred/</code> buckets beneath. Those two are nested, not top-level — they classify as <code>plan</code> through their parent.</span>
+				<span data-kcd-field="why" data-kcd-type="text">Promoted plans that authorize action, plus the <code>plans_complete/</code> and <code>plans_deferred/</code> buckets beneath. Those two are nested, not top-level — each declares its own row, and both still classify as <code>plan</code>. Only <code>plans/</code> itself is graded.</span>
+			</div>
+			<div data-kcd-slot="link">
+				<span data-kcd-field="what" data-kcd-type="text">plans/plans_complete/ — <em>plan</em> · indexed · <strong>archival</strong></span>
+				<span data-kcd-field="where" data-kcd-type="address">_Claude/plans/plans_complete/</span>
+				<span data-kcd-field="why" data-kcd-type="text">Retired plans, kept as a historical record. Shipped and linkable, but never graded on a whole-vault sweep — see <strong>Two ways to be excluded</strong> below. The standard they were written against has moved on.</span>
+			</div>
+			<div data-kcd-slot="link">
+				<span data-kcd-field="what" data-kcd-type="text">plans/plans_deferred/ — <em>plan</em> · indexed · <strong>archival</strong></span>
+				<span data-kcd-field="where" data-kcd-type="address">_Claude/plans/plans_deferred/</span>
+				<span data-kcd-field="why" data-kcd-type="text">Parked drafts, kept in case they come back. Archival for the <em>opposite</em> reason to <code>plans_complete/</code>: not that the standard moved on, but that the draft has not been brought up to it yet. Held to the standard when it is promoted <em>out</em>, which is the moment before it authorizes anything.</span>
 			</div>
 			<div data-kcd-slot="link">
 				<span data-kcd-field="what" data-kcd-type="text">work/ — <em>untyped</em> · not indexed</span>

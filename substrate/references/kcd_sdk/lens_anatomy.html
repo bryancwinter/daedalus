@@ -43,7 +43,7 @@
 
 	<p><strong>Lens locations.</strong> Most lenses are <strong>drafted in place</strong> at
 	<code>_Claude/lenses/{name}/{name}.html</code> — <code>status: active</code>, project-specific,
-	never round-tripped through <code>kcd/</code>. A small set are <strong>deployable</strong>: they
+	never round-tripped through the substrate. A small set are <strong>deployable</strong>: they
 	live at the same path, but originate in the Daedalus bundle and are written into the vault by
 	<code>daedalus init</code> — <code>_lens-base</code> and <code>lens-crafter</code> are the two that
 	ship today. A bundled lens must stay <strong>project-agnostic</strong>: no hardcoded paths and no
@@ -99,7 +99,7 @@
 		<table>
 			<thead><tr><th>Layer</th><th>Purpose</th></tr></thead>
 			<tbody>
-				<tr><td><strong>Habits</strong></td><td>Atomic single-step behaviors. Source lives in <code>_Claude/habits/{class}/</code>; the Where column in a deployed lens links to the deployed copy at <code>_Claude/habits/{class}/</code> — the class subfolder (the habit's slot) is preserved on deploy, never flattened. <code>_lens-base</code> supplies the universal ones (write-approval, work-routing, session/completed logging, no-subagents); a lens lists only what it adds. <code>_lens-base</code> is no exception: its links are ordinary <code>_Claude/</code> links like every other lens's.</td></tr>
+				<tr><td><strong>Habits</strong></td><td>Atomic single-step behaviors. Source lives in <code>_Claude/habits/{class}/</code>; the Where column in a deployed lens links to the deployed copy at <code>_Claude/habits/{class}/</code> — the class subfolder (the habit's slot) is preserved on deploy, never flattened. <code>_lens-base</code> supplies the universal ones (write-files, work-routing, session/completed logging, spawn-subagent-never); a lens lists only what it adds. <code>_lens-base</code> is no exception: its links are ordinary <code>_Claude/</code> links like every other lens's.</td></tr>
 				<tr><td><strong>Contracts</strong></td><td>Behavioral agreements this lens follows. Source lives in <code>_Claude/contracts/</code>; the Where column in a deployed lens links to the deployed copy at <code>_Claude/contracts/</code>.</td></tr>
 				<tr><td><strong>Working Space</strong></td><td>Where this lens drops output. Inherited from the <code>work-routing</code> habit in <code>_lens-base</code>. All work goes to <code>_Claude/work/{name}/</code> (<code>AI/</code>, <code>human/</code>, <code>plans/</code>). Never promoted without the user's explicit direction.</td></tr>
 			</tbody>
@@ -214,8 +214,8 @@
     &lt;div data-kcd-table&gt;
       &lt;div data-kcd-head&gt;&lt;span&gt;What&lt;/span&gt;&lt;span&gt;Where&lt;/span&gt;&lt;span&gt;Why&lt;/span&gt;&lt;/div&gt;
       &lt;div data-kcd-slot="habit" data-kcd-mode="on"&gt;
-        &lt;span data-kcd-field="what"  data-kcd-type="text"&gt;add-todo&lt;/span&gt;
-        &lt;a    data-kcd-field="where" data-kcd-type="path" href="_Claude/habits/todo-policy/add-todo.html"&gt;add-todo&lt;/a&gt;
+        &lt;span data-kcd-field="what"  data-kcd-type="text"&gt;track-todo-liberal&lt;/span&gt;
+        &lt;a    data-kcd-field="where" data-kcd-type="path" href="_Claude/habits/track-todo/track-todo-liberal.html"&gt;track-todo-liberal&lt;/a&gt;
         &lt;span data-kcd-field="why"   data-kcd-type="text"&gt;When a deferred item surfaces&lt;/span&gt;
       &lt;/div&gt;
     &lt;/div&gt;
@@ -246,8 +246,8 @@
 		The reader doesn't experience N lenses — they experience one composite.</p>
 		<p>The base lens at <code>_Claude/lenses/_lens-base.html</code> is stacked on every session
 		without explicit invocation. It carries Care (project-wide stance) and the standing Do habits
-		(<code>write-approval</code>, <code>work-routing</code>, <code>session-log-aggressive</code>,
-		<code>completed-log-aggressive</code>). Specific lenses extend it; they do not replace it.</p>
+		(<code>write-files</code>, <code>work-routing</code>, <code>log-session-liberal</code>,
+		<code>log-completed-liberal</code>). Specific lenses extend it; they do not replace it.</p>
 	</section>
 
 	<section data-kcd-section="operational-appendages">

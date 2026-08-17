@@ -1,0 +1,9 @@
+# This file's ONLY job is to exist.
+#
+# With no .npmignore, npm falls back to .gitignore when deciding what to pack — and .gitignore now
+# excludes dist/, which is the one thing that MUST ship ( `bin` points into it ). The fallback would
+# publish a package with no binary in it.
+#
+# The actual "what ships" list is the `files` array in package.json, deliberately, so there is one
+# allowlist and not a denylist beside it drifting out of step. Do not grow this file into a second
+# list: add or remove entries in `files`.

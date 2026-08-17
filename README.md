@@ -40,8 +40,8 @@ not been written. That is the single largest gap and everything else is smaller.
 |---|---|---|---|
 | 1.1 | Node ≥ 18 present | ✅ DONE | Checked by `init`'s preflight before anything is written. Also reported by `daedalus doctor`. |
 | 1.2 | `git clone` the repository | ✅ DONE | |
-| 1.3 | Build the kit | ✅ **N/A — no build step** | `dist/` is committed on purpose and the SDK is inlined at build time, so a standalone clone runs with zero `node_modules` and no sibling repo. Verified against an isolated copy. Any instruction telling you to build first is wrong. |
-| 1.4 | `npm install -g .` from the package root | 🟡 PARTIAL | Puts `daedalus` on PATH via npm's own mechanism — a symlink on POSIX, the shim trio on Windows. No PATH surgery, no bespoke installer. **The packaging itself is unproven:** the only install anyone has done links back to the dev repo, so every test so far has exercised the *content*, not the *package*. One install from an `npm pack` tarball would close this. |
+| 1.3 | Build the kit | ✅ **N/A — no separate build step** | `npm install` builds it, via `prepare`. Still one command, but the reasoning changed on 2026-08-13: `dist/` used to be committed, which meant the shipped bundle's provenance ran through kcd_sdk's own gitignored `dist/` and could silently disagree with the source beside it. esbuild now bundles the SDK from source in one hop and the build runs on install, so there is nothing committed that can go stale. Any instruction telling you to run a build *before* installing is wrong. |
+| 1.4 | `npm install -g .` from the package root | 🟡 PARTIAL | Puts `daedalus` on PATH via npm's own mechanism — a symlink on POSIX, the shim trio on Windows. No PATH surgery, no bespoke installer. **The packaging itself is unproven:** the only install anyone has done links back to the dev repo, so every test so far has exercised the *content*, not the *package*. One install from an `npm pack` tarball would close this — and it matters more since 2026-08-13, because `dist/` is now built rather than committed. `package.json`'s `files` array is the allowlist for what ships, and `.npmignore` exists only to stop npm's `.gitignore` fallback from excluding the freshly built `dist/`. |
 
 ### Stage 2 — Install into your project
 
@@ -167,6 +167,11 @@ GEMINI.md         same, for Gemini
 
 `daedalus init` touches nothing else, and moves none of your files.
 
+That list is not hand-maintained. The three entry-point files come from the **seed** declarations
+inside `_Claude/root-context.html`, so `daedalus clear` removes exactly what `daedalus init` added —
+there is no second list to fall out of step. Supporting a new agent host is one new block in that
+file, not an edit in two places.
+
 **To undo it:** `daedalus clear` removes exactly those additions and leaves anything you wrote
 or edited in place. `daedalus clear all` also removes the vault, after telling you how many
 artifacts that costs. Both preview first.
@@ -184,3 +189,13 @@ Deliberately short — the vocabulary is meant to be earned by using it, not fro
   lens named is primary and overrules on conflict.
 - **Canonical is not deployed.** The installed bundle is canonical; a deployed vault holds
   no copy of it. `daedalus reset` restores a path from the bundle.
+- **Seed** — how a governed HTML artifact authors a file this system does *not* own, such as
+  `CLAUDE.md`. The payload rides inside `<script type="text/kcd-md">` in
+  `_Claude/root-context.html`, and `daedalus seed` extracts it into a managed block at the top of
+  the target, leaving whatever you wrote below it alone.
+
+  **That script never executes.** A script with an unrecognized `type` is a *data block* by the
+  HTML standard — not run, not rendered, not parsed as script, in any browser. It is there because
+  a raw-text element is the only standard container that holds markdown byte-for-byte; every other
+  element would escape the `<`, `&` and `>` inside it. The context compiler also strips seeds
+  outright, so a payload never reaches a model as context. Full rules: protocol §10.

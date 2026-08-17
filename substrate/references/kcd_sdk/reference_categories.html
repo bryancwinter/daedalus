@@ -11,7 +11,7 @@
 
 	<dl data-kcd-frontmatter>
 		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">reference-categories</dd>
-		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">The categorized reference store: the references-vs-kcd/ boundary and the standard top-level category folders. Read when adding a reference or deciding where a piece of knowledge belongs.</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">The categorized reference store: the references-vs-substrate boundary and the standard top-level category folders. Read when adding a reference or deciding where a piece of knowledge belongs.</dd>
 		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">framework</dd>
 		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">active</dd>
 		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
@@ -36,10 +36,12 @@
 		across lenses. Material that travels only with one lens lives in that lens's own
 		<code>context/</code> (<code>lenses/{name}/context/</code>), not in the shared store — keep the
 		library shared and findable, keep one-lens material local.</p>
-		<p><code>kcd/</code> is the single source for everything that is <em>not</em> a reference:
-		framework meta-docs, templates, habits, generators, analyzers. If a document explains how the
-		document system works, it belongs in <code>kcd/</code>. If it states a fact about the project,
-		it belongs in a <code>references/</code> category.</p>
+		<p>The <strong>substrate</strong> — the framework library inside the installed Daedalus package,
+		which a deploy copies from — is the single source for everything that is <em>not</em> a
+		reference: framework meta-docs, habits, generators, analyzers. If a document explains how the
+		document system works, it belongs in the substrate and is edited in the framework's own
+		repository. If it states a fact about <em>this</em> project, it belongs in a
+		<code>references/</code> category here.</p>
 	</section>
 
 	<section data-kcd-section="standard-categories">
@@ -93,7 +95,7 @@
 	<section data-kcd-section="where-this-is-referenced-from">
 		<h3>Where this is referenced from</h3>
 		<ul>
-			<li><code>kcd/kcd_framework.html</code> links here under "Reference categories."</li>
+			<li><code>kcd_framework.html</code> links here under "Reference categories."</li>
 			<li>Lens Know blocks point at specific files inside categories, never at the
 			<code>references/</code> root.</li>
 			<li><code>references/nav-index.html</code> is the per-project catalog — it lists every file and is

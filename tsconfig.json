@@ -1,14 +1,22 @@
 {
+  // `paths` points the type-checker at kcd_sdk's SOURCE, the same file build.js aliases to. Before
+  // this, tsc resolved `kcd_sdk` through node_modules to its compiled dist/index.d.ts — so the checker
+  // and the bundler could be reading two different vintages of the SDK and neither would say so.
+  //
+  // No outDir/rootDir: tsc never emits here ( both scripts are --noEmit; esbuild does the emit ), and
+  // a rootDir would object to type-checking source that lives outside src/.
   "compilerOptions": {
     "target": "ES2022",
     "module": "CommonJS",
     "lib": ["ES2022"],
-    "outDir": "dist",
-    "rootDir": "src",
     "strict": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "kcd_sdk": ["../kcd_sdk/src/index.ts"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

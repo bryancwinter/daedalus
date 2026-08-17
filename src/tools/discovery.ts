@@ -22,10 +22,13 @@ export function discoveryTools( chain: GuardChain ): ( ToolDefinition & { spec?:
 				'`glob` ( vault-relative path pattern; `*` within a segment, `**` across ), `type` ( artifact ' +
 				'classifier: lens, plan, habit, reference, contract, generator, analyzer, template, framework, ' +
 				'nav-index ), and `text` ( case-insensitive substring across body + serialized frontmatter ) may ' +
-				'be combined; they AND together. With no filter it returns the whole vault. Returns an array of ' +
-				'refs ( path + type + name ) — read one with kcd_get, walk its edges with kcd_links. Pass ' +
+				'be combined; they AND together. With no filter it returns the whole live vault. Returns an array ' +
+				'of refs ( path + type + name ) — read one with kcd_get, walk its edges with kcd_links. Pass ' +
 				'`groupBy: "type"` to get `{ type, count }[]` ( sorted by count, descending ) instead of refs — ' +
-				'the cheapest orientation call. Read-only.',
+				'the cheapest orientation call. ARCHIVAL buckets ( plans/plans_complete, plans/plans_deferred ) ' +
+				'are EXCLUDED unless the glob names one — retired and parked plans answer "what did we do", not ' +
+				'"what is true now". So `type: "plan"` returns the live plans, and ' +
+				'`glob: "plans/plans_complete/**"` returns the retired ones. Read-only.',
 			inputSchema: {
 				type:       'object',
 				properties: {

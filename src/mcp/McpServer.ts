@@ -232,11 +232,24 @@ export class McpServer {
 
 		const tool = this.tools.get( name );
 		if ( !tool ) {
-			throw new Error( `Unknown tool: ${ name }` );
+			throw new Error( this.unknownTool( name ) );
 		}
 
 		const args = ( params?.[ 'arguments' ] ?? {} ) as Record<string, unknown>;
 		return this.invoke( name, args );
+	}
+
+	/**
+	 * The unknown-tool refusal, naming the whole registered set.
+	 *
+	 * A bare "Unknown tool: x" tells a caller it was wrong and nothing else, which costs a round trip to
+	 * `tools/list` — or, more often, a guess at a second name. The valid set is sitting in `this.tools`
+	 * at the moment of the refusal, so the answer travels with the rejection instead of being something
+	 * the caller has to go and ask for. Same shape as the ephemeral-link refusal and PathGuard's type
+	 * mismatch: name what was wrong, then name what would be right, right here.
+	 */
+	private unknownTool( name: string ): string {
+		return `Unknown tool: ${ name } — this server registers ${ [ ...this.tools.keys() ].join( ', ' ) }`;
 	}
 
 	/**
@@ -248,7 +261,7 @@ export class McpServer {
 	 */
 	async invoke( name: string, args: Record<string, unknown> ): Promise<ToolResult> {
 		const tool = this.tools.get( name );
-		if ( !tool ) return { content: [ { type: 'text', text: `Unknown tool: ${ name }` } ], isError: true };
+		if ( !tool ) return { content: [ { type: 'text', text: this.unknownTool( name ) } ], isError: true };
 		try {
 			return await tool.handler( args );
 		} catch ( e ) {

@@ -5,7 +5,7 @@
  * deliberate and divergence from the Starmind original is expected, not a defect.
  *
  * NOT vendored: `StarmindServer`. Its useful parts ( build/registerTool/run/invoke/
- * wireTools/verify/liveDoc ) fold directly into the one Daedalus server class instead
+ * wireTools/verify ) fold directly into the one Daedalus server class instead
  * of arriving as a base to extend. Daedalus will only ever possess a single MCP
  * server, so a base class exists to serve a plurality it does not have.
  */

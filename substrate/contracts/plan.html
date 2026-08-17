@@ -138,6 +138,17 @@ updated: YYYY-MM-DD
 			never the flat root. Name the surviving reference in the plan's Current State and in the nav-index's
 			"where it lives on" column. <em>Nothing durable to capture</em> is a valid, common outcome — say so
 			plainly rather than manufacture an artifact.</p>
+			<p><strong>Last step — land it in archival space, and check that it landed.</strong> The move
+			to <code>plans/plans_complete/</code> is not just a relocation; that directory is declared
+			<code>archival: true</code> in <code data-kcd-address="kcd_sdk/src/core/VaultLayout.ts">VaultLayout</code>,
+			which is what stops the retired plan being graded against a standard written after it was
+			retired. Retirement is therefore only complete once the file is <em>inside</em> that bucket — a
+			plan left at <code>plans/{filename}</code> with <code>status: complete</code> is still graded,
+			and will keep surfacing as drift in every sweep from then on. Confirm it: a whole-vault
+			validate should not name the retired plan. Links pointing <em>at</em> it stay legal and should
+			be kept — archival ships, unlike ephemeral space (see
+			<a href="_Claude/references/kcd_sdk/vault-layout.html">vault-layout</a>, <em>Two ways to be
+			excluded</em>).</p>
 			<p><strong>Standard:</strong> The retired plan is a historical record — accuracy over
 			kindness. Do not invent outcomes or smooth over divergences. Per-phase bullets in Current
 			State describe what each phase <em>actually</em> delivered, not what it planned to deliver.
@@ -155,7 +166,10 @@ updated: YYYY-MM-DD
 		<ul>
 			<li><code>## Active</code> — canonical plans in <code>plans/</code> that authorize action. Columns: Plan · Lens · Status · What.</li>
 			<li><code>## In Progress (drafts)</code> — plans still in <code>work/{lens}/plans/</code>. They do <strong>not</strong> authorize action. Columns: Plan · Lens · Status · What.</li>
-			<li><code>## Completed</code> — retired plans in <code>plans/plans_complete/</code>. Columns: Plan · Lens · What.</li>
+			<li><code>## Completed</code> — retired plans in <code>plans/plans_complete/</code>, which is
+			<strong>archival</strong>: shipped and linkable, but no longer graded. This index is the
+			navigable surface over them, and its links are exactly why the bucket is archival rather than
+			ephemeral. Columns: Plan · Lens · What.</li>
 		</ul>
 		<p><strong>The rule — the index moves with the plan.</strong> Any operation that changes a
 		plan's state updates <code>plans/nav-index.html</code> in the <strong>same action</strong>, never as

@@ -1,3 +1,4 @@
+import { basename } from 'path';
 import { AbstractGuard, GuardError } from './AbstractGuard';
 import type { ToolRequest } from './AbstractGuard';
 import { VaultLayout } from 'kcd_sdk';
@@ -35,12 +36,20 @@ export class PathGuard extends AbstractGuard {
 	 * Throws GuardError if it resolves to a path outside or equal to the vault root itself.
 	 */
 	jail( inputPath: string ): void {
-		if ( !MCPUtils.vault.isInside( inputPath ) ) {
-			throw new GuardError(
-				`Path "${inputPath}" is outside the vault ("${MCPUtils.vault.root}")`,
-				'PATH_OUTSIDE_VAULT'
-			);
-		}
+		if ( MCPUtils.vault.isInside( inputPath ) ) return;
+
+		// Name the FORM, not just the failure. This is the most-hit refusal on the server and it used to
+		// report the offending path and the root and stop there — true, and no help: a caller that reached
+		// for an absolute or `../`-escaped path learns it was wrong without learning what right looks like,
+		// which costs a round trip or a guess. The two things it actually needs are the currency ( paths are
+		// vault-RELATIVE ) and where to look up a real one, so both ride the rejection. Matches the
+		// ephemeral-link refusal and checkType below: what was wrong, then what would be right, in one message.
+		throw new GuardError(
+			`Path "${inputPath}" is outside the vault ("${MCPUtils.vault.root}") — paths here are vault-RELATIVE `
+			+ `( "references/domain/note.html" ), not absolute and never "../"-escaped; a leading "${basename( MCPUtils.vault.root )}/" `
+			+ `is tolerated. Use kcd_query to find an artifact's real path.`,
+			'PATH_OUTSIDE_VAULT'
+		);
 	}
 
 	/**

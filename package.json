@@ -6,10 +6,17 @@
   "bin": {
     "daedalus": "dist/cli/index.js"
   },
+  "files": [
+    "dist/",
+    "substrate/",
+    "skills/",
+    "tools.snapshot.json"
+  ],
   "scripts": {
     "start": "tsx src/index.ts",
     "cli": "tsx src/cli/index.ts",
     "typecheck": "tsc --noEmit",
+    "prepare": "npm run build",
     "build": "tsc --noEmit && node build.js",
     "dev": "tsx watch src/index.ts",
     "verify": "tsx src/scripts/verify.ts",

@@ -86,10 +86,13 @@
 
 		<h4>2. Canonical + tool layer — the immutable substrate</h4>
 		<ul>
-			<li><code>kcd/</code> — the canonical framework library. <strong>Shouldn't change
-			ever</strong> in a deployed instance: it is the normalization reference the project is
-			checked against, edited only at the framework's own home. All artifacts are in
-			<code>.html</code> format per the <a href="_Claude/references/kcd_sdk/kcd-document-protocol.html">KCD Document Protocol</a>.</li>
+			<li><strong>The canonical framework library is not in the vault at all.</strong> It lives in
+			the installed Daedalus package, under its <code>substrate/</code> directory, and a deploy
+			COPIES from there into a fresh vault. So there is no copy here to protect and nothing to keep
+			in step by hand: everything under the doc root is the project's own to edit, which is the
+			point of it. Edits to the framework library itself belong in the framework's own repository.
+			All artifacts are in <code>.html</code> format per the
+			<a href="_Claude/references/kcd_sdk/kcd-document-protocol.html">KCD Document Protocol</a>.</li>
 			<li><code>utilities/</code> — the registered tool tier (see <em>The agent model</em>).
 			Structurally carries its own security gate: <code>draft/</code> (agent- or human-proposed,
 			<strong>not yet runnable</strong>), <code>deployed/</code> (<strong>human-approved,
@@ -269,25 +272,24 @@
 
 	<section data-kcd-section="portability-boundary">
 		<h3>Portability boundary</h3>
-		<p><code>kcd/</code> is the portable, project-agnostic layer: framework meta-docs, templates,
-		bases, habits, and the generator/analyzer definitions that apply to any KCD-equipped project
-		without modification.</p>
-		<p><strong>Rule:</strong> if writing or editing a <code>kcd/</code> file requires knowing
-		anything about a specific project — its paths, domain vocabulary, toolchain, or conventions —
-		that artifact does not belong in <code>kcd/</code>. Project-specific agents belong outside
-		it.</p>
+		<p>The <strong>substrate</strong> — the framework library shipped inside the Daedalus package —
+		is the portable, project-agnostic layer: framework meta-docs, bases, habits, and the
+		generator/analyzer definitions that apply to any KCD-equipped project without modification.</p>
+		<p><strong>Rule:</strong> if writing or editing a substrate file requires knowing anything about
+		a specific project — its paths, domain vocabulary, toolchain, or conventions — that artifact
+		does not belong in the substrate. Project-specific agents belong in the project's own vault.</p>
 		<p><strong>Lenses are a two-tier exception.</strong> Most lenses are drafted in place and are
 		project-specific by design. A small minority are <em>bundled</em> (e.g.
 		<code>_lens-base</code>, <code>lens-crafter</code>) — they ship inside the Daedalus package and
 		<code>daedalus init</code> writes them into <code>lenses/</code> on a fresh install. They carry no
-		project vocabulary, because they land in vaults nobody has seen. The deploy contract. Same schema; the portability constraint is what gates entry to
-		<code>kcd/</code>.</p>
+		project vocabulary, because they land in vaults nobody has seen. Same schema; the portability
+		constraint is what gates entry to the substrate.</p>
 	</section>
 
 	<section data-kcd-section="reference-categories">
 		<h3>Reference categories</h3>
 		<p>Lenses point at a project-level store of truth, kept categorized, not flat. The category
-		scheme and the references-vs-<code>kcd/</code> boundary are specified in
+		scheme and the references-vs-substrate boundary are specified in
 		<a href="_Claude/references/kcd_sdk/reference_categories.html">reference_categories</a>. References live
 		in <code>references/</code> only — it's a library; findability is the point.</p>
 	</section>

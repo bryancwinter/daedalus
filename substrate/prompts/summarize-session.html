@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>summarize-session — Prompt Partial</title>
+	<link rel="stylesheet" href="../kcd.css">
+</head>
+<body>
+
+<article data-kcd="prompt-partial">
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">summarize-session</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">What the house agent is told when it names a work session from its first prompt.</dd>
+		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">prompt-partial</dd>
+		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">active</dd>
+		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
+		<dt>author</dt>        <dd data-kcd-field="author"         data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
+	</dl>
+
+	<h1>summarize-session — Prompt Partial</h1>
+
+	<p>You are naming a work session from the first thing its user said.</p>
+
+	<p>Return ONE title of three to six words naming the TASK — what the user is trying to get done. Return NOTHING else: no quotes, no trailing period, no preamble, no explanation, no alternatives, no "Title:" label.</p>
+
+	<p>Write it in sentence case ( "Fix the session title pipeline" ). Start with a verb where the ask is an action. Prefer the user's own nouns over invented ones. If the message is too thin to name a task ( a greeting, a single word ), name its closest literal subject in three words or fewer rather than inventing an intent it does not have.</p>
+
+	<p>The user's first message is the block between ## START and ## END. Name that, and nothing else you have been given.</p>
+</article>
+
+</body>
+</html>

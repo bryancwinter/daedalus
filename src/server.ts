@@ -1,7 +1,8 @@
+import { statSync } from 'fs';
+import { basename } from 'path';
 import { McpServer, runVerify } from './mcp';
 import type { ServerManifest, ToolDefinition, ToolResult, Registration, TestSpec, VerifyReport } from './mcp';
 import { GuardChain, PathGuard } from './guards';
-import { MCPUtils } from './MCPUtils';
 // bryan TODO - Research unification of tool surfaces using params.
 import { discoveryTools } from './tools/discovery';
 import { readTools } from './tools/read';
@@ -19,7 +20,7 @@ import { batchTools } from './tools/batch';
  * `starmind_semantic_browser`. Daedalus is now its own project — a narrowly scoped
  * context compiler — and it will only ever possess THIS ONE server, so an abstract
  * base exists to serve a plurality it does not have. The base's useful parts
- * ( build / registerTool / ensureBuilt / run / invoke / wireTools / verify / liveDoc )
+ * ( build / registerTool / ensureBuilt / run / invoke / wireTools / verify )
  * are folded in here directly. The wire itself stays its own module, `./mcp`, because
  * that genuinely is a separate concern.
  *
@@ -29,6 +30,10 @@ import { batchTools } from './tools/batch';
  * it took with it ( snapshot regeneration, verification ) is replaced by this package's
  * own `scripts/snapshot.ts` and `scripts/verify.ts`, so neither is lost.
  */
+/** How often the serve loop checks that its host is still alive. Thirty seconds is far below the hours
+ *  an orphan was surviving and far above anything a stat-free pid probe could cost. */
+const ORPHAN_CHECK_MS = 30_000;
+
 export class DaedalusServer {
 
 	/**
@@ -86,7 +91,40 @@ export class DaedalusServer {
 
 	constructor() {
 		const m = DaedalusServer.manifest;
-		this.server = new McpServer( { name: m.name, version: m.version } );
+		this.server = new McpServer( { name: m.name, version: `${ m.version }+${ DaedalusServer.buildIdentity() }` } );
+	}
+
+	/**
+	 * WHAT THIS PROCESS IS ACTUALLY RUNNING — the entry file it was launched with, stamped with that
+	 * file's mtime and byte size.
+	 *
+	 * A DETECTOR, not a version. `manifest.version` is authored and changes when someone remembers to
+	 * change it; this changes every time the bundle is rebuilt, which is the event that actually matters.
+	 * The failure it exists to make visible: a client caches the tool schema at handshake time and keeps
+	 * it across a rebuild, so a field added to an inputSchema is STRIPPED from the request before it
+	 * leaves the client — the handler never sees it, and the call returns success having done something
+	 * other than what was asked. Nothing on the wire disagreed, because the client never asked again.
+	 * With the stamp riding in serverInfo.version, a client and a server on different builds is a visible
+	 * difference rather than a silent one, and the check costs one stat call. It rode a live doc-block too
+	 * until that seam was removed: a server doc is per-SERVER, and one copy now answers for several
+	 * sessions, so nothing per-session can live there. The handshake is the honest channel and the only one.
+	 *
+	 * Reads `process.argv[1]` — the script the runtime was actually handed — rather than the manifest's
+	 * declared `entryPoint`, because the declared one is what SHOULD be running and this question is
+	 * about what IS. It degrades honestly: under `tsx src/index.ts` there is no dist and the stamp names
+	 * the source entry, which is the true answer for a dev run.
+	 */
+	static buildIdentity(): string {
+		const entry = process.argv[ 1 ];
+		if( !entry ) return 'unknown';
+		try {
+			const stat = statSync( entry );
+			return `${ basename( entry ) }@${ new Date( stat.mtimeMs ).toISOString() }/${ stat.size }`;
+		} catch {
+			// A stat that fails is a real answer too — the entry moved or is virtual. Never throw from
+			// something the handshake calls: an unreadable stamp must not cost the whole connection.
+			return 'unstamped';
+		}
 	}
 
 	// ── Lifecycle ─────────────────────────────────────────────────────────────────
@@ -94,7 +132,50 @@ export class DaedalusServer {
 	/** Build the tool surface, then serve it on stdio until the client disconnects. */
 	async run(): Promise<void> {
 		this.ensureBuilt();
-		await this.server.connect();
+		const watchdog = DaedalusServer.watchParent();
+		try {
+			await this.server.connect();
+		} finally {
+			clearInterval( watchdog );
+		}
+	}
+
+	/**
+	 * EXIT WHEN THE HOST DOES — the orphan reaper, pointed at ourselves.
+	 *
+	 * `connect()` already resolves on stdin EOF, which is the clean disconnect. It is not enough: a host
+	 * that dies WITHOUT closing the pipe leaves the read end open with nothing on the other side, and the
+	 * child sits there indefinitely. That is how five of these were found alive at once on 2026-08-04, the
+	 * oldest three hours old — each one holding a stale tool surface, any of which a confused client could
+	 * still be talking to.
+	 *
+	 * SELF-EXIT, never a sweep of siblings. The obvious shape — a new child kills the old ones at spawn —
+	 * is wrong here: Starmind and Claude Code legitimately run their own daedalus children AT THE SAME
+	 * TIME, against different vaults, so "same entry point" identifies a peer rather than a corpse and one
+	 * host's spawn would kill the other host's live server. A process that only ever ends itself needs no
+	 * authority over anything and cannot make that mistake.
+	 *
+	 * `kill( pid, 0 )` sends no signal — it is the portable "is this pid alive?" probe, and it throws when
+	 * the parent is gone. Pid reuse could in principle make a dead parent look alive; the failure direction
+	 * is an orphan living a while longer, which is exactly what happens today. The reverse ( exiting early
+	 * on a live host ) self-heals anyway: the host demotes a dead child to dormant and respawns it on the
+	 * next call.
+	 *
+	 * The timer is `unref`'d so it never by itself keeps this process alive, and cleared when the serve
+	 * loop ends so nothing outlives the run.
+	 */
+	private static watchParent(): NodeJS.Timeout {
+		const parent = process.ppid;
+		const timer  = setInterval( () => {
+			try {
+				process.kill( parent, 0 );
+			} catch {
+				process.stderr.write( `[daedalus] host process ${ parent } is gone — exiting rather than orphaning\n` );
+				process.exit( 0 );
+			}
+		}, ORPHAN_CHECK_MS );
+		timer.unref();
+		return timer;
 	}
 
 	/** Prove every tool against its TestSpecs, in-process. Reached by `scripts/verify.ts`. */
@@ -157,32 +238,5 @@ export class DaedalusServer {
 		if ( this.built ) return;
 		this.build();
 		this.built = true;
-	}
-
-	// ── Live doc ──────────────────────────────────────────────────────────────────
-
-	/**
-	 * The server's doc-block as served right now — generated fresh rather than frozen at
-	 * author-time. Folds the live vault root and a fresh type census into the manifest's authored
-	 * doc, so an agent that gets this server's doc already knows where the vault lives and roughly
-	 * what is in it — a cheaper orientation than a kcd_query({ groupBy: 'type' }) round-trip. Read
-	 * fresh each time ( MCPUtils.vault re-resolves config on access ), the same freshness contract
-	 * every tool here uses.
-	 */
-	liveDoc(): string {
-		const base  = DaedalusServer.manifest.doc ?? '';
-		const vault = MCPUtils.vault;
-
-		const counts: Record<string, number> = {};
-		for ( const f of vault.scan() ) {
-			const t = vault.classify( f.path );
-			counts[ t ] = ( counts[ t ] ?? 0 ) + 1;
-		}
-		const census = Object.entries( counts )
-			.sort( ( a, b ) => b[ 1 ] - a[ 1 ] )
-			.map( ( [ type, count ] ) => `${ type }: ${ count }` )
-			.join( ', ' );
-
-		return `${ base }\n\nVault root (live): ${ vault.root }\nCensus (live): ${ census || 'empty' }`;
 	}
 }

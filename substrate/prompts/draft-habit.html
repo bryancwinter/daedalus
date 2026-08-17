@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>draft-habit — Prompt Partial</title>
+	<link rel="stylesheet" href="../kcd.css">
+</head>
+<body>
+
+<article data-kcd="prompt-partial">
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">draft-habit</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">What the house agent is told when it drafts a KCD habit from a one-line ask.</dd>
+		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">prompt-partial</dd>
+		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">active</dd>
+		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
+		<dt>author</dt>        <dd data-kcd-field="author"         data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
+	</dl>
+
+	<h1>draft-habit — Prompt Partial</h1>
+
+	<p>You are drafting a KCD **habit** — a tiny, composable fragment of *how* an agent behaves, not a task it performs.</p>
+
+	<p>The user's one-line, natural-language description of the reflex they want is the block between ## START and ## END. Draft from that block only; everything else you have been given is your own standing context. You return ONE complete habit as a standards-valid HTML file and NOTHING else — no preamble, no fences, no commentary.</p>
+
+	<p>A habit is a fixed four-field shape, in this order: **why** (the trigger — one terse clause, reads as "when {this}"), **action** (the single mechanical step — one terse clause, reads as "execute {this}"; omit the whole section for a don't-style habit), **explanation** (the rationale — the prose an agent gets when the habit is suggested; depth lives here), and **rules** (optional — terse constraints, one short bullet each; omit the section if there are none).</p>
+
+	<p>Emit exactly this structure, filling every field from the user's ask and inventing a good kebab-case verb-noun `name`:</p>
+
+<pre><code>&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+	&lt;meta charset="utf-8"&gt;
+	&lt;title&gt;{name} — Habit&lt;/title&gt;
+	&lt;link rel="stylesheet" href="../../kcd.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;article data-kcd="habit"&gt;
+	&lt;dl data-kcd-frontmatter&gt;
+		&lt;dt&gt;name&lt;/dt&gt;          &lt;dd data-kcd-field="name"           data-kcd-type="slug"&gt;{name}&lt;/dd&gt;
+		&lt;dt&gt;description&lt;/dt&gt;   &lt;dd data-kcd-field="description"    data-kcd-type="text"&gt;{one-sentence summary}&lt;/dd&gt;
+		&lt;dt&gt;type&lt;/dt&gt;          &lt;dd data-kcd-field="type"           data-kcd-type="enum"&gt;habit&lt;/dd&gt;
+		&lt;dt&gt;status&lt;/dt&gt;        &lt;dd data-kcd-field="status"         data-kcd-type="enum"&gt;disabled&lt;/dd&gt;
+		&lt;dt&gt;schema-version&lt;/dt&gt;&lt;dd data-kcd-field="schema-version" data-kcd-type="text"&gt;0.1&lt;/dd&gt;
+		&lt;dt&gt;author&lt;/dt&gt;        &lt;dd data-kcd-field="author"         data-kcd-type="text"&gt;Bryan C. Winter &amp;lt;bryancwinter@gmail.com&amp;gt;&lt;/dd&gt;
+	&lt;/dl&gt;
+	&lt;h1&gt;{name} — Habit&lt;/h1&gt;
+	&lt;section data-kcd-section="why"&gt;&lt;h3&gt;Why&lt;/h3&gt;&lt;p&gt;{trigger clause}&lt;/p&gt;&lt;/section&gt;
+	&lt;section data-kcd-section="action"&gt;&lt;h3&gt;Action&lt;/h3&gt;&lt;p&gt;{single mechanical step}&lt;/p&gt;&lt;/section&gt;
+	&lt;section data-kcd-section="explanation"&gt;&lt;h3&gt;Explanation&lt;/h3&gt;&lt;p&gt;{rationale}&lt;/p&gt;&lt;/section&gt;
+	&lt;section data-kcd-section="rules"&gt;&lt;h3&gt;Rules&lt;/h3&gt;&lt;ul&gt;&lt;li&gt;{terse constraint}&lt;/li&gt;&lt;/ul&gt;&lt;/section&gt;
+&lt;/article&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+
+	<p>Rules for you: keep `why` and `action` to one terse clause each; let `explanation` carry the weight; name exact project-root-relative paths where they matter; set `status` to `disabled` (the deploy flips it to active). If the habit is atomic it is a habit — if it needs phases, a human gate, or judgment, tell the user in one line that it should be a contract or analyzer instead, then still draft the closest atomic habit.</p>
+</article>
+
+</body>
+</html>

@@ -86,9 +86,9 @@
 		<h3>Status conventions</h3>
 		<ul>
 			<li><strong><code>active</code> = a live, validated artifact in place.</strong> Framework
-			meta-docs and nav-indexes read directly from <code>kcd/</code>; any deployed copy is also
-			<code>active</code>. <code>active</code> ⇒ the file has passed validation (protocol §1).</li>
-			<li><strong><code>disabled</code> in canonical <code>kcd/</code> = a deployable seed</strong>
+			meta-docs and nav-indexes are <code>active</code> in the substrate, and any deployed copy is
+			<code>active</code> too. <code>active</code> ⇒ the file has passed validation (protocol §1).</li>
+			<li><strong><code>disabled</code> in the substrate = a deployable seed</strong>
 			— inert until deployed; the deploy script flips the deployed copy to <code>active</code>.
 			Applies to the artifacts that are <strong>copied</strong> into the deployed tree: deployable
 			lenses (including <code>_lens-base</code>), habits, and canonical generators/analyzers.

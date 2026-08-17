@@ -134,6 +134,21 @@
 		</table>
 		<p>A field value's source by type: <strong>link fields</strong> (<code>where</code>, paths, urls) → <code>href</code>; <strong>all others</strong> → text content.</p>
 		<p><strong>Structural rule — no empty containers.</strong> Include a region (or section) <strong>only when it carries content</strong>. Never emit an empty Know / Care / Do. An artifact uses only the structure it needs — most non-lens artifacts use few regions or none. (How <em>much</em> a single artifact should carry is left to judgment: a habit must stay atomic, not larded with fifty things. No mechanical cap yet.)</p>
+		<p><strong>Structural rule — section names are a closed set per type, and the heading must
+		match.</strong> <code>data-kcd-section</code> is not free text. Every artifact type declares its
+		shape — which section names it may carry, and in what order — and a document of that type may use
+		<em>only</em> those names. A habit's set is <code>why</code> · <code>action</code> ·
+		<code>explanation</code> · <code>rules</code> · <code>references</code>; inventing a
+		<code>glockenspiel</code> section, or spelling <code>why</code> as <code>when</code> because it
+		reads better, is a <strong>validation failure</strong>, not a passthrough — the file is refused
+		whole, per the all-or-nothing rule in §0. The visible heading is bound to the same set: a
+		<code>why</code> section is headed <em>Why</em>. This is load-bearing for anything that reaches the
+		Manifest, because merge and compile both key on the section name — two documents of the same type
+		are only mergeable if <code>why</code> means <code>why</code> in both, and a section named
+		something the shape does not know drops silently out of every compile rather than failing loudly
+		where an author would see it. A type that genuinely needs a new section gets it added to the
+		<strong>shape</strong>, where every document of that type inherits it — never invented at one
+		call site.</p>
 	</section>
 
 	<section data-kcd-section="faux-tables">
@@ -210,7 +225,7 @@
 
 	<section data-kcd-section="composable-rules">
 		<h2 data-kcd-heading>6 · Composable rules — <code>habit-class</code> and the cascade</h2>
-		<p>A <code>habit-class</code> is a named <strong>mutual-exclusion group</strong> ("textual radio-buttons"): a set of behaviors where, by definition, only <strong>one</strong> may apply (e.g. <code>subagent-policy</code> = { <code>no-subagents</code>, <code>always-use-subagents</code> }). Classless habits are <strong>additive</strong> (all apply, union); classed habits are subject to the cascade below. Declared on a habit's own frontmatter (<code>habit-class</code>); <strong>mirrored</strong> on the including slot (<code>data-kcd-habit-class</code>), validated to agree.</p>
+		<p>A <code>habit-class</code> is a named <strong>mutual-exclusion group</strong> ("textual radio-buttons"): a set of behaviors where, by definition, only <strong>one</strong> may apply (e.g. <code>spawn-subagent</code> = { <code>spawn-subagent-never</code>, <code>always-use-subagents</code> }). Classless habits are <strong>additive</strong> (all apply, union); classed habits are subject to the cascade below. Declared on a habit's own frontmatter (<code>habit-class</code>); <strong>mirrored</strong> on the including slot (<code>data-kcd-habit-class</code>), validated to agree.</p>
 		<p><strong>Carriers (the first composition rule).</strong> Habits may be applied to exactly three things — a <strong>Lens</strong>, an <strong>Agent</strong>, or <strong>injected in a Workflow</strong>. No other artifact type carries habits.</p>
 		<p><strong>Cascade priority — highest wins: <code>Workflow &gt; Agent &gt; Lens</code>.</strong> A lens-level habit is the <strong>base</strong> default; an Agent or a Workflow can override it. This is a <strong>one-dimensional override</strong> — like a primitive CSS cascade whose only specificity axis is the carrier level.</p>
 		<p><strong>Resolution:</strong></p>
@@ -241,24 +256,27 @@
 			<li>Links navigate natively in any browser; chrome is inert outside Starmind.</li>
 		</ul>
 
-		<h3 data-kcd-heading>8.1 · The stylesheet path (interim rule, 2026-07-01)</h3>
-		<p><strong>Canonical file:</strong> <a href="_Claude/kcd.css">kcd.css</a>. One copy, no duplicates. <code>kcd/</code> is the project's canonical framework library — the right home for a shared, framework-wide asset.</p>
-		<p><strong>Why this needs a rule at all.</strong> A KCD document is meant to open directly in a browser — <code>file://</code>, no server, no virtual root — so <code>&lt;link rel="stylesheet"&gt;</code> can only ever be a real filesystem-relative path. There is no <code>/absolute</code> that resolves the same way from every checkout, and a bare <code>href="kcd.css"</code> (what most of the corpus currently has) only works if a copy of the file sits in the <em>same directory</em> as the document — which, outside the original <code data-kcd-address="_Claude/work/lens-crafter/html-proposal/">html-proposal</code> origin trial, is not true anywhere. This is exactly the "dangling reference" class of bug the 2026-07-01 corpus audit surfaced.</p>
-		<p><strong>The rule, for now:</strong> compute the relative path from the document's own directory up to <code>_Claude/</code>, then down into <code>kcd/kcd.css</code> — one <code>../</code> per directory level under <code>_Claude/</code>.</p>
+		<h3 data-kcd-heading>8.1 · The stylesheet link (settled 2026-07-29, absolute)</h3>
+		<p><strong>Canonical file:</strong> <a href="_Claude/kcd.css">kcd.css</a>, at the <strong>vault root</strong>. One copy, no duplicates.</p>
+		<p><strong>One configured absolute href, not a computed relative one.</strong> Every document carries the same <code>file:///</code> URL:</p>
+		<pre><code>&lt;link rel="stylesheet" href="file:///C:/path/to/your-project/_Claude/kcd.css"&gt;</code></pre>
+		<p><strong>Why absolute won.</strong> The earlier rule computed one <code>../</code> per directory level up to the vault root. It was correct and it was a constant tax: the depth math lived in the emitter <em>and</em> in a corpus-wide repair verb that existed mainly to keep the two copies agreeing, a document that moved carried a link that silently stopped resolving, and any agent hand-authoring a file had to count levels — which is exactly how documents kept arriving with a wrong link, or none at all. An absolute href has no per-file computation to get wrong. The trade is deliberate and accepted: the href names <em>this machine's</em> vault, so a document opened on a different machine needs a re-emit. The variable is per-install, so the mechanism travels even though the emitted string does not.</p>
+		<p><strong>Where the value lives.</strong> Daedalus <code data-kcd-address>daedalus/src/Config.ts</code> resolves it through the same four tiers it resolves the vault root through — most specific wins:</p>
 		<table>
 			<thead>
-				<tr><th>Document location (under <code>_Claude/</code>)</th><th>Levels under <code>_Claude/</code></th><th>Correct <code>href</code></th></tr>
+				<tr><th>Tier</th><th>Source</th><th>Set it by</th></tr>
 			</thead>
 			<tbody>
-				<tr><td><code>lenses/_lens-base.html</code></td><td>1</td><td><code>../kcd/kcd.css</code></td></tr>
-				<tr><td><code>habits/{name}.html</code></td><td>1</td><td><code>../kcd/kcd.css</code></td></tr>
-				<tr><td><code>contracts/{name}.html</code></td><td>1</td><td><code>../kcd/kcd.css</code></td></tr>
-				<tr><td><code>lenses/{name}/{name}.html</code></td><td>2</td><td><code>../../kcd/kcd.css</code></td></tr>
-				<tr><td><code>references/domain/{name}.html</code></td><td>2</td><td><code>../../kcd/kcd.css</code></td></tr>
-				<tr><td><code>references/domain/orchestration/research/{name}.html</code></td><td>4</td><td><code>../../../../kcd/kcd.css</code></td></tr>
+				<tr><td>1</td><td>argument</td><td><code>--css &lt;path&gt;</code> on the CLI or the server entry</td></tr>
+				<tr><td>2</td><td>host slice</td><td>a host's own config screen — in Starmind, the <strong>KCD Library</strong> package's <em>Stylesheet path</em> field</td></tr>
+				<tr><td>3</td><td>environment</td><td><code>DAEDALUS_CSS_PATH</code></td></tr>
+				<tr><td>4</td><td>derived</td><td>nothing — falls back to this vault's own <code>kcd.css</code>, which is why a fresh install already works</td></tr>
 			</tbody>
 		</table>
-		<p><strong>This is explicitly a stopgap</strong>, called out as such by the person who ruled it (2026-07-01): it still relies on whoever authors a document counting directory levels correctly by hand, which is exactly the kind of scut work a future authoring tool should absorb (a generator that stamps the correct relative path at deploy time, or a Starmind-side base-href rewrite when it renders these documents itself, removing the need for the raw file to carry a working link at all). Until that tool exists, an agent authoring or fixing a KCD document computes this path correctly by hand rather than copying the bare <code>href="kcd.css"</code> seen elsewhere in the corpus. The back-sweep to correct every already-deployed document's <code>href</code> to this rule is a separate, tracked pass — not implied by this section.</p>
+		<p><strong>You configure the path; the scheme is added for you.</strong> The stored value is a bare absolute path — <code>C:/path/to/your-project/_Claude/kcd.css</code> — because that is what copying a path actually gives you, and <code>C:\…</code> is what "absolute" means on Windows. <code>Config.cssUrl()</code> prepends <code>file:///</code> at resolve time and is total: surrounding quotes (Explorer's <em>Copy as path</em>), backslashes, and an already-complete <code>file:///</code> URL all normalize to the same result rather than doubling or breaking. Normalization happens on <strong>resolve</strong>, not on a config screen's commit, because the same value can arrive from an env var or a flag — a normalizer living in one host would leave those two unhandled.</p>
+		<p><strong>What an agent should do: never construct a stylesheet link.</strong> Write through <code>kcd_save</code> and the href is correct — the write path hands <code>Config.resolve().cssHref</code> to <code>KcdEmit.emit()</code>, which no longer computes anything. If you are hand-authoring a document outside the tooling, copy the href from any neighbouring document rather than deriving one. Do not count directory levels; there are no levels to count any more.</p>
+		<p><strong>Unrelated to §1.1 addressing.</strong> The rule that body paths are vault-root-relative <code>&lt;a href="_Claude/…"&gt;</code> links is a <em>different</em> rule with a different reason, and it is unchanged. The stylesheet is not an address: nothing links <em>to</em> it, no heal rewrites it, and no validator reads it. It is a browser asset, which is why it alone gets an absolute URL.</p>
+		<p><strong>Two known gaps, both deliberate.</strong> <code>KCDPrimitive.toHtml()</code> calls <code>emit()</code> with no href and therefore produces the bare-filename fallback (it is a serialization helper, not a write path — do not use its output as a file). And <code>daedalus fix-css</code>, the opt-in one-shot that normalizes an existing corpus onto the configured href, matches one exact <code>&lt;link rel="stylesheet" href="…"&gt;</code> form and walks only documents that <em>parse</em> — so a malformed file, or a link whose attributes are ordered differently, is passed over without a report. Its totals are "of the documents that parse, and the links we recognized in them". It is no longer load-bearing: the older relative links still resolve, so running it is a tidiness choice rather than a repair.</p>
 	</section>
 
 	<section data-kcd-section="scope-non-html">
@@ -275,8 +293,8 @@
 			<li><strong>Session, todo, and completed logs</strong> — <code>_Claude/logs/session.md</code>,
 			<code>_Claude/logs/{lens}/todo/todo.md</code>, <code>_Claude/logs/{lens}/completed/completed.md</code>.
 			Append-only breadcrumb lines, not dual-audience artifacts — see the
-			<a href="_Claude/habits/session-logging/session-log-aggressive.html">session-log-aggressive</a> habit (one of two poles of the
-			session-logging mutual-exclusion slot — see §6).</li>
+			<a href="_Claude/habits/log-session/log-session-liberal.html">log-session-liberal</a> habit (one of two poles of the
+			log-session mutual-exclusion slot — see §6).</li>
 			<li><strong>Chat transcripts</strong> — <code>_Claude/logs/chats/*.md</code>. Raw session
 			capture, not an authored document.</li>
 			<li><strong>Raw generator/analyzer output</strong> — <code>_Claude/audits/**</code>,
@@ -315,9 +333,37 @@
 
 Markdown, verbatim.
 &lt;/script&gt;</code></pre>
-		<p>The non-standard <code>type</code> means no browser executes or renders it, and script
-		content is raw text — so the payload needs <strong>no HTML escaping</strong>. The single
-		exception is a literal <code>&lt;/script</code>, which must be escaped.</p>
+		<p><strong>Why a <code>&lt;script&gt;</code>, and why it is inert.</strong> On first encounter,
+		script blocks sitting in a governed artifact read as an injection surface. They are not, and the
+		reason belongs here rather than in a doc-comment someone has to go find. A seed needs a container
+		that holds an arbitrary text payload <em>byte for byte</em> — markdown carrying its own
+		<code>&lt;</code>, <code>&amp;</code> and <code>&gt;</code>, which any ordinary element would turn
+		into entities. HTML has exactly two raw-text elements, <code>&lt;script&gt;</code> and
+		<code>&lt;style&gt;</code>, and only one of them accepts an arbitrary <code>type</code>. It is the
+		only standard container that keeps the payload unaltered.</p>
+		<p><strong>Inertness comes from the <code>type</code> attribute, not from anything KCD does.</strong>
+		A script with an unrecognized type is a <em>data block</em> by the HTML standard: not executed, not
+		rendered, not parsed as script. That holds in every reader, including one that has never heard of
+		KCD — which is the point, because it is a guarantee this project does not have to be trusted for.
+		Two further layers sit on top. A host that injects KCD bodies into a live DOM rewrites the block to
+		an inert <code>&lt;pre&gt;</code> source view first, so a human still reads the payload and nothing
+		runs — that is an <em>additional</em> defence available only to hosts that render, never the thing
+		the guarantee rests on. And the context compiler strips seeds outright, so a payload never reaches
+		a model as context at all.</p>
+		<p><strong>No escaping, in either direction.</strong> Script content is raw text, so a payload is
+		authored with its literal characters and carries no entities. The writer honours the same rule:
+		raw content round-trips <strong>verbatim</strong> through parse and serialize, so a save cannot add
+		a layer the author never wrote. That symmetry is pinned by test, because it was broken once —
+		<code>serialize</code> escaped raw content until 2026-08-13, and a payload containing a markdown
+		blockquote would have reached a real project's <code>CLAUDE.md</code> with <code>&amp;gt;</code>
+		in it.</p>
+		<p><strong>The one sequence a payload may not contain is <code>&lt;/script</code>.</strong> There is
+		no escaping around it: entity references are not decoded inside raw text, so
+		<code>&amp;lt;/script</code> would place those literal characters in the emitted file rather than
+		protect anything — the file would look repaired and be corrupt. The sequence must simply not
+		appear; split it at the source (<code>&lt;\/script</code> in JavaScript) or reword. A writer handed
+		one <strong>refuses the whole document</strong> rather than emit a file that reparses into a
+		different tree, which is the shape every raw-text breakout takes.</p>
 		<ul>
 			<li><code>data-kcd-seed="&lt;host&gt;"</code> — <strong>required</strong>, a slug naming the
 			agent host this payload is for (<code>claude</code>, <code>codex</code>,
@@ -337,6 +383,11 @@ Markdown, verbatim.
 		and leaves everything below them alone. That is what lets a vault deploy over a project whose
 		<code>CLAUDE.md</code> already says things of its own, and re-deploy later without clobbering
 		them.</p>
+		<p><strong>Seed targets double as the install's file registry.</strong> Nothing hand-keeps a list
+		of what an install put into a project: <code>installedPaths()</code> reads the seed declarations
+		and returns their targets alongside the Model Context Protocol registration file. That is what
+		lets an uninstall remove exactly what the install added, and it is the second reason adding a host
+		is a new block rather than an edit in two places — the block IS the registration.</p>
 		<p><strong>A seed is not a slot.</strong> It carries no <code>data-kcd-field</code> cells, is
 		never routed or dredged, and belongs to no faux-table. The two are unrelated primitives that
 		happen to share an English word: <code>data-kcd-slot</code> is a routing row (§3),
