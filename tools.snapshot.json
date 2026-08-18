@@ -47,7 +47,7 @@
 			"example": {
 				"type": "lens"
 			},
-			"doc": "The single read-query over the vault — subsumes the old glob/list/search/types tools. Any of `glob` ( vault-relative path pattern; `*` within a segment, `**` across ), `type` ( artifact classifier: lens, plan, habit, reference, contract, generator, analyzer, template, framework, nav-index ), and `text` ( case-insensitive substring across body + serialized frontmatter ) may be combined; they AND together. With no filter it returns the whole vault. Returns an array of refs ( path + type + name ) — read one with kcd_get, walk its edges with kcd_links. Pass `groupBy: \"type\"` to get `{ type, count }[]` ( sorted by count, descending ) instead of refs — the cheapest orientation call. Read-only."
+			"doc": "The single read-query over the vault — subsumes the old glob/list/search/types tools. Any of `glob` ( vault-relative path pattern; `*` within a segment, `**` across ), `type` ( artifact classifier: lens, plan, habit, reference, contract, generator, analyzer, template, framework, nav-index ), and `text` ( case-insensitive substring across body + serialized frontmatter ) may be combined; they AND together. With no filter it returns the whole live vault. Returns an array of refs ( path + type + name ) — read one with kcd_get, walk its edges with kcd_links. Pass `groupBy: \"type\"` to get `{ type, count }[]` ( sorted by count, descending ) instead of refs — the cheapest orientation call. ARCHIVAL buckets ( plans/plans_complete, plans/plans_deferred ) are EXCLUDED unless the glob names one — retired and parked plans answer \"what did we do\", not \"what is true now\". So `type: \"plan\"` returns the live plans, and `glob: \"plans/plans_complete/**\"` returns the retired ones. Read-only."
 		},
 		{
 			"name": "kcd_get",
@@ -195,7 +195,7 @@
 							},
 							"body": {
 								"type": "string",
-								"description": "PASSTHROUGH path — body HTML, no frontmatter block, preserved byte-for-byte. Use for an edit (kcd_get → mutate → kcd_save). Mutually exclusive with `content`."
+								"description": "EDIT path — body HTML, no frontmatter block. Content, structure and attributes are preserved; whitespace is reformatted to house style, so the stored file will not be byte-identical to what you send. Use for an edit (kcd_get → mutate → kcd_save). Mutually exclusive with `content`."
 							},
 							"content": {
 								"type": "object",
@@ -214,7 +214,7 @@
 										"additionalProperties": {
 											"type": "string"
 										},
-										"description": "Section name → prose (plain text is fine; blank lines become paragraphs, \"- \" lines a list). Names and order come from the type's shape; a nested child like \"phase-2\" is placed inside its parent automatically."
+										"description": "Section name → prose. Plain text is fine: blank lines become paragraphs, \"- \" lines a list. MARKDOWN IS NOT INTERPRETED — **bold**, `code` and [text](link) render as literal characters; use <strong>, <code>, <a href> instead, or write the whole section as HTML. HTML comments are stripped. Names and order come from the type's shape; a nested child like \"phase-2\" is placed inside its parent automatically."
 									},
 									"slots": {
 										"type": "array",
@@ -294,7 +294,7 @@
 					"body": "<h1>My Note</h1>\n<p>The body content.</p>"
 				}
 			},
-			"doc": "Persist one artifact by vault-relative `path` from its `artifact` ( a SerializedArtifact — the shape kcd_get returns ). Emits HTML with KcdEmit: frontmatter is rebuilt from `artifact.frontmatter`, the `body` passes through — an existing body has its frontmatter block replaced ( the edit path: kcd_get → mutate → kcd_save ), a body with none gets one prepended ( the create path ). The result is validated with KcdValidate BEFORE any write: a structural failure returns a structured error and writes NOTHING ( the write-time gate — can't save a malformed artifact ). On success it writes and returns `{ saved, warnings }`. PathGuard jails the path and checks the target directory ACCEPTS the declared type — a refusal names the accepted set, so the fix is in the error. TWO WAYS IN, exactly one per call. Pass `artifact.content` to AUTHOR: give sections as prose ( plus rows for the record-bearing ones ) and the structure — section order, nesting, heading levels, faux-tables, the whole data-kcd grammar — is DERIVED from that type's declared shape, so you supply content and never markup. Pass `artifact.body` instead to EDIT, where existing structured HTML is preserved byte-for-byte ( kcd_get → mutate → kcd_save ). Supplying both is refused rather than resolved by precedence. Content mode also returns advisories naming any required or expected section left out, and — on a closed type — any section the compiler will not read. NOTE: agent-authored body HTML is not yet sanitized here ( the render layer sanitizes on display; a save-time sanitize pass is a named deferral )."
+			"doc": "Persist one artifact by vault-relative `path` from its `artifact` ( a SerializedArtifact — the shape kcd_get returns ). Emits HTML with KcdEmit: frontmatter is rebuilt from `artifact.frontmatter`, the `body` is re-parsed and re-emitted — an existing body has its frontmatter block replaced ( the edit path: kcd_get → mutate → kcd_save ), a body with none gets one prepended ( the create path ). The head is regenerated wholesale every write, so a document self-corrects its stylesheet on any save. The result is validated with KcdValidate BEFORE any write: a structural failure returns a structured error and writes NOTHING ( the write-time gate — can't save a malformed artifact ). On success it writes and returns `{ saved, warnings }`. PathGuard jails the path and checks the target directory ACCEPTS the declared type — a refusal names the accepted set, so the fix is in the error. TWO WAYS IN, exactly one per call. Pass `artifact.content` to AUTHOR: give sections as prose ( plus rows for the record-bearing ones ) and the structure — section order, nesting, heading levels, faux-tables, the whole data-kcd grammar — is DERIVED from that type's declared shape, so you supply content and never markup. Pass `artifact.body` instead to EDIT, where existing structured HTML is kept ( kcd_get → mutate → kcd_save ) — content, structure and attributes survive, while indentation and line breaks are NORMALIZED to house format, so expect the file you get back to be formatted rather than byte-identical to what you sent. Supplying both is refused rather than resolved by precedence. Content mode also returns advisories naming any required or expected section left out, and — on a closed type — any section the compiler will not read. NOTE: agent-authored body HTML is not yet sanitized here ( the render layer sanitizes on display; a save-time sanitize pass is a named deferral )."
 		},
 		{
 			"name": "kcd_move",

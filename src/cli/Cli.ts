@@ -1460,17 +1460,21 @@ export class Cli {
 	}
 
 	/**
-	 * `daedalus fix-css [confirm]` — normalize every document's stylesheet `<link>` onto the configured
-	 * href. No `confirm` previews only, matching `maintain` and `reset`.
+	 * `daedalus fix-css [confirm]` — bring every document up to the TWO-TIER stylesheet contract
+	 * ( protocol §8.1 ): an inline baseline followed by a depth-relative `<link>`. No `confirm` previews
+	 * only, matching `maintain` and `reset`.
 	 *
 	 * This exists because the stylesheet is linked by a plain `<link href>`, not a `data-kcd-*`
 	 * address — so no heal, no validator, and no link-check sees it.
 	 *
-	 * OPTIONAL, and no longer load-bearing. It used to be the thing that kept a per-file depth
-	 * calculation honest across the whole corpus; the href is now ONE configured absolute value
-	 * ( `Config.cssHref` ), so a document written through `kcd_save` is born correct and a document that
-	 * moves stays correct. What remains is a one-shot for making an EXISTING corpus uniform — the older
-	 * depth-relative links resolve perfectly well on their own, so running this is a tidiness choice.
+	 * LOAD-BEARING as of 2026-08-17, and this is the run that matters. An existing corpus carries NO
+	 * baseline at all, so every document in it is unreadable in a viewer that will not load an external
+	 * stylesheet — which is the surface most readers actually use. Documents written through
+	 * `kcd_save` are born with both tiers; this is how the existing corpus catches up.
+	 *
+	 * Reports the two halves separately, because they fail independently: a document can carry a
+	 * perfectly correct link and no baseline, and that document renders fine in a browser while being
+	 * unreadable everywhere else.
 	 *
 	 * Reports the links it CHANGED, plus a count of those already correct.
 	 *
@@ -1487,24 +1491,41 @@ export class Cli {
 
 		try {
 			const vault   = this.vault();
-			// The configured absolute href, read off Config rather than restated here — a second copy of
-			// this string is precisely what broke the corpus in the first place.
-			const reports = VaultUtilities.fixStylesheetLinks( vault, Config.resolve().cssHref, { confirm } );
+			// The stylesheet's VAULT-RELATIVE location, not a finished href — the per-file link is derived
+			// from it by the same function the emitter calls. Handing a finished href in is exactly how a
+			// machine-bound `file:///` value got stamped across 35 documents.
+			const reports = VaultUtilities.fixStylesheetLinks( vault, Config.resolve().cssVaultRel, { confirm } );
 			if ( args.json ) { this.emit( reports ); process.exit( 0 ); }
 
-			const changed = reports.filter( r => r.oldHref !== r.newHref );
-			const correct = reports.length - changed.length;
+			// A document needs work if EITHER tier is wrong, and the two are counted separately below —
+			// "12 links rewritten" over a corpus that gained 300 baselines would be a true number
+			// describing the smaller half of what happened.
+			const touched  = reports.filter( r => r.oldHref !== r.newHref || r.baselineAdded );
+			const relinked = reports.filter( r => r.oldHref !== r.newHref );
+			const seeded   = reports.filter( r => r.baselineAdded );
+			const correct  = reports.length - touched.length;
 
-			for ( const r of changed ) {
+			for ( const r of touched ) {
 				const mark = confirm ? this.tint( this.C.green, '✓' ) : this.tint( this.C.grey, '·' );
-				process.stdout.write( `  ${ mark } ${ r.path }\n      ${ r.oldHref }  →  ${ r.newHref }\n` );
+				process.stdout.write( `  ${ mark } ${ r.path }\n` );
+				if ( r.oldHref !== r.newHref ) process.stdout.write( `      ${ r.oldHref }  →  ${ r.newHref }\n` );
+				if ( r.baselineAdded )         process.stdout.write( `      ${ this.tint( this.C.grey, '+ baseline <style>' ) }\n` );
 			}
 
+			const verb = confirm ? 'applied' : 'would apply';
 			process.stdout.write(
-				`\n${ changed.length } link(s) ${ confirm ? 'rewritten' : 'would be rewritten' }`
-				+ `, ${ correct } already correct.\n`
+				`\n${ touched.length } document(s) ${ verb }`
+				+ ` — ${ relinked.length } link(s), ${ seeded.length } baseline(s)`
+				+ `; ${ correct } already correct.\n`
 			);
-			if ( !confirm && changed.length ) {
+			// The counts above are "of the documents that parse, and the links we recognized". Say so
+			// rather than let a total read as a whole-corpus guarantee — a malformed file is dropped by
+			// the scan, and it is the file most likely to need this.
+			process.stdout.write(
+				this.tint( this.C.grey, `scanned ${ reports.length } document(s) carrying a recognized <link>; `
+					+ 'files that fail to parse, or whose link tag differs in shape, are not counted.\n' )
+			);
+			if ( !confirm && touched.length ) {
 				process.stdout.write( 'run again with "confirm" to apply.\n' );
 			}
 			process.exit( 0 );
@@ -1672,9 +1693,28 @@ export class Cli {
 	/** Human-readable health output — issues grouped by artifact, then a one-line tally. */
 	private static renderHealth( report: HealthReport, scope?: string ): void {
 		const where = scope ? scope : 'vault';
+		const { scanned, checked, total, errors, warnings } = report.summary;
+		const skipped = scanned - checked;
 
+		// THE DENOMINATOR IS CHECKED FIRST, before anything can be reported clean. It used to sit below
+		// an `issues.length === 0` early return, so the CLEAN path — the one a person runs to PROVE the
+		// vault is sound — printed a bare "✓ vault: no issues" with no denominator at all, which is the
+		// very defect the tally below was rewritten to fix, surviving one branch over.
+		if ( checked === 0 ) {
+			process.stdout.write( this.tint( this.C.red,
+				`NOTHING WAS VALIDATED — ${ scanned } file(s) scanned, 0 parsed as documents.\n` )
+				+ this.tint( this.C.dim,
+				'A clean result here means the sweep found nothing to look at, not that the vault is sound.\n'
+				+ 'Check the vault root ( `daedalus doctor` prints where config resolved it ).\n' ) );
+			return;
+		}
+
+		// A clean bill NAMES WHAT IT COVERED. "No issues" alone is two facts on one value: nothing is
+		// wrong, and nothing was examined, printed identically.
 		if ( report.issues.length === 0 ) {
-			process.stdout.write( `✓ ${ where }: no issues\n` );
+			process.stdout.write( `✓ ${ where }: no issues in ${ checked } document${ checked === 1 ? '' : 's' }\n` );
+			if ( skipped > 0 )
+				process.stdout.write( this.tint( this.C.dim, `${ checked } validated of ${ scanned } scanned ( ${ skipped } passed over: not library documents ).\n` ) );
 			return;
 		}
 
@@ -1693,8 +1733,17 @@ export class Cli {
 			process.stdout.write( '\n' );
 		}
 
-		const { total, errors, warnings } = report.summary;
-		process.stdout.write( `${ total } issue${ total === 1 ? '' : 's' } across ${ byPath.size } file${ byPath.size === 1 ? '' : 's' } — ${ errors } error${ errors === 1 ? '' : 's' }, ${ warnings } warning${ warnings === 1 ? '' : 's' }\n` );
+		// THE DENOMINATOR, printed beside the tally rather than left implicit. The old line read
+		// "0 issues across 0 files" on a perfectly healthy vault, because `byPath` counts files WITH
+		// ISSUES — so the one number a reader could see went to zero exactly when things were fine,
+		// and looked identical to having checked nothing.
+		process.stdout.write(
+			`${ total } issue${ total === 1 ? '' : 's' } in ${ byPath.size } of ${ checked } document${ checked === 1 ? '' : 's' }`
+			+ ` — ${ errors } error${ errors === 1 ? '' : 's' }, ${ warnings } warning${ warnings === 1 ? '' : 's' }\n` );
+		process.stdout.write( this.tint( this.C.dim,
+			`${ checked } validated of ${ scanned } scanned`
+			+ ( skipped > 0 ? ` ( ${ skipped } passed over: not library documents )` : '' )
+			+ '.\n' ) );
 	}
 
 	// ── Plumbing ──────────────────────────────────────────────────────────────

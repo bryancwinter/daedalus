@@ -29,8 +29,10 @@ export function writeTools( chain: GuardChain ): ( ToolDefinition & { spec?: Tes
 			doc:
 				'Persist one artifact by vault-relative `path` from its `artifact` ( a SerializedArtifact — the ' +
 				'shape kcd_get returns ). Emits HTML with KcdEmit: frontmatter is rebuilt from `artifact.frontmatter`, ' +
-				'the `body` passes through — an existing body has its frontmatter block replaced ( the edit path: ' +
-				'kcd_get → mutate → kcd_save ), a body with none gets one prepended ( the create path ). The result ' +
+				'the `body` is re-parsed and re-emitted — an existing body has its frontmatter block replaced ( the ' +
+				'edit path: kcd_get → mutate → kcd_save ), a body with none gets one prepended ( the create path ). ' +
+				'The head is regenerated wholesale every write, so a document self-corrects its stylesheet on any ' +
+				'save. The result ' +
 				'is validated with KcdValidate BEFORE any write: a structural failure returns a structured error and ' +
 				'writes NOTHING ( the write-time gate — can\'t save a malformed artifact ). On success it writes and ' +
 				'returns `{ saved, warnings }`. PathGuard jails the path and checks the target directory ACCEPTS the ' +
@@ -39,7 +41,9 @@ export function writeTools( chain: GuardChain ): ( ToolDefinition & { spec?: Tes
 				'( plus rows for the record-bearing ones ) and the structure — section order, nesting, heading ' +
 				'levels, faux-tables, the whole data-kcd grammar — is DERIVED from that type\'s declared shape, so ' +
 				'you supply content and never markup. Pass `artifact.body` instead to EDIT, where existing ' +
-				'structured HTML is preserved byte-for-byte ( kcd_get → mutate → kcd_save ). Supplying both is ' +
+				'structured HTML is kept ( kcd_get → mutate → kcd_save ) — content, structure and attributes ' +
+				'survive, while indentation and line breaks are NORMALIZED to house format, so expect the ' +
+				'file you get back to be formatted rather than byte-identical to what you sent. Supplying both is ' +
 				'refused rather than resolved by precedence. Content mode also returns advisories naming any ' +
 				'required or expected section left out, and — on a closed type — any section the compiler will not ' +
 				'read. NOTE: agent-authored body HTML is not yet sanitized here ( the render layer sanitizes on ' +
@@ -54,14 +58,14 @@ export function writeTools( chain: GuardChain ): ( ToolDefinition & { spec?: Tes
 						properties: {
 							type:        { type: 'string', description: 'Artifact type (lens, plan, habit, reference, …) — must match the target directory.' },
 							frontmatter: { type: 'object', additionalProperties: true, description: 'Frontmatter fields (name, description, status, …) — rebuilt into the HTML header block.' },
-							body:    { type: 'string', description: 'PASSTHROUGH path — body HTML, no frontmatter block, preserved byte-for-byte. Use for an edit (kcd_get → mutate → kcd_save). Mutually exclusive with `content`.' },
+							body:    { type: 'string', description: 'EDIT path — body HTML, no frontmatter block. Content, structure and attributes are preserved; whitespace is reformatted to house style, so the stored file will not be byte-identical to what you send. Use for an edit (kcd_get → mutate → kcd_save). Mutually exclusive with `content`.' },
 							content: {
 								type:        'object',
 								description: 'AUTHORING path — supply CONTENT and the structure is derived from the type\'s shape (section order, nesting, headings, faux-tables). Mutually exclusive with `body`.',
 								properties: {
 									title:    { type: 'string', description: 'The document\'s <h1>. Defaults to frontmatter.name.' },
 									summary:  { type: 'string', description: 'One line under the title, rendered as a blockquote.' },
-									sections: { type: 'object', additionalProperties: { type: 'string' }, description: 'Section name → prose (plain text is fine; blank lines become paragraphs, "- " lines a list). Names and order come from the type\'s shape; a nested child like "phase-2" is placed inside its parent automatically.' },
+									sections: { type: 'object', additionalProperties: { type: 'string' }, description: 'Section name → prose. Plain text is fine: blank lines become paragraphs, "- " lines a list. MARKDOWN IS NOT INTERPRETED — **bold**, `code` and [text](link) render as literal characters; use <strong>, <code>, <a href> instead, or write the whole section as HTML. HTML comments are stripped. Names and order come from the type\'s shape; a nested child like "phase-2" is placed inside its parent automatically.' },
 									slots: {
 										type:        'array',
 										description: 'Rows for the sections that carry records rather than prose (a lens\'s habits, a nav-index\'s entries).',
@@ -105,10 +109,13 @@ export function writeTools( chain: GuardChain ): ( ToolDefinition & { spec?: Tes
 
 					// TWO WAYS IN, one write. `content` is the AUTHORING path: sections and rows go to
 					// KcdSynth and the markup is DERIVED from the type's shape, so an author supplies
-					// content and never markup. `body` is the PASSTHROUGH path an edit uses
-					// ( kcd_get → mutate → kcd_save ), where the body is already structured and must
-					// survive byte-for-byte. Supplying both would silently discard one, so the
-					// combination is refused rather than resolved by a precedence rule nobody can see.
+					// content and never markup. `body` is the EDIT path ( kcd_get → mutate → kcd_save ),
+					// where the body is already structured and its CONTENT must survive — not its bytes.
+					// `KcdEmit.spliceFrontmatter` re-parses and re-serializes the whole body through
+					// `HtmlTree`, which normalizes whitespace and quote style; the doc-block above says so
+					// to a reader, and it used to promise the opposite. Supplying both would silently
+					// discard one, so the combination is refused rather than resolved by a precedence rule
+					// nobody can see.
 					const content = raw[ 'content' ] as SynthInput | undefined;
 					const hasBody = typeof raw[ 'body' ] === 'string' && ( raw[ 'body' ] as string ).trim() !== '';
 					if ( content && hasBody )
@@ -139,15 +146,22 @@ export function writeTools( chain: GuardChain ): ( ToolDefinition & { spec?: Tes
 						const audit = KcdShapes.audit( declared, KcdSynth.suppliedSections( content ) );
 						if ( audit.missing.length ) advisories.push( `missing required section(s): ${ audit.missing.join( ', ' ) }` );
 						if ( audit.thin.length )    advisories.push( `missing expected section(s): ${ audit.thin.join( ', ' ) }` );
+
+						// The other half of the advisory: `audit` asks whether the right SECTIONS are here,
+						// this asks whether what is inside them will read as intended. Markdown markers in
+						// prose emit as literal characters — 42 of them reached this corpus before anything
+						// said so, including root-context.
+						advisories.push( ...KcdSynth.proseWarnings( content ) );
 					}
 
 					const artifact = { ...raw, body } as unknown as SerializedArtifact;
 
-					// The CONFIGURED stylesheet href rides along — ONE absolute `file:///` value for every
-					// document in the vault ( Config tiers 1–4 ), so a document's link no longer depends
-					// on where it sits and moving a file cannot break it. Resolved per call, matching
-					// every other Config read here: the host slice is a live file.
-					const html   = KcdEmit.emit( artifact, Config.resolve().cssHref );
+					// TIER 2 of the stylesheet contract ( protocol §8.1 ): a depth-relative link, derived
+					// from this document's own destination and from where the stylesheet sits in THIS
+					// vault. Tier 1, the inline baseline, is emitted unconditionally and needs nothing
+					// from here. Config is resolved per call, matching every other read in this file —
+					// the host slice is a live file.
+					const html   = KcdEmit.emit( artifact, KcdEmit.cssHrefFor( filePath, Config.resolve().cssVaultRel ) );
 					const report = KcdValidate.validate( html );
 					if ( !report.ok ) {
 						const detail = report.errors.map( e => `${ e.code } @ ${ e.where }: ${ e.msg }` ).join( '; ' );
@@ -171,13 +185,22 @@ export function writeTools( chain: GuardChain ): ( ToolDefinition & { spec?: Tes
 			],
 			description: 'Move or rename an artifact, healing every inbound link across the vault.',
 			doc:
-				'Rename or relocate one artifact by vault-relative `from` → `to`, then HEAL the graph: every ' +
-				'other file whose links resolve to `from` has that href rewritten to the new location, so no ' +
-				'backlink rots. Referrers are matched by RESOLVED identity ( not a text grep ), and the swap ' +
-				'preserves their hand-authored formatting. Returns the HealPlan — `{ op, from, to, edits }`, ' +
-				'where each edit is the referrer + old/new href. Refuses if `from` is missing or `to` already ' +
-				'exists ( structured error ), and asserts afterward that no link still resolves to `from` — a ' +
-				'residual fails loud rather than leaving the vault dangling. Both paths are PathGuard-jailed. ' +
+				'Rename or relocate one artifact by vault-relative `from` → `to`, then HEAL every reference to ' +
+				'it, so no backlink rots. TWO PASSES, because neither sees the whole corpus: the GRAPH pass ' +
+				'reads links out of parsed artifacts and matches on resolved identity ( so any authored form ' +
+				'counts ), and the TEXT pass sweeps raw bytes for the canonical path — which is the only thing ' +
+				'that reaches a markdown todo, a `.js` utility, a `data-kcd-address`, the project-root ' +
+				'CLAUDE.md, or a document that FAILS TO PARSE and therefore needs repair most. Swaps preserve ' +
+				'hand-authored formatting. Returns the HealPlan — `{ op, from, to, edits, reported }`: `edits` ' +
+				'is what changed ( referrer + old/new href ), `reported` is what was FOUND AND DELIBERATELY ' +
+				'LEFT, each carrying `untouched` saying why. Today that means `quoted` — a reference sitting ' +
+				'in `<code>`/`<pre>` content or a markdown fence, i.e. quoted speech the corpus uses to teach ' +
+				'agents what to SAY, never rewritten. An empty `edits` alongside an empty `reported` therefore ' +
+				'means nothing pointed at it, not that nothing could be seen. Ephemeral space is swept only ' +
+				'where ruled in ( `logs/*/todo/` ); `logs/session.md` and `completed/` are historical records ' +
+				'and are left alone. Refuses if `from` is missing or `to` already exists ( structured error ), ' +
+				'and asserts afterward that no rewritable reference still resolves to `from` — a residual ' +
+				'fails loud rather than leaving the vault dangling. Both paths are PathGuard-jailed. ' +
 				'Destructive: it writes referrers and renames the file.',
 			inputSchema: {
 				type:       'object',
@@ -214,9 +237,15 @@ export function writeTools( chain: GuardChain ): ( ToolDefinition & { spec?: Tes
 				'record row, a bare prose <a> unwraps to its text, span-precise so surrounding formatting is ' +
 				'untouched. BLOCKS ( structured error, nothing deleted ) if any artifact references the target ' +
 				'by IDENTITY ( a base/lens slug naming it ) — those are not movable links and must be repointed ' +
-				'or renamed first. Returns the HealPlan — `{ op:"delete", from, edits }`, each edit a referrer ' +
-				'touched. Refuses a missing target, PathGuard-jails the path, and asserts afterward that no link ' +
-				'still resolves to it ( a residual fails loud ). Destructive: it writes referrers and removes the file.',
+				'or renamed first. Returns the HealPlan — `{ op:"delete", from, edits, reported }`. `edits` is ' +
+				'every referrer EXCISED, which is parse-and-splice and therefore covers parsed HTML/`.js` only. ' +
+				'`reported` is every other reference the raw text sweep found and deliberately did not touch, ' +
+				'each carrying `untouched`: `not-excisable` ( a markdown todo, an unparseable file, an address, ' +
+				'CLAUDE.md — there is no span-precise way to cut a reference out of a sentence, so THESE WILL ' +
+				'DANGLE and are named rather than discovered later ) or `quoted` ( quoted speech in ' +
+				'`<code>`/`<pre>` or a fence ). Refuses a missing target, PathGuard-jails the path, and asserts ' +
+				'afterward that no excisable link still resolves to it ( a residual fails loud ). ' +
+				'Destructive: it writes referrers and removes the file.',
 			inputSchema: {
 				type:       'object',
 				properties: { path: { type: 'string', description: 'Vault-relative path to the artifact to delete.' } },

@@ -12,7 +12,8 @@ that instead of rediscovering your codebase every session.
 > step below carries a status marker. Nothing here is aspirational — if it says DONE, it
 > has been run.
 >
-> **Last verified: 2026-07-29.**
+> **Last verified: 2026-08-18.** (Stages 1–5 last walked end to end 2026-07-29; the
+> 2026-08-18 pass covered the write and repair paths only — see *Integrity* below.)
 
 ---
 
@@ -137,8 +138,12 @@ daedalus show <lens>           Everything a session wearing that lens receives, 
 daedalus survey                Filename-level census of the project beside the vault.
 daedalus query / links         Find artifacts; inspect a document's link graph.
 daedalus maintain [fill]       Report what a vault is missing; optionally fill it.
+daedalus fix-css [confirm]     Recompute every document's stylesheet link from its own depth,
+                               and restore the inline baseline. Idempotent.
 daedalus reset <path> [confirm]  Restore a deployed artifact from the canonical bundle.
-daedalus seed [confirm]        Regenerate the host entry points.
+daedalus seed [host] [confirm] Regenerate the host entry points. Omit the host for every seed
+                               found; name one (claude, codex, gemini) to write just that entry
+                               file. The names are the seed declarations' own, not a second list.
 daedalus lens-index [confirm]  Regenerate the entry document's Lenses table.
 daedalus clear [all] [confirm] Take the install back out. Removes only what it added;
                                "all" also removes the vault.
@@ -199,3 +204,54 @@ Deliberately short — the vocabulary is meant to be earned by using it, not fro
   a raw-text element is the only standard container that holds markdown byte-for-byte; every other
   element would escape the `<`, `&` and `>` inside it. The context compiler also strips seeds
   outright, so a payload never reaches a model as context. Full rules: protocol §10.
+
+---
+
+## Integrity
+
+Two guarantees this system makes about itself, and the exact edges of each. Both are stated
+because the failure they guard against is *silence* — a check that reports success because it
+found nothing to look at, and a repair that reports success because it could not see the damage.
+
+### A check names its denominator
+
+`daedalus validate` reports `checked` beside the issue count, on the clean path as well as the
+dirty one. A vault where nothing parsed prints `NOTHING WAS VALIDATED` rather than a clean bill:
+`0 issues` is true of a healthy vault and of an empty one, and the two must not read alike.
+
+The sweep enumerates files from a **raw filesystem walk**, not from the parsed artifact index. A
+document that fails to parse is dropped by the index — and failing to parse *is* the defect, so a
+checker built on the index cannot see the file it most needs to report.
+
+### A heal covers text, not just the graph
+
+`kcd_move` and `kcd_delete` find referrers two ways, because neither alone sees the whole corpus:
+
+| Pass | Reaches | Cannot reach |
+|---|---|---|
+| **graph** — links read from parsed artifacts, matched on resolved identity | an href authored in any form | a file that fails to parse, is not an artifact (`.md`, `.js`), or is outside the indexed library |
+| **text** — raw bytes in a reference position (`href=`, `data-kcd-address=`, markdown `](…)`) | markdown todos, `.js` utilities, addresses, the project-root `CLAUDE.md`, unparseable documents | an href in a non-canonical form |
+
+A heal plan therefore returns **`edits`** — what changed — and **`reported`** — what was found and
+deliberately left, each entry naming why. An empty `edits` beside an empty `reported` means nothing
+pointed at the target; it can no longer also mean nothing could be seen.
+
+**What is left alone, and why:**
+
+- **Quoted speech.** A reference inside `<code>`/`<pre>` content or a markdown fence is reported,
+  never rewritten. The corpus uses those to teach agents what to *say*; a blind sweep would edit
+  the lesson. (An address is an attribute *of* a `<code>` element, not content inside one, so it
+  heals normally.)
+- **Historical records.** The sweep covers `logs/*/todo/` — live routing surfaces — and not
+  `logs/session.md` or `logs/*/completed/`. Rewriting a path inside a dated entry makes the corpus
+  more consistent and the entry less true.
+- **The project tree at large.** Outside the vault, only files named in `HOST_ENTRY_FILES` are
+  reached (`CLAUDE.md` today). A mover that can rewrite arbitrary project files is a blast radius
+  nobody asked for.
+- **On a delete, anything not excisable.** Excision is parse-and-splice, so it reaches parsed HTML
+  and `.js` only. A reference in a markdown todo cannot be cut out of a sentence span-precisely, so
+  it is reported as `not-excisable` — it *will* dangle, and the plan says so.
+
+**Known limit:** the swap is whole-file, so the quoted-speech rule holds per file rather than per
+occurrence. A referrer carrying both a live link and a quoted sample of the same href has the
+sample rewritten alongside it.

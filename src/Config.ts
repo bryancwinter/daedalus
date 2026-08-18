@@ -63,9 +63,13 @@ export interface DaedalusConfig {
 }
 
 export interface ResolvedConfig extends DaedalusConfig {
-	/** The finished `file:///` URL an emitted document carries — `cssPath` with the scheme applied.
-	 *  Derived, never configured: a consumer wants the href and should not re-run the normalizer. */
+	/** `cssPath` with the `file:///` scheme applied. NO LONGER WRITTEN INTO A DOCUMENT as of protocol
+	 *  §8.1's 2026-08-17 amendment — it survives for `doctor` / `mcp status` provenance output and for
+	 *  anything that wants to open the stylesheet directly. The emitted link is `cssVaultRel`-derived. */
 	cssHref: string;
+	/** Where the stylesheet sits relative to the VAULT ROOT ( `kcd.css`, or `kcd/kcd.css` in a
+	 *  pre-2026-07-26 vault ). The input to `KcdEmit.cssHrefFor`, which prefixes the `../` run. */
+	cssVaultRel: string;
 	/** Per-field provenance — fields can legitimately come from different tiers. */
 	source: { projectRoot: ConfigSource; docRoot: ConfigSource; cssPath: ConfigSource };
 }
@@ -115,9 +119,9 @@ export class Config {
 
 		const root = path.resolve( projectRoot.value );
 
-		// The stylesheet. ABSOLUTE by design: the depth-relative form had to be recomputed on every
-		// write and re-swept across the corpus whenever a file moved, and a whole CLI verb existed only
-		// to keep that math honest. One value, shared by every document, editable per deployment.
+		// The stylesheet, still configured as an ABSOLUTE path because that is what a person can paste.
+		// What CHANGED on 2026-08-17 ( protocol §8.1 ): the absolute value is no longer written into a
+		// document. It is the location the per-file relative href is measured FROM — see `cssVaultRel`.
 		const cssPath = Config.pick( [
 			[ 'argument',    Config.argument.cssPath ],
 			[ 'host-slice',  slice[ 'cssPath' ] ],
@@ -129,8 +133,27 @@ export class Config {
 			docRoot:     docRoot.value,
 			cssPath:     cssPath.value,
 			cssHref:     Config.cssUrl( cssPath.value ),
+			cssVaultRel: Config.cssRelToVault( root, docRoot.value, cssPath.value ),
 			source:      { projectRoot: projectRoot.source, docRoot: docRoot.source, cssPath: cssPath.source },
 		};
+	}
+
+	/**
+	 * Where the stylesheet sits RELATIVE TO THE VAULT ROOT — `kcd.css` for a current vault,
+	 * `kcd/kcd.css` for one created before 2026-07-26. This is what `KcdEmit.cssHrefFor` prefixes with
+	 * a `../` run, so the emitted link is correct for a vault of either layout without either being
+	 * special-cased.
+	 *
+	 * Derived rather than configured: the absolute `cssPath` and the vault root are both already
+	 * resolved, so asking a person to state the same fact twice would only create a way for the two to
+	 * disagree. A configured path OUTSIDE the vault cannot be expressed as a relative href at all
+	 * ( it would need `../` past the root, which no document should carry ), so it falls back to the
+	 * default location rather than emitting an escape sequence into every file.
+	 */
+	private static cssRelToVault( root: string, docRoot: string, cssPath: string ): string {
+		const vault = path.resolve( root, docRoot );
+		const rel   = path.relative( vault, path.resolve( cssPath ) ).replace( /\\/g, '/' );
+		return ( !rel || rel.startsWith( '..' ) || path.isAbsolute( rel ) ) ? DEFAULT_CSS_FILE : rel;
 	}
 
 	/**
