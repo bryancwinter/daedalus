@@ -3,7 +3,6 @@ import { basename } from 'path';
 import { McpServer, runVerify } from './mcp';
 import type { ServerManifest, ToolDefinition, ToolResult, Registration, TestSpec, VerifyReport } from './mcp';
 import { GuardChain, PathGuard } from './guards';
-// bryan TODO - Research unification of tool surfaces using params.
 import { discoveryTools } from './tools/discovery';
 import { readTools } from './tools/read';
 import { writeTools } from './tools/write';

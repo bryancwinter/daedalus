@@ -34,9 +34,12 @@
 	<section data-kcd-section="action">
 		<h3>Action</h3>
 		<p>write a per-phase self-assessment chart to <code>_Claude/audits/{name}-run.md</code>
-		(flush-and-fill, one file per procedure) — see the Output/Format sections below for the exact
-		shape</p>
-	</section>
+		(flush-and-fill, one file per procedure; create <code>_Claude/audits/</code> if it does not
+		exist) — an <code># {name} — Run Report</code> heading, a
+		<code>**Run:** YYYY-MM-DD HH:MM:SS</code> line, a <code>| # | Action | Confidence |</code>
+		table carrying one row per phase, then a <code>## Notes</code> section for optional free text</p>
+	
+</section>
 
 	<section data-kcd-section="explanation">
 		<h3>Explanation</h3>

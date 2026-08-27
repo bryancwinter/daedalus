@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>scratch-routing — Habit</title>
+	<link rel="stylesheet" href="../../kcd.css">
+</head>
+<body>
+
+<article data-kcd="habit">
+
+	<dl data-kcd-frontmatter>
+		<dt>name</dt>
+		<dd data-kcd-field="name" data-kcd-type="slug">scratch-routing</dd>
+		<dt>description</dt>
+		<dd data-kcd-field="description" data-kcd-type="text">Where a session's byproducts go — every temp file, intermediate dump, redirected output, and one-off script lands under _Claude/work/{lens}/AI/scratch/, never a harness- or OS-supplied temp path. Fires before writing anything that is not the deliverable.</dd>
+		<dt>type</dt>
+		<dd data-kcd-field="type" data-kcd-type="enum">habit</dd>
+		<dt>status</dt>
+		<dd data-kcd-field="status" data-kcd-type="enum">active</dd>
+		<dt>schema-version</dt>
+		<dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
+		<dt>author</dt>
+		<dd data-kcd-field="author" data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
+		<dt>updated</dt>
+		<dd data-kcd-field="updated" data-kcd-type="date">2026-08-18</dd>
+	</dl>
+	<h1>scratch-routing — Habit</h1>
+	<p data-kcd-audience="human"><em>The sibling of <a href="_Claude/habits/unslotted/work-routing.html">work-routing</a>. That habit
+		routes what a session <strong>produces</strong>; this one routes what a session <strong>leaves behind</strong>.
+		The two failures are different: misfiling a document puts it in the wrong folder, while a byproduct written to a
+		host-supplied temp path leaves the vault entirely — where nothing this project builds can see, review, sweep,
+		or eventually sandbox it.</em></p>
+	<section data-kcd-section="why">
+		<h3>Why</h3>
+		<p>about to write a file that is not the deliverable — a temp file, an intermediate dump, redirected command
+			output, an extracted payload, a downloaded blob, or a one-off script written only to get through this turn —
+			or about to reach for a path the harness or the OS supplied ( a scratchpad directory, <code>/tmp</code>,
+			<code>%TEMP%</code>, <code>os.tmpdir()</code> ) rather than one chosen from this vault</p>
+	</section>
+	<section data-kcd-section="action">
+		<h3>Action</h3>
+		<p>write it under <code>_Claude/work/{lens}/AI/scratch/</code> — the whole path from root, <code>{lens}</code>
+			the primary lens — and when a tool can only write outside the vault, name that path in the reply rather than
+			letting the write pass unmentioned</p>
+	</section>
+	<section data-kcd-section="explanation">
+		<h3>Explanation</h3>
+		<p>A byproduct written to a host-supplied temp directory lands outside everything this project can reach: not in
+			the vault the tooling scans, not in a repo anyone reviews, and at a path that changes between hosts and
+			sessions, so nothing can locate it again. It also bypasses the one gate that exists — the harness
+			pre-authorizes its own scratchpad, so a write there never meets the approval that write-files-scoped would
+			require anywhere else outside <code>_Claude/</code>. This habit does not enforce a boundary and does not
+			sandbox anything; it makes a boundary possible later by giving every byproduct one location the project owns.
+			That location is also the cheap route — writes inside <code>_Claude/</code> are already pre-approved, so
+			complying costs no approval round-trip. Scratch stays liberal: this governs placement and visibility, never
+			permission to build. The separate <code>scratch/</code> folder is what makes the pile safe to flush — its
+			contents are known-disposable by construction, so a sweep needs no judgment about any individual file, which
+			is not true of <code>AI/</code> proper.</p>
+	</section>
+	<section data-kcd-section="rules">
+		<h3>Rules</h3>
+		<ul>
+			<li>never write to a harness- or OS-supplied temp path ( a scratchpad directory, <code>/tmp</code>, <code>%TEMP%</code>, <code>os.tmpdir()</code> ) — a file there is unreviewable, ungoverned, and unfindable next session</li>
+			<li>never drop a loose file at a repo root or the working directory — that is scratch that escaped; it belongs under <code>AI/scratch/</code></li>
+			<li>write the whole path from root every time, and <code>{lens}</code> is the primary ( first-loaded ) lens — the same owner rule as work-routing, with no <code>scratch/cross/</code></li>
+			<li>never cite scratch back as authority — it is unreviewed byproduct, so if a fact inside it matters, re-derive it from the source that produced it</li>
+			<li>when an external tool can only write outside the vault, say so and name the path — an unmentioned out-of-vault write is the exact failure this habit exists to stop</li>
+			<li>route rather than absorb: a script that interrogates a repo's own code is author-script's <code>scripts/probes/</code>, and a document the user will read is work-routing's <code>AI/</code> — scratch is only what nobody will read</li>
+			<li>when the output only needs reading once, read it from the command and write no file at all</li>
+		</ul>
+	</section>
+	<section data-kcd-section="references" data-kcd-merge="union">
+		<h3>References</h3>
+		<div data-kcd-table>
+			<div data-kcd-head><span>What</span><span>Where</span><span>Why</span></div>
+			<div data-kcd-slot="reference"> <span data-kcd-field="what" data-kcd-type="text">work-routing</span> <a data-kcd-field="where" data-kcd-type="path" href="_Claude/habits/unslotted/work-routing.html">work-routing</a> <span data-kcd-field="why" data-kcd-type="text">The sibling that routes session OUTPUT to <code>work/{lens}/</code> — this habit takes the byproducts that one never fires on, and inherits its primary-lens owner rule.</span> </div>
+			<div data-kcd-slot="reference"> <span data-kcd-field="what" data-kcd-type="text">author-script</span> <a data-kcd-field="where" data-kcd-type="path" href="_Claude/habits/unslotted/author-script.html">author-script</a> <span data-kcd-field="why" data-kcd-type="text">Owns scripts that belong to a repo ( build · diagnostics · probes · fixtures ). The boundary: a probe interrogates that repo's code and lives beside it; a scratch script is session apparatus with no relationship to any source tree.</span> </div>
+			<div data-kcd-slot="reference"> <span data-kcd-field="what" data-kcd-type="text">write-files-scoped</span> <a data-kcd-field="where" data-kcd-type="path" href="_Claude/habits/write-files/write-files-scoped.html">write-files-scoped</a> <span data-kcd-field="why" data-kcd-type="text">The approval gate this habit leans on — pre-approved inside <code>_Claude/</code>, approval required outside, which is what makes the compliant destination also the cheap one.</span> </div>
+			<div data-kcd-slot="reference"> <span data-kcd-field="what" data-kcd-type="text">habit-authoring</span> <a data-kcd-field="where" data-kcd-type="path" href="_Claude/references/kcd_sdk/habit-authoring.html">habit-authoring</a> <span data-kcd-field="why" data-kcd-type="text">The doctrine this habit was written against — the exit rule, fact-anchored triggers, and the feedback-loop layer the no-citing-scratch rule guards.</span> </div>
+			<div data-kcd-slot="reference"> <span data-kcd-field="what" data-kcd-type="text">vault-layout</span> <a data-kcd-field="where" data-kcd-type="path" href="_Claude/references/kcd_sdk/vault-layout.html">vault-layout</a> <span data-kcd-field="why" data-kcd-type="text">Why no registry change is needed — <code>work/</code> is declared <code>type: 'unknown', indexed: false</code>, so free-form subfolders under it are the designed behaviour.</span> </div>
+		</div>
+	</section>
+
+</article>
+
+</body>
+</html>

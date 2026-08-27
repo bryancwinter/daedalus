@@ -89,14 +89,13 @@
 
 	<section data-kcd-section="rules">
 		<h3>Rules</h3>
-		<div data-kcd-table>
-			<div data-kcd-head><span>Rule</span></div>
-			<div data-kcd-slot="rule"><span data-kcd-field="rule" data-kcd-type="text"><strong>Durable state only — drop deferred.</strong> Deferred / open / not-built / todo content is not a reference section. Leave it in the source or file it on the owning lens; a reference carries only what is settled.</span></div>
-			<div data-kcd-slot="rule"><span data-kcd-field="rule" data-kcd-type="text"><strong>Prose is canonical, not chrome.</strong> Load-bearing body prose lives inside a <code>data-kcd-section</code> (merged into <code>overview</code> or surfaced as its own topical property). Only genuinely decorative prose is dropped.</span></div>
-			<div data-kcd-slot="rule"><span data-kcd-field="rule" data-kcd-type="text"><strong>Illustrative tables are chrome; canonical rows are faux-tables.</strong> A descriptive table carrying no extracted data is a plain <code>&lt;table&gt;</code> (parser ignores it). Anything with <code>data-kcd-slot</code>/<code>-field</code> is a styled-div faux-table — never a real <code>&lt;table&gt;</code> (protocol §3).</span></div>
-			<div data-kcd-slot="rule"><span data-kcd-field="rule" data-kcd-type="text"><strong>Files, links, and relations are one property.</strong> Do not scatter a "Files" list, a "Links" list, and a "Related" list — merge them into the single <code>references</code> section.</span></div>
-			<div data-kcd-slot="rule"><span data-kcd-field="rule" data-kcd-type="text"><strong>The folder is the category.</strong> Location encodes domain; never restate it as a frontmatter field.</span></div>
-		</div>
+		<ul>
+			<li><strong>Durable state only — drop deferred.</strong> Deferred / open / not-built / todo content is not a reference section. Leave it in the source or file it on the owning lens; a reference carries only what is settled.</li>
+			<li><strong>Prose is canonical, not chrome.</strong> Load-bearing body prose lives inside a <code>data-kcd-section</code> (merged into <code>overview</code> or surfaced as its own topical property). Only genuinely decorative prose is dropped.</li>
+			<li><strong>Illustrative tables are chrome; canonical rows are faux-tables.</strong> A descriptive table carrying no extracted data is a plain <code>&lt;table&gt;</code> (parser ignores it). Anything with <code>data-kcd-slot</code>/<code>-field</code> is a styled-div faux-table — never a real <code>&lt;table&gt;</code> (protocol §3).</li>
+			<li><strong>Files, links, and relations are one property.</strong> Do not scatter a "Files" list, a "Links" list, and a "Related" list — merge them into the single <code>references</code> section.</li>
+			<li><strong>The folder is the category.</strong> Location encodes domain; never restate it as a frontmatter field.</li>
+		</ul>
 	</section>
 
 	<section data-kcd-section="references" data-kcd-merge="union">

@@ -1224,7 +1224,22 @@ export class Cli {
 		}
 	}
 
-	/** Tool names present on one side and not the other — empty array means no drift. */
+	/**
+	 * How the committed snapshot differs from the live surface — empty array means no drift.
+	 *
+	 * COMPARES CONTENT, NOT JUST NAMES. It used to build a Set of tool NAMES per side and report only
+	 * additions and removals, which meant descriptions, `doc` strings and `inputSchema` could rot
+	 * arbitrarily while this printed "snapshot matches the live surface". It did exactly that: on
+	 * 2026-08-24 the committed snapshot still described `kcd_move` returning a HealPlan with no
+	 * `reported` field — a shape retired weeks earlier — and every check since had passed. **A detector
+	 * that only sees the axis nothing moved on is worse than no detector**, because it converts an
+	 * unknown into a false all-clear. That matters here beyond tidiness: under lazy activation a host
+	 * advertises this server's tools FROM the snapshot while the process stays dormant, so what drifted
+	 * is what agents were told.
+	 *
+	 * Serialised comparison rather than a field-by-field diff: the payload comes from `wireTools()` on
+	 * both sides, so key order is stable by construction and there is nothing to normalise first.
+	 */
 	private static toolDrift( live: Record<string, unknown>[], snapshot: Record<string, unknown>[] ): string[] {
 		const liveNames = new Set( live.map( t => String( t.name ) ) );
 		const snapNames = new Set( snapshot.map( t => String( t.name ) ) );
@@ -1234,6 +1249,15 @@ export class Cli {
 		const out: string[] = [];
 		if ( added.length )   out.push( `in code, not snapshot: ${ added.join( ', ' ) }` );
 		if ( removed.length ) out.push( `in snapshot, not code: ${ removed.join( ', ' ) }` );
+
+		// Only tools present on BOTH sides can have CHANGED; the two lists above already speak for the rest.
+		const snapById = new Map( snapshot.map( t => [ String( t.name ), t ] ) );
+		const changed  = live
+			.filter( t => snapById.has( String( t.name ) ) )
+			.filter( t => JSON.stringify( t ) !== JSON.stringify( snapById.get( String( t.name ) ) ) )
+			.map( t => String( t.name ) );
+
+		if ( changed.length ) out.push( `changed since the snapshot ( description, doc or schema ): ${ changed.join( ', ' ) }` );
 		return out;
 	}
 

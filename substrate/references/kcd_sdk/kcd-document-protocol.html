@@ -142,21 +142,48 @@
 		</table>
 		<p>A field value's source by type: <strong>link fields</strong> (<code>where</code>, paths, urls) → <code>href</code>; <strong>all others</strong> → text content.</p>
 		<p><strong>Structural rule — no empty containers.</strong> Include a region (or section) <strong>only when it carries content</strong>. Never emit an empty Know / Care / Do. An artifact uses only the structure it needs — most non-lens artifacts use few regions or none. (How <em>much</em> a single artifact should carry is left to judgment: a habit must stay atomic, not larded with fifty things. No mechanical cap yet.)</p>
-		<p><strong>Structural rule — section names are a closed set per type, and the heading must
-		match.</strong> <code>data-kcd-section</code> is not free text. Every artifact type declares its
-		shape — which section names it may carry, and in what order — and a document of that type may use
-		<em>only</em> those names. A habit's set is <code>why</code> · <code>action</code> ·
-		<code>explanation</code> · <code>rules</code> · <code>references</code>; inventing a
-		<code>glockenspiel</code> section, or spelling <code>why</code> as <code>when</code> because it
-		reads better, is a <strong>validation failure</strong>, not a passthrough — the file is refused
-		whole, per the all-or-nothing rule in §0. The visible heading is bound to the same set: a
-		<code>why</code> section is headed <em>Why</em>. This is load-bearing for anything that reaches the
-		Manifest, because merge and compile both key on the section name — two documents of the same type
-		are only mergeable if <code>why</code> means <code>why</code> in both, and a section named
-		something the shape does not know drops silently out of every compile rather than failing loudly
-		where an author would see it. A type that genuinely needs a new section gets it added to the
-		<strong>shape</strong>, where every document of that type inherits it — never invented at one
-		call site.</p>
+		<p><strong>Structural rule — a DECLARED section keeps its declared name, and the heading must
+		match.</strong> <code>data-kcd-section</code> is not free text where a shape has spoken. Every
+		artifact type declares its shape — which section names it carries, and in what order — and a
+		document of that type may not rename or re-spell one of them. A habit's declared set is
+		<code>why</code> · <code>action</code> · <code>explanation</code> · <code>rules</code> ·
+		<code>references</code>; spelling <code>why</code> as <code>when</code> because it reads better is a
+		<strong>validation failure</strong>, not a passthrough — the file is refused whole, per the
+		all-or-nothing rule in §0. The visible heading is bound to the same set: a <code>why</code> section
+		is headed <em>Why</em>. This is load-bearing for anything that reaches the Manifest, because merge
+		and compile both key on the section name — two documents of the same type are only mergeable if
+		<code>why</code> means <code>why</code> in both.</p>
+
+		<p><strong>Whether an UNDECLARED section is legal is per type, and only <code>lens</code> is
+		closed.</strong> <code>KcdShapes</code> marks every type <code>open: true</code> except
+		<code>lens</code>, and that asymmetry is <strong>closed by evidence rather than by preference</strong>:
+		an undeclared lens section is <em>silently dropped by the compiler</em>, so it fails exactly where an
+		author cannot see it. No other type pays that cost, so no other type is refused for carrying a
+		section its shape has not named. A type that genuinely needs a new section as part of its
+		<em>contract</em> still gets it added to the <strong>shape</strong>, where every document of that
+		type inherits it — never invented at one call site.</p>
+
+		<p><strong>Structural rule — HTML comments are a HUMAN channel, and a write strips them.</strong>
+		Ruled 2026-08-17, mechanism settled 2026-08-24 (Bryan). An agent must never read a comment and never
+		author one: it has the document body for anything it needs to say, and <strong>a side channel an
+		agent can write but a reader does not expect is a contamination surface</strong> — the opposite of
+		what these documents are for. A comment is documentation for whoever opens the file, and a person is
+		free to hand-author HTML carrying as many as they like.
+		<strong>The mechanism is STRIP, not preserve.</strong> <code>HtmlTree.parse</code> skips
+		<code>&lt;!--…--&gt;</code> without creating a node and <code>KcdSynth.proseToHtml</code> strips the
+		syntax out of prose, so both input paths already yield nothing and no <code>HtmlComment</code> node
+		enters the union. <strong>Preserving them badly would be worse than dropping them</strong>:
+		<code>HtmlTree.textOf</code> recurses into anything that is not an element, so a naively preserved
+		comment would return its own prose straight into compiled context — handing agents the exact thing
+		the ruling forbids. The cost accepted here is that a comment a human wrote does not survive a write
+		through the tools; author it in a file the tools do not rewrite, or put it in the body where it
+		belongs.</p>
+
+		<p><strong>Where doctrine belongs.</strong> An open type accepting an extra section is not an
+		invitation to grow one. A habit that has accumulated authoring or format doctrine should
+		<em>point at a reference</em> rather than carry it — see
+		<a href="_Claude/references/kcd_sdk/habit-authoring.html">habit-authoring</a>, which is where that
+		material now lives. A habit stays atomic; a reference is what holds a spec.</p>
 	</section>
 
 	<section data-kcd-section="faux-tables">
