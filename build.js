@@ -31,6 +31,7 @@
  */
 const esbuild = require( 'esbuild' );
 const path    = require( 'path' );
+const fs      = require( 'fs' );
 
 // The one place the SDK source is named. `tsconfig.json` carries the same mapping for the type-checker;
 // if you change one, change both — they are two readers of a single fact.
@@ -39,13 +40,29 @@ const KCD_SDK = path.resolve( __dirname, '..', 'kcd_sdk', 'src', 'index.ts' );
 // Only Node builtins ( fs, path, … ) stay external — `platform: 'node'` marks them so automatically.
 // Everything else, kcd_sdk and its js-yaml included, is inlined, so a promoted plugin folder carries
 // no node_modules.
+// NO SOURCE MAPS, by ruling ( Bryan, 2026-09-05: "Drop them. Source maps aren't needed - smaller
+// bundle." ). They were never a decision — `files: ["dist/"]` took the whole directory and the maps came
+// with it, at 2.4MB of a 4.1MB unpacked package: roughly two thirds of what shipped, to serve a debugger
+// nobody can point at sources for, since `src/` is deliberately not published.
 const common = {
 	bundle:    true,
 	platform:  'node',
 	target:    'node20',
-	sourcemap: true,
+	sourcemap: false,
 	alias:     { kcd_sdk: KCD_SDK },
 };
+
+// FLUSH BEFORE FILL. esbuild overwrites what it emits and touches nothing else, so a file the build
+// has STOPPED emitting survives every subsequent run — and `files: ["dist/"]` then ships it. That is
+// not hypothetical: turning `sourcemap` off on 2026-09-05 left the 2026-08-24 maps sitting in dist/,
+// and the pack check below caught them shipping three weeks later, pointing at a flag already set.
+// A build directory that accumulates is a build directory that lies about what the source produces.
+//
+// A host may be running `dist/index.js` right now ( that is the `.mcp.json` command ). Node reads an
+// entry script fully at startup and holds no lock on it, so this succeeds against a live server — and
+// deliberately does not try/catch, because a delete that cannot run means the next check would be
+// grading files this build did not write.
+fs.rmSync( 'dist', { recursive: true, force: true } );
 
 // The Model Context Protocol server face — dist/index.js, what a host spawns.
 esbuild.buildSync( { ...common, entryPoints: [ 'src/index.ts' ], outfile: 'dist/index.js' } );
@@ -70,7 +87,6 @@ console.log( 'bundled  → dist/index.js + dist/cli/index.js (self-contained, fr
 // and the report was empty.
 
 const { execFileSync } = require( 'child_process' );
-const fs               = require( 'fs' );
 
 /**
  * Reach npm.
@@ -176,12 +192,25 @@ if ( !inner ) {
 	const missing = REQUIRED.filter( need => !packed.some( f => f === need || f.startsWith( need ) ) );
 	const leaked  = FORBIDDEN.filter( bad => packed.some( f => f.startsWith( bad ) ) );
 
+	// Source maps are OFF by ruling ( see `common.sourcemap` ). Asserted here rather than trusted,
+	// because the way they shipped in the first place was nobody deciding: `files: ["dist/"]` takes
+	// whatever the build left behind, so a flag flipped back would silently re-add two thirds of the
+	// package. A suffix test, not a prefix one — maps sit beside the files they describe.
+	//
+	// There are TWO ways a map reaches the pack list and the message below names both, because the
+	// first time this fired the cause was the second one and it read as the first: the flag was
+	// already off, and what shipped was three-week-old files the build had simply stopped overwriting.
+	// A remedy that sends the reader to a setting already set costs more than no remedy at all.
+	const maps = packed.filter( f => f.endsWith( '.map' ) );
+
 	if ( missing.length )
 		throw new Error( 'build: the package would ship WITHOUT ' + missing.join( ', ' ) + ' — check the files allowlist in package.json, and that .npmignore still exists' );
 	if ( leaked.length )
 		throw new Error( 'build: the package would ship ' + leaked.join( ', ' ) + ' — the files allowlist is not holding' );
+	if ( maps.length )
+		throw new Error( 'build: the package would ship ' + maps.length + ' source map(s) — ' + maps.join( ', ' ) + ' — either sourcemap is back on in the esbuild common options, or these are stale files left in dist/ by an older build and the flush above is not running' );
 
-	console.log( 'pack     → ' + packed.length + ' files, every required entry present, no src/' );
+	console.log( 'pack     → ' + packed.length + ' files, every required entry present, no src/, no maps' );
 }
 
 console.log( inner ? '\nbuild complete ( inner probe ).' : '\nbuild complete.' );

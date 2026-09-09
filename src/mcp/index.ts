@@ -12,5 +12,5 @@
 export { McpServer } from './McpServer';
 export type { ContentBlock, ToolResult, ToolAnnotations, ToolDefinition, ServerInfo } from './McpServer';
 export { runVerify } from './verify';
-export type { Registration, TestSpec, VerifyReport } from './verify';
+export type { Registration, TestSpec, VerifyCase, VerifyReport } from './verify';
 export type { ServerManifest, ServerConfigSurface, ServerConfigField } from './manifest';

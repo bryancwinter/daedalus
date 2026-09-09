@@ -143,8 +143,8 @@ If it is not loaded, load it before asking anything:
 
     kcd_compile { lenses: ["lens-crafter"] }
 
-That one call also brings `_lens-base`, so you get the project-wide floor — write-approval, work
-routing — in the same breath. Do not proceed without it and do not substitute your own instincts for
+That one call also brings `_lens-base`, so you get the project-wide floor — write-files, work
+routing, log-session — in the same breath. Do not proceed without it and do not substitute your own instincts for
 it; a walkthrough that authors lenses without the authoring lens is the failure this skill exists to
 prevent.
 

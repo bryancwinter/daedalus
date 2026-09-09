@@ -253,15 +253,42 @@ export class McpServer {
 	}
 
 	/**
+	 * The argument keys a caller sent that this tool does not declare, as a refusal message — or null
+	 * when they all check out. This is what makes a mis-named parameter an error rather than a silent
+	 * answer to a question nobody asked.
+	 */
+	static unknownArgs( tool: ToolDefinition, args: Record<string, unknown> ): string | null {
+		const schema = tool.inputSchema;
+
+		// A tool opts out of a closed set here. Read at the TOP level only — kcd_save's frontmatter and
+		// kcd_batch's per-call args set this on nested objects and mean it there.
+		if ( schema[ 'additionalProperties' ] === true ) return null;
+
+		// Nothing to compare against is not a claim that nothing is allowed.
+		const declared = Object.keys( ( schema[ 'properties' ] ?? {} ) as Record<string, unknown> );
+		if ( declared.length === 0 ) return null;
+
+		const unknown = Object.keys( args ).filter( ( key ) => !declared.includes( key ) );
+		if ( unknown.length === 0 ) return null;
+
+		return `${ tool.name } does not take ${ unknown.join( ', ' ) } — it takes ${ declared.join( ', ' ) }`;
+	}
+
+	/**
 	 * Run a registered tool in-process by name — the dispatch a COMPOSING tool ( e.g. a batch ) uses
 	 * without going over the wire. Same contract as a wire call: a handler that throws folds into an
 	 * isError result, never propagating. An unknown tool is an isError result too — unlike a wire
 	 * tools/call ( which raises a protocol error ), there is no protocol layer here, so a caller can
-	 * treat every outcome uniformly as a ToolResult.
+	 * treat every outcome uniformly as a ToolResult. Unrecognised arguments are refused the same way,
+	 * because the model has to SEE that one to correct it.
 	 */
 	async invoke( name: string, args: Record<string, unknown> ): Promise<ToolResult> {
 		const tool = this.tools.get( name );
 		if ( !tool ) return { content: [ { type: 'text', text: this.unknownTool( name ) } ], isError: true };
+
+		const badArgs = McpServer.unknownArgs( tool, args );
+		if ( badArgs ) return { content: [ { type: 'text', text: badArgs } ], isError: true };
+
 		try {
 			return await tool.handler( args );
 		} catch ( e ) {
