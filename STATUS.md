@@ -129,6 +129,11 @@ daedalus doctor                Environment, PATH, config provenance.
 
 daedalus validate [path]       Validate one artifact, or the whole vault.
 daedalus compile <lens...>     Compile lenses into one composed context string.
+         [--lane]              Ride the LANE floor (_lane-base) rather than the session floor, for an
+                               agent running with nobody in the session. Exactly one floor always
+                               rides; this picks which. Not bundled — a vault with no lane floor fails
+                               the compile rather than falling back to the session one. The caller's
+                               flag and never an agent's: absent from kcd_compile on purpose.
 daedalus show <lens>           Everything a session wearing that lens receives, file by file, with token counts.
 daedalus survey                Filename-level census of the project beside the vault.
 daedalus query / links         Find artifacts; inspect a document's link graph.

@@ -22,6 +22,9 @@ interface ParsedArgs {
 	cssPath?:    string;
 	json:        boolean;
 	help:        boolean;
+	/** Compile onto the LANE floor ( `_lane-base` ) rather than the session floor. CLI-only by design —
+	 *  see `compile` for why it must not reach the MCP tool surface. */
+	lane:        boolean;
 }
 
 /**
@@ -120,10 +123,22 @@ export class Cli {
 	 * lens-scoped compiler; see VaultUtilities.compile ). Default output is the raw compiled text on
 	 * stdout — pure payload, ready to pipe or paste before a prompt — with a one-line summary on
 	 * stderr; `--json` emits `{ lenses, text, tokens }` instead.
+	 *
+	 * `--lane` compiles onto the LANE floor ( `_lane-base` ) instead of the session floor. For an agent
+	 * running with nobody in the session: the session floor tells its reader to state a path and wait for
+	 * clearance, which is sound beside a person and an empty instruction overnight — and an instruction
+	 * whose escalation route does not exist is one an agent learns to discount whole, including the parts
+	 * that did apply. Still exactly one floor; which one is the only thing that changes.
+	 *
+	 * THIS FLAG IS THE CALLER'S AND NEVER THE AGENT'S, which is why it lives here and not on the
+	 * `kcd_compile` tool. This face is driven by a harness; that one is driven by agents, and an agent
+	 * that can name its own floor can name the lenient one. The two faces are otherwise kept deliberately
+	 * identical, so the asymmetry is called out in both places rather than left to look like an oversight
+	 * somebody should tidy up.
 	 */
 	private static compile( args: ParsedArgs ): void {
 		try {
-			const result = VaultUtilities.compile( this.vault(), args.positionals );
+			const result = VaultUtilities.compile( this.vault(), args.positionals, { lane: args.lane } );
 
 			if ( args.json ) {
 				this.emit( result );
@@ -1791,7 +1806,7 @@ export class Cli {
 	 * without a central schema to update.
 	 */
 	private static parse( argv: string[] ): ParsedArgs {
-		const out: ParsedArgs = { command: '', positionals: [], json: false, help: false };
+		const out: ParsedArgs = { command: '', positionals: [], json: false, help: false, lane: false };
 
 		for ( let i = 0; i < argv.length; i++ ) {
 			const token = argv[ i ];
@@ -1800,6 +1815,7 @@ export class Cli {
 			if ( token === '--doc-root' ) { out.docRoot = argv[ ++i ]; continue; }
 			if ( token === '--css'      ) { out.cssPath = argv[ ++i ]; continue; }
 			if ( token === '--json'     ) { out.json    = true;        continue; }
+			if ( token === '--lane'     ) { out.lane    = true;        continue; }
 			if ( token === '--help' || token === '-h' ) { out.help = true; continue; }
 
 			if ( token.startsWith( '-' ) ) continue; // unknown flag — a command owns its own
@@ -1837,8 +1853,9 @@ export class Cli {
 			'Options:\n' +
 			'  --root <dir>      Project root the vault sits under ( default: inferred by walking up ).\n' +
 			'  --doc-root <dir>  Doc root within the project ( default: the standard vault folder ).\n' +
-			'  --css <path>      Absolute path to kcd.css, no scheme ( default: derived from the vault ).\n' +
 			'  --json            Emit the raw result object instead of formatted lines.\n' +
+			'  --css <path>      Absolute path to kcd.css, no scheme ( default: derived from the vault ).\n' +
+			'  --lane            compile: ride the LANE floor ( _lane-base ), for an agent with nobody in the session.\n' +
 			'  -h, --help        Show this help.\n\n' +
 			'Exit codes: 0 = clean, 1 = errors found, 2 = usage error.\n'
 		);

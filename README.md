@@ -109,6 +109,42 @@ Nothing else is touched and no files are moved.
 Run `daedalus --help` for the full list. Every write command previews by default and needs
 an explicit `confirm`.
 
+## Two floors: sessions and lanes
+
+Every compile inherits a **floor** — a lens nothing invokes, no lens can switch off, and every
+agent gets. There are two, and exactly one rides on any given compile:
+
+| command | floor | for |
+|---|---|---|
+| `daedalus compile <lens...>` | `lenses/_lens-base.html` | a session, with a person in it |
+| `daedalus compile <lens...> --lane` | `lenses/_lane-base.html` | an agent running unattended |
+
+They contradict each other on purpose. The session floor tells its reader to state a path and wait
+for clearance before writing — sound advice beside a person, and an empty instruction to an agent
+running overnight with nobody to ask. **A rule whose escalation route does not exist is one an
+agent learns to discount whole**, including the parts that did apply. So the lane gets its own
+document, authored as prohibitions rather than as a collaboration protocol.
+
+`_lens-base` is bundled and `daedalus init` writes it. **`_lane-base` is not bundled** — a project
+that never runs unattended agents needs none. Ask for `--lane` where the vault has no lane floor
+and the compile **fails**:
+
+```
+daedalus: no lane floor found ( looked for lenses/_lane-base.html ). A lane compile will not
+fall back to the session floor: that floor tells its reader to ask a person for clearance, and
+a lane has no person to ask.
+```
+
+That refusal is the design. Both available fallbacks — the session floor, or no floor at all —
+compile cleanly, report sensible token counts, and look like a working run, which is exactly what
+makes them worse than a stop.
+
+**`--lane` is the caller's flag and never the agent's.** It is on this CLI, which a harness drives,
+and deliberately *not* on the `kcd_compile` MCP tool, which agents drive: an agent that can name
+its own floor can name the lenient one. The two faces are otherwise held identical, so that
+omission reads as drift — there is a comment in `src/tools/read.ts` saying it is not. Do not add it
+to that tool's `inputSchema` to make them agree.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).

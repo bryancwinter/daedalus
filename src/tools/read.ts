@@ -148,6 +148,19 @@ export function readTools( chain: GuardChain ): ( ToolDefinition & { spec?: Test
 				'`{ lenses, text, tokens }`, where `lenses` reports what actually compiled, `_lens-base` ' +
 				'included. This is lens composition only — the live runtime layers ( model root context, active ' +
 				'MCP tool schemas, session memory ) are Starmind\'s job, not the vault\'s. Read-only.',
+			/*
+				NO `lane` PARAMETER HERE, and the absence IS the mechanism rather than an oversight.
+
+				The CLI face carries `--lane`, which swaps the inheritance floor for `_lane-base` — the floor
+				authored for an agent running with nobody in the session. That face is driven by a harness.
+				THIS face is driven by agents, and an agent that can name its own floor can name the lenient
+				one. Picking your own guardrails is not a capability worth having, so the choice is simply not
+				expressible here.
+
+				The two faces are otherwise held deliberately identical, so this is the one asymmetry that
+				reads as drift when they are compared side by side. It is not drift. Do not add it to
+				`inputSchema` to make them agree.
+			*/
 			inputSchema: {
 				type:       'object',
 				properties: {
