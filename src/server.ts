@@ -3,6 +3,7 @@ import { basename } from 'path';
 import { McpServer, runVerify } from './mcp';
 import type { ServerManifest, ToolDefinition, ToolResult, Registration, TestSpec, VerifyReport } from './mcp';
 import { GuardChain, PathGuard } from './guards';
+import { Trace } from './Trace';
 import { discoveryTools } from './tools/discovery';
 import { readTools } from './tools/read';
 import { writeTools } from './tools/write';
@@ -89,8 +90,27 @@ export class DaedalusServer {
 	private chain          = new GuardChain( new PathGuard() );
 
 	constructor() {
-		const m = DaedalusServer.manifest;
-		this.server = new McpServer( { name: m.name, version: `${ m.version }+${ DaedalusServer.buildIdentity() }` } );
+		const m     = DaedalusServer.manifest;
+		const build = DaedalusServer.buildIdentity();
+
+		this.server = new McpServer( { name: m.name, version: `${ m.version }+${ build }` } );
+
+		// Every call this server dispatches gets one line on disk — see Trace for why successes are
+		// recorded alongside failures, and why this is wired at the WIRE rather than around the
+		// handlers. Wired in the constructor so it covers a server built for `wireTools()` or `invoke()`
+		// as well as one that serves, and stamped here because build identity is a fact about THIS
+		// process that Trace has no other way to learn.
+		Trace.stamp( build );
+		this.server.observe( ( name, args, result, refusal ) => {
+			if ( !result.isError ) {
+				Trace.record( name, true );
+				return;
+			}
+			// `refusal` is the wire's own certainty about the two failures it raises itself; null means
+			// the handler produced this, and Trace falls back to reading the message.
+			const error = result.content.map( c => c.text ).join( ' ' );
+			Trace.record( name, false, { args, error, fault: refusal ?? undefined } );
+		} );
 	}
 
 	/**
@@ -177,8 +197,16 @@ export class DaedalusServer {
 		return timer;
 	}
 
-	/** Prove every tool against its TestSpecs, in-process. Reached by `scripts/verify.ts`. */
+	/**
+	 * Prove every tool against its TestSpecs, in-process. Reached by `scripts/verify.ts`.
+	 *
+	 * Tracing is turned OFF for the rest of the process first. Several specs are `error_expected` by
+	 * design ( kcd_get's PathGuard case deliberately reaches for an out-of-vault path ), and a
+	 * synthetic failure is indistinguishable on disk from one an agent actually hit — it would inflate
+	 * every rate computed from the file, in the direction of "the tools are worse than they are".
+	 */
 	async verify(): Promise<VerifyReport> {
+		Trace.disable();
 		this.ensureBuilt();
 		return runVerify( this.registrations, DaedalusServer.manifest );
 	}

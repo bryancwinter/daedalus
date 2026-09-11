@@ -10,7 +10,7 @@
  * server, so a base class exists to serve a plurality it does not have.
  */
 export { McpServer } from './McpServer';
-export type { ContentBlock, ToolResult, ToolAnnotations, ToolDefinition, ServerInfo } from './McpServer';
+export type { ContentBlock, ToolResult, ToolAnnotations, ToolDefinition, ServerInfo, CallObserver, CallRefusal } from './McpServer';
 export { runVerify } from './verify';
 export type { Registration, TestSpec, VerifyCase, VerifyReport } from './verify';
 export type { ServerManifest, ServerConfigSurface, ServerConfigField } from './manifest';

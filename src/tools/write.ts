@@ -161,8 +161,12 @@ export function writeTools( chain: GuardChain ): ( ToolDefinition & { spec?: Tes
 					// vault. Tier 1, the inline baseline, is emitted unconditionally and needs nothing
 					// from here. Config is resolved per call, matching every other read in this file —
 					// the host slice is a live file.
-					const html   = KcdEmit.emit( artifact, KcdEmit.cssHrefFor( filePath, Config.resolve().cssVaultRel ) );
-					const report = KcdValidate.validate( html );
+					const config = Config.resolve();
+					const html   = KcdEmit.emit( artifact, KcdEmit.cssHrefFor( filePath, config.cssVaultRel ) );
+					// `docRoot` matters HERE, not only in reports: without it the ephemeral-link law was
+					// evaluated against the wrong vault name, so `kcd_save` refused legal documents and
+					// accepted illegal ones — in a non-default vault, both at once.
+					const report = KcdValidate.validate( html, { path: filePath, docRoot: config.docRoot } );
 					if ( !report.ok ) {
 						const detail = report.errors.map( e => `${ e.code } @ ${ e.where }: ${ e.msg }` ).join( '; ' );
 						return MCPUtils.error( `kcd_save refused "${ filePath }": artifact failed validation — ${ detail }` );

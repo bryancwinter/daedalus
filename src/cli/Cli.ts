@@ -4,6 +4,7 @@ import { existsSync, readFileSync, writeFileSync, readdirSync, statSync, mkdirSy
 import { Vault, VaultUtilities, VaultDeploy, VaultLayout, Survey } from 'kcd_sdk';
 import type { HealthReport, LensView, DeployReport, ArtifactRef, QueryOptions } from 'kcd_sdk';
 import { Config } from '../Config';
+import { Trace } from '../Trace';
 import { Prompt } from './Prompt';
 import { DaedalusServer } from '../server';
 
@@ -12,6 +13,10 @@ import { DaedalusServer } from '../server';
  *  vault-relative path there resolves against the PROJECT root and is silently always false. That
  *  mistake skipped the whole host-seed step, unnoticed, until 2026-07-25. */
 const ROOT_CONTEXT = 'root-context.html';
+
+/** How many recent failures `trace` prints before it tells you to ask for all of them. Ten is about
+ *  what fits on a screen beside the summary, and the summary is the part that says whether to look. */
+const TRACE_TAIL = 10;
 
 /** Parsed argv — one command word, its positionals, and the shared flags every command honours. */
 interface ParsedArgs {
@@ -89,6 +94,8 @@ export class Cli {
 				return this.clear( args );
 			case 'get-started':
 				return this.getStarted( args );
+			case 'trace':
+				return this.trace( args );
 			default:
 				process.stderr.write( `daedalus: unknown command "${ args.command }"\n\n` );
 				this.printHelp();
@@ -111,6 +118,16 @@ export class Cli {
 		if ( args.json ) {
 			this.emit( report );
 		} else {
+			// WHICH VAULT THIS IS, on the one command people actually run. A report is only as
+			// trustworthy as the reader's certainty about what it read, and with two vaults on one
+			// disk this command will happily grade the wrong one and look perfectly healthy doing it
+			// — measured, not hypothetical. Printed on every run rather than only on an override: a
+			// line that appears only sometimes is one nobody learns to look for.
+			const config = Config.resolve();
+			process.stdout.write( this.tint( this.C.dim,
+				`vault: ${ path.join( config.projectRoot, config.docRoot ) }`
+				+ ` ( docRoot: ${ config.docRoot } via ${ config.source.docRoot } )
+` ) );
 			this.renderHealth( report, target );
 		}
 
@@ -537,7 +554,7 @@ export class Cli {
 			// a developer has opinions about; "a managed block is added" is a promise, and showing
 			// the block is the evidence for it.
 			step( 'What goes in your entry files' );
-			const seeds = this.hostSeeds().filter( ( s ) => choices.hosts.includes( s.target ) );
+			const seeds = this.hostSeeds( docRoot ).filter( ( s ) => choices.hosts.includes( s.target ) );
 			for ( const s of seeds ) {
 				const abs      = path.join( projectRoot, s.target );
 				const present  = existsSync( abs );
@@ -688,7 +705,19 @@ export class Cli {
 				process.exit( 2 );
 			}
 		}
-		const entry = { command: 'node', args: [ path.join( this.packageRoot(), 'dist', 'index.js' ) ] };
+		// THE DOC ROOT IS RECORDED HERE, ALWAYS — not only when it differs from the default.
+		//
+		// An agent host spawns this server with a working directory of its own choosing, so the server
+		// falls to its inferred tier and looks for `_Claude`. Install a vault called anything else and
+		// every `kcd_*` tool silently serves a DIFFERENT vault than the CLI does, with both halves
+		// reporting healthy — the failure has no symptom, which is what makes it worth the four
+		// characters. Written unconditionally because a value that is only sometimes present is a value
+		// somebody eventually forgets to check for, and an explicit `_Claude` cannot drift the way an
+		// omission can.
+		const entry = {
+			command: 'node',
+			args:    [ path.join( this.packageRoot(), 'dist', 'index.js' ), '--doc-root', docRoot ]
+		};
 		const already = mcpDoc.mcpServers?.[ 'daedalus' ];
 		const mcpChanged = choices.mcp && JSON.stringify( already ) !== JSON.stringify( entry );
 		process.stdout.write(
@@ -719,7 +748,10 @@ export class Cli {
 				process.stdout.write( `  skill    ${ name.padEnd( 12 ) } — ${ present ? 'already present' : confirm ? 'installs' : 'would install' }\n` );
 				if ( !present && confirm ) {
 					mkdirSync( path.dirname( dest ), { recursive: true } );
-					cpSync( src, dest, { recursive: true } );
+					// Retargeted, not byte-copied — a skill is a set of instructions an agent ACTS on, and
+					// the bundled ones name `_Claude/…` paths outright. Copied verbatim into a vault called
+					// something else, they send the agent to a folder that is not there.
+					VaultDeploy.fill( src, dest, docRoot );
 				}
 			}
 		}
@@ -923,6 +955,118 @@ export class Cli {
 	}
 
 	/**
+	 * `daedalus trace [faults|clear] [confirm]` — read the call trace back.
+	 *
+	 * THE ANALYSIS FACE, and deliberately CLI-only. The trace exists so a failure an agent hit is still
+	 * readable after the session that produced it, which makes its audience a person tuning prose rather
+	 * than an agent mid-task. An MCP tool for it would cost every session a schema in context to serve a
+	 * question nobody asks during the work.
+	 *
+	 * Three shapes: the default summary ( rate per tool, fault census, the last handful of failures with
+	 * their arguments ), `faults` for every failure rather than the tail, and `clear confirm` to start a
+	 * fresh window after a prose change. `--json` emits the raw entries for anything else.
+	 */
+	private static trace( args: ParsedArgs ): void {
+		const mode = args.positionals[ 0 ] ?? '';
+
+		if ( mode === 'clear' ) {
+			if ( !args.positionals.includes( 'confirm' ) ) {
+				process.stdout.write( `would delete ${ Trace.file() }\n  re-run with: daedalus trace clear confirm\n` );
+				process.exit( 0 );
+			}
+			Trace.clear();
+			process.stdout.write( 'trace cleared\n' );
+			process.exit( 0 );
+		}
+
+		const entries = Trace.entries();
+		if ( args.json ) { this.emit( entries ); process.exit( 0 ); }
+
+		process.stdout.write( `${ this.tint( this.C.bold, 'trace' ) }  ${ this.tint( this.C.dim, Trace.file() ) }\n` );
+
+		if ( entries.length === 0 ) {
+			// Nothing recorded is two different situations, and a reader has to be told which one this is.
+			const muted = ( process.env[ 'DAEDALUS_TRACE' ] ?? '' ).trim().length > 0;
+			process.stdout.write( muted
+				? '\nno calls recorded — DAEDALUS_TRACE is set in this shell, which may be turning the trace off\n'
+				: '\nno calls recorded yet — the trace fills as agents use the tools\n' );
+			process.exit( 0 );
+		}
+
+		const failures = entries.filter( e => !e.ok );
+		const first    = entries[ 0 ]!.at;
+		const last     = entries[ entries.length - 1 ]!.at;
+		const rate     = ( failures.length / entries.length * 100 ).toFixed( 1 );
+
+		process.stdout.write(
+			`       ${ this.tint( this.C.dim, `${ first } → ${ last }` ) }\n` +
+			`       ${ entries.length } calls, ${ failures.length } failed ( ${ rate }% )\n`
+		);
+
+		const rotated = Trace.rotated();
+		if ( rotated ) process.stdout.write( `       ${ this.tint( this.C.dim, `earlier calls rotated out to ${ rotated }` ) }\n` );
+
+		// ── Rate per tool ─────────────────────────────────────────────────────
+		const byTool = new Map<string, { calls: number; failed: number }>();
+		for ( const e of entries ) {
+			const row = byTool.get( e.tool ) ?? { calls: 0, failed: 0 };
+			row.calls++;
+			if ( !e.ok ) row.failed++;
+			byTool.set( e.tool, row );
+		}
+
+		const width = Math.max( 4, ...[ ...byTool.keys() ].map( t => t.length ) );
+		process.stdout.write( `\n${ this.tint( this.C.dim, 'tool'.padEnd( width ) + '   calls   failed     rate' ) }\n` );
+
+		// Sorted by FAILURES rather than by name or by volume: the row worth reading first is the one
+		// costing the most round trips, and an alphabetical table buries it among the healthy ones.
+		const tools = [ ...byTool.entries() ].sort( ( a, b ) => b[ 1 ].failed - a[ 1 ].failed || b[ 1 ].calls - a[ 1 ].calls );
+		for ( const [ tool, row ] of tools ) {
+			const pct    = `${ ( row.failed / row.calls * 100 ).toFixed( 1 ) }%`;
+			const failed = String( row.failed ).padStart( 8 );
+			process.stdout.write(
+				tool.padEnd( width ) +
+				String( row.calls ).padStart( 8 ) +
+				( row.failed > 0 ? this.tint( this.C.red, failed ) : failed ) +
+				pct.padStart( 9 ) + '\n'
+			);
+		}
+
+		if ( failures.length === 0 ) process.exit( 0 );
+
+		// ── Fault census ──────────────────────────────────────────────────────
+		const byFault = new Map<string, number>();
+		for ( const f of failures ) {
+			const key = f.fault ?? 'failed';
+			byFault.set( key, ( byFault.get( key ) ?? 0 ) + 1 );
+		}
+
+		process.stdout.write( `\n${ this.tint( this.C.dim, 'faults' ) }\n` );
+		for ( const [ fault, count ] of [ ...byFault.entries() ].sort( ( a, b ) => b[ 1 ] - a[ 1 ] ) )
+			process.stdout.write( `${ String( count ).padStart( 5 ) }  ${ fault }\n` );
+
+		// ── The failures themselves ───────────────────────────────────────────
+		// Three lines each, because all three are load-bearing for the job this file exists to do:
+		// what the agent SENT is the evidence the description under-specified something, and what it
+		// was TOLD is the evidence the refusal did or did not point anywhere useful.
+		const show  = mode === 'faults' ? failures : failures.slice( -TRACE_TAIL );
+		const label = mode === 'faults'
+			? `failures ( ${ failures.length } )`
+			: `recent failures ( ${ show.length } of ${ failures.length }${ failures.length > TRACE_TAIL ? ' — "daedalus trace faults" for all' : '' } )`;
+
+		process.stdout.write( `\n${ this.tint( this.C.dim, label ) }\n` );
+		for ( const f of show ) {
+			process.stdout.write(
+				`  ${ f.at }  ${ this.tint( this.C.bold, f.tool ) }  ${ this.tint( this.C.red, f.fault ?? 'failed' ) }\n` +
+				`      ${ this.tint( this.C.cyan, JSON.stringify( f.args ?? {} ) ) }\n` +
+				`      ${ this.tint( this.C.dim, f.error ?? '' ) }\n`
+			);
+		}
+
+		process.exit( 0 );
+	}
+
+	/**
 	 * `daedalus seed [host] [confirm]` — extract §10 seed payloads from `root-context.html` into
 	 * their targets ( `CLAUDE.md` and siblings ). No host = every seed found; a host name filters to
 	 * one. No `confirm` only reports what would change — same preview-then-confirm shape as
@@ -1089,6 +1233,11 @@ export class Cli {
 			}
 		}
 
+		// NOT traced. `mcp call` is how a person REPRODUCES a failure an agent hit, so counting it would
+		// charge our own debugging against the rate the trace exists to measure — and the reproduction is
+		// always of a line that is already in the file.
+		Trace.disable();
+
 		const result = await new DaedalusServer().invoke( name, toolArgs );
 		const text   = result.content.map( c => c.text ).join( '\n' );
 
@@ -1142,7 +1291,15 @@ export class Cli {
 			} else {
 				const health = VaultUtilities.health( vault );
 				vaultOk  = health.summary.errors === 0;
-				vaultMsg = `${ config.projectRoot } — ${ health.summary.errors } error(s), ${ health.summary.warnings } warning(s)`;
+				// NAME THE FOLDER, not just the project. `doctor` printed the project root alone, so two
+				// faces serving two different vaults both reported healthy and neither said which one it
+				// had opened — the wrong-vault failure has no symptom without this line, which is most of
+				// why it took a migration to notice. The TIER is here too: "docRoot came from the argument"
+				// and "docRoot fell back to the default" are different answers to the only question worth
+				// asking when a report looks wrong.
+				vaultMsg = `${ path.join( config.projectRoot, config.docRoot ) } `
+					+ `( docRoot: ${ config.docRoot } via ${ config.source.docRoot } ) — `
+					+ `${ health.summary.errors } error(s), ${ health.summary.warnings } warning(s)`;
 			}
 		} catch ( e ) {
 			vaultMsg = e instanceof Error ? e.message : String( e );
@@ -1316,12 +1473,16 @@ export class Cli {
 
 	/** The bundle's own seed declarations, before any vault exists. The install needs these BEFORE
 	 *  step 1 has run — to anchor the project root, to offer the entry points as a choice, and to
-	 *  show the user the block they are about to have added to a file they already own. */
-	private static hostSeeds(): ReturnType<typeof VaultUtilities.parseSeedsFrom> {
+	 *  show the user the block they are about to have added to a file they already own.
+	 *
+	 *  `docRoot` is what the preview is FOR: the block shown at step 3 must be the block that lands.
+	 *  Callers that only want the seed TARGETS ( `hostMarkers` ) can omit it — the filenames are the
+	 *  same whatever the vault is called. */
+	private static hostSeeds( docRoot?: string ): ReturnType<typeof VaultUtilities.parseSeedsFrom> {
 		try {
 			const src = path.join( this.substrateRoot(), ROOT_CONTEXT );
 			if ( !existsSync( src ) ) return [];
-			return VaultUtilities.parseSeedsFrom( readFileSync( src, 'utf-8' ) );
+			return VaultUtilities.parseSeedsFrom( readFileSync( src, 'utf-8' ), docRoot );
 		} catch {
 			return [];
 		}
@@ -1847,6 +2008,7 @@ export class Cli {
 			'  fix-css [confirm]        Recompute every document\'s stylesheet link from its own depth ( preview only, unless "confirm" ).\n' +
 			'  query [json-filter]   Find artifacts by glob/type/text, or census by type ( e.g. \'{"groupBy":"type"}\' ).\n' +
 			'  links <path>      An artifact\'s outbound links/addresses, plus everything pointing back at it.\n' +
+			'  trace [faults|clear confirm]  Tool-call history — failure rate per tool, fault census, and the failures themselves.\n' +
 			'  seed [host] [confirm]      Extract root-context seed payloads into CLAUDE.md etc ( preview only, unless "confirm" ).\n' +
 			'  lens-index [confirm]       Regenerate the entry doc\'s Lenses table from real lenses ( preview only, unless "confirm" ).\n' +
 			'  clear [all] [confirm]      Take the install back out. Removes only what it added; "all" also removes the vault.\n\n' +

@@ -45,7 +45,7 @@ export function readTools( chain: GuardChain ): ( ToolDefinition & { spec?: Test
 						return MCPUtils.result( lens.serialize() );
 					}
 
-					const artifact = KCDPrimitive.fromHtml( vault.read( filePath ), vault.toAbs( filePath ) );
+					const artifact = KCDPrimitive.fromHtml( vault.read( filePath ), vault.toAbs( filePath ), vault.docRoot );
 					return MCPUtils.result( artifact.serialize() );
 				} catch ( e ) {
 					const message = e instanceof Error ? e.message : String( e );

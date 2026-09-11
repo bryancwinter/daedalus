@@ -91,6 +91,32 @@ export interface ServerInfo {
 	version: string;
 }
 
+/**
+ * Notified after every dispatched call with its outcome — the seam a host hangs telemetry on.
+ *
+ * DIVERGENCE FROM THE STARMIND ORIGINAL ( 2026-09-11 ), and deliberate. It sits here rather than
+ * around the handler because the two most informative failures never REACH a handler: an argument
+ * key the schema does not declare, and a tool name this server does not register. A wrapper one
+ * level up would record only the calls that were already well-formed enough to run, which is the
+ * opposite of the interesting set.
+ *
+ * Generic by construction — it is handed a name, the args, and the result, and knows nothing about
+ * what any of them mean. An observer that throws is swallowed: telemetry may never cost a call.
+ */
+export type CallObserver = ( name: string, args: Record<string, unknown>, result: ToolResult, refusal: CallRefusal | null ) => void;
+
+/**
+ * The two refusals the WIRE issues itself, before any handler runs — a tool name this server does not
+ * register, and an argument key the tool's schema does not declare.
+ *
+ * Carried to the observer as a tag rather than left to be recognised from the message. They are the
+ * reason the observer sits here at all, and an observer that had to match on our own refusal strings
+ * to identify them would re-derive, fallibly, a fact this class holds for certain — and go silently
+ * wrong the first time somebody rewords one. `null` means the outcome came from the handler, where
+ * the wire genuinely does not know what happened.
+ */
+export type CallRefusal = 'unknown-tool' | 'bad-args';
+
 // ── JSON-RPC shapes ───────────────────────────────────────────────────────────
 
 type JsonRpcId = string | number;
@@ -117,12 +143,28 @@ const PROTOCOL_VERSION = '2024-11-05';
 export class McpServer {
 
 	private tools = new Map<string, ToolDefinition>();
+	private observer: CallObserver | null = null;
 
 	constructor( private info: ServerInfo ) {}
 
 	/** Register a tool. Last registration of a name wins. */
 	registerTool( def: ToolDefinition ): void {
 		this.tools.set( def.name, def );
+	}
+
+	/** Install the call observer. One at a time — the last one set wins. */
+	observe( fn: CallObserver | null ): void {
+		this.observer = fn;
+	}
+
+	/** Notify the observer, absorbing anything it throws. Telemetry never costs a call. */
+	private notify( name: string, args: Record<string, unknown>, result: ToolResult, refusal: CallRefusal | null = null ): ToolResult {
+		try {
+			this.observer?.( name, args, result, refusal );
+		} catch {
+			// An observer that fails is an observer that stops mattering, not a failed tool call.
+		}
+		return result;
 	}
 
 	/**
@@ -230,12 +272,19 @@ export class McpServer {
 			throw new Error( 'tools/call requires a string "name"' );
 		}
 
+		const args = ( params?.[ 'arguments' ] ?? {} ) as Record<string, unknown>;
+
 		const tool = this.tools.get( name );
 		if ( !tool ) {
+			// Observed before it is thrown. On the wire this is a JSON-RPC PROTOCOL error rather than an
+			// isError result ( unlike `invoke`, which has no protocol layer to raise one in ), so it is the
+			// one outcome that never passes through the dispatch below — and a hallucinated tool name is
+			// exactly the kind of thing the observer exists to catch.
+			const refusal: ToolResult = { content: [ { type: 'text', text: this.unknownTool( name ) } ], isError: true };
+			this.notify( name, args, refusal, 'unknown-tool' );
 			throw new Error( this.unknownTool( name ) );
 		}
 
-		const args = ( params?.[ 'arguments' ] ?? {} ) as Record<string, unknown>;
 		return this.invoke( name, args );
 	}
 
@@ -284,15 +333,15 @@ export class McpServer {
 	 */
 	async invoke( name: string, args: Record<string, unknown> ): Promise<ToolResult> {
 		const tool = this.tools.get( name );
-		if ( !tool ) return { content: [ { type: 'text', text: this.unknownTool( name ) } ], isError: true };
+		if ( !tool ) return this.notify( name, args, { content: [ { type: 'text', text: this.unknownTool( name ) } ], isError: true }, 'unknown-tool' );
 
 		const badArgs = McpServer.unknownArgs( tool, args );
-		if ( badArgs ) return { content: [ { type: 'text', text: badArgs } ], isError: true };
+		if ( badArgs ) return this.notify( name, args, { content: [ { type: 'text', text: badArgs } ], isError: true }, 'bad-args' );
 
 		try {
-			return await tool.handler( args );
+			return this.notify( name, args, await tool.handler( args ) );
 		} catch ( e ) {
-			return { content: [ { type: 'text', text: errorText( e ) } ], isError: true };
+			return this.notify( name, args, { content: [ { type: 'text', text: errorText( e ) } ], isError: true } );
 		}
 	}
 
