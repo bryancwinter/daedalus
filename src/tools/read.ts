@@ -1,4 +1,5 @@
-import { KCDPrimitive, VaultUtilities, Survey } from 'kcd_sdk';
+import { KCDPrimitive, VaultUtilities, Survey, KcdContext } from 'kcd_sdk';
+import type { SerializedArtifact } from 'kcd_sdk';
 import type { ToolDefinition, TestSpec } from '../mcp';
 import { GuardChain } from '../guards';
 import { MCPUtils } from '../MCPUtils';
@@ -11,21 +12,35 @@ export function readTools( chain: GuardChain ): ( ToolDefinition & { spec?: Test
 			annotations: { readOnlyHint: true },
 			spec: [
 				{ label: 'reads a lens artifact', input: { path: 'lenses/parser/parser.html' }, assertions: [] },
+				{
+					label:      'full: true returns the verbatim body for the edit round trip',
+					input:      { path: 'lenses/parser/parser.html', full: true },
+					assertions: [ { type: 'has_key', key: 'body' } ],
+				},
 				{ label: 'PathGuard jails an out-of-vault path', input: { path: 'C:/Windows/System32/drivers/etc/hosts' }, assertions: [ { type: 'error_expected' } ] },
 			],
 			description: 'Load one artifact; for a lens, `depth` pulls in the context it always brings with it.',
 			doc:
 				'Load one artifact by vault-relative `path`, parse it, and return its serialized shape ' +
-				'(frontmatter + sections + body + resolved links). For a lens, `depth` controls dredge: ' +
+				'(frontmatter + sections + resolved links). For a lens, `depth` controls dredge: ' +
 				'1 (default) returns the lens alone; 2+ pulls its always-policy children that many levels ' +
 				'deep, so the returned object carries the composed Know set. Non-lens types ignore `depth`. ' +
+				'TWO SHAPES. By DEFAULT the read is LEAN: each section keeps its `h3`, its list tags and any ' +
+				'`pre`, and loses every other tag and all formatting whitespace — and `body` is absent, ' +
+				'because a stripped body fed back to kcd_save would save the document with its structure ' +
+				'gone. Nothing is lost that the shape does not already hold: `sections` is the body\'s keyed ' +
+				'decomposition, the `<h1>` is `frontmatter.name`, and every href is in `links`. Pass ' +
+				'`full: true` for the verbatim SerializedArtifact — structured HTML and all — which is what ' +
+				'kcd_save\'s `body` edit path (kcd_get → mutate → kcd_save) requires; reach for it when you ' +
+				'intend to EDIT, and leave it off when you intend to READ. ' +
 				'The path is PathGuard-jailed to the vault; an out-of-vault path returns a structured error. ' +
-				'Use kcd_links instead when you only need the link graph, not the full body. Read-only.',
+				'Use kcd_links instead when you only need the link graph, not the sections. Read-only.',
 			inputSchema: {
 				type:       'object',
 				properties: {
 					path:  { type: 'string', description: 'Vault-relative path to the artifact.' },
 					depth: { type: 'integer', minimum: 1, maximum: 4, default: 1, description: 'Lens dredge depth; 1 = artifact only.' },
+					full:  { type: 'boolean', default: false, description: 'Return the verbatim artifact, `body` included — required to EDIT via kcd_save. Omit to read.' },
 				},
 				required: [ 'path' ],
 			},
@@ -38,15 +53,21 @@ export function readTools( chain: GuardChain ): ( ToolDefinition & { spec?: Test
 					const depth    = typeof args[ 'depth' ] === 'number' ? args[ 'depth' ] as number : undefined;
 					const type     = vault.classify( filePath );
 
+					// The default read is LEAN — `full` is the opt-in back to the verbatim shape, because the
+					// reader is the common caller and the editor is the rare one. Where the projection lives is
+					// the SDK's business ( KcdContext owns every AI-audience projection ); this is the gate
+					// choosing between two of them, which is all a gate should be doing.
+					const project = ( a: SerializedArtifact ) => args[ 'full' ] === true ? a : KcdContext.leanArtifact( a );
+
 					if ( type === 'lens' ) {
 						// vault.loadLens injects the real fs reader — a bare load leaves
 						// disk-read unset (a main/node capability) and throws on dredge.
 						const lens = vault.loadLens( filePath, { depth: depth ?? 1 } );
-						return MCPUtils.result( lens.serialize() );
+						return MCPUtils.result( project( lens.serialize() ) );
 					}
 
 					const artifact = KCDPrimitive.fromHtml( vault.read( filePath ), vault.toAbs( filePath ), vault.docRoot );
-					return MCPUtils.result( artifact.serialize() );
+					return MCPUtils.result( project( artifact.serialize() ) );
 				} catch ( e ) {
 					const message = e instanceof Error ? e.message : String( e );
 					// A raw ENOENT hands back an ABSOLUTE path the caller never wrote, which tells an agent
@@ -75,7 +96,7 @@ export function readTools( chain: GuardChain ): ( ToolDefinition & { spec?: Test
 				'links the artifact itself declares (resolved to their targets); inbound = every other file ' +
 				'in the vault whose links resolve TO this one (backlinks), found by scanning + resolving the ' +
 				'whole vault. The graph primitive behind the editor\'s reference fan and the backlink panel. ' +
-				'Cheaper than kcd_get when you only need edges, not the body. Read-only.',
+				'Cheaper than kcd_get when you only need edges, not the sections. Read-only.',
 			inputSchema: {
 				type:       'object',
 				properties: { path: { type: 'string', description: 'Vault-relative path to the artifact.' } },

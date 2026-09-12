@@ -28,9 +28,9 @@ export function writeTools( chain: GuardChain ): ( ToolDefinition & { spec?: Tes
 			description: 'Write an artifact, validated first — a malformed one is refused and nothing lands.',
 			doc:
 				'Persist one artifact by vault-relative `path` from its `artifact` ( a SerializedArtifact — the ' +
-				'shape kcd_get returns ). Emits HTML with KcdEmit: frontmatter is rebuilt from `artifact.frontmatter`, ' +
+				'shape kcd_get returns under `full: true` ). Emits HTML with KcdEmit: frontmatter is rebuilt from `artifact.frontmatter`, ' +
 				'the `body` is re-parsed and re-emitted — an existing body has its frontmatter block replaced ( the ' +
-				'edit path: kcd_get → mutate → kcd_save ), a body with none gets one prepended ( the create path ). ' +
+				'edit path: kcd_get with `full: true` → mutate → kcd_save ), a body with none gets one prepended ( the create path ). ' +
 				'The head is regenerated wholesale every write, so a document self-corrects its stylesheet on any ' +
 				'save. The result ' +
 				'is validated with KcdValidate BEFORE any write: a structural failure returns a structured error and ' +
@@ -41,7 +41,7 @@ export function writeTools( chain: GuardChain ): ( ToolDefinition & { spec?: Tes
 				'( plus rows for the record-bearing ones ) and the structure — section order, nesting, heading ' +
 				'levels, faux-tables, the whole data-kcd grammar — is DERIVED from that type\'s declared shape, so ' +
 				'you supply content and never markup. Pass `artifact.body` instead to EDIT, where existing ' +
-				'structured HTML is kept ( kcd_get → mutate → kcd_save ) — content, structure and attributes ' +
+				'structured HTML is kept — content, structure and attributes ' +
 				'survive, while indentation and line breaks are NORMALIZED to house format, so expect the ' +
 				'file you get back to be formatted rather than byte-identical to what you sent. Supplying both is ' +
 				'refused rather than resolved by precedence. Content mode also returns advisories naming any ' +
@@ -58,7 +58,7 @@ export function writeTools( chain: GuardChain ): ( ToolDefinition & { spec?: Tes
 						properties: {
 							type:        { type: 'string', description: 'Artifact type (lens, plan, habit, reference, …) — must match the target directory.' },
 							frontmatter: { type: 'object', additionalProperties: true, description: 'Frontmatter fields (name, description, status, …) — rebuilt into the HTML header block.' },
-							body:    { type: 'string', description: 'EDIT path — body HTML, no frontmatter block. Content, structure and attributes are preserved; whitespace is reformatted to house style, so the stored file will not be byte-identical to what you send. Use for an edit (kcd_get → mutate → kcd_save). Mutually exclusive with `content`.' },
+							body:    { type: 'string', description: 'EDIT path — body HTML, no frontmatter block. Content, structure and attributes are preserved; whitespace is reformatted to house style, so the stored file will not be byte-identical to what you send. Use for an edit — and source it from kcd_get with `full: true`, since the default lean read carries no `body` at all. Mutually exclusive with `content`.' },
 							content: {
 								type:        'object',
 								description: 'AUTHORING path — supply CONTENT and the structure is derived from the type\'s shape (section order, nesting, headings, faux-tables). Mutually exclusive with `body`.',
@@ -109,7 +109,7 @@ export function writeTools( chain: GuardChain ): ( ToolDefinition & { spec?: Tes
 
 					// TWO WAYS IN, one write. `content` is the AUTHORING path: sections and rows go to
 					// KcdSynth and the markup is DERIVED from the type's shape, so an author supplies
-					// content and never markup. `body` is the EDIT path ( kcd_get → mutate → kcd_save ),
+					// content and never markup. `body` is the EDIT path ( kcd_get `full: true` → mutate → kcd_save ),
 					// where the body is already structured and its CONTENT must survive — not its bytes.
 					// `KcdEmit.spliceFrontmatter` re-parses and re-serializes the whole body through
 					// `HtmlTree`, which normalizes whitespace and quote style; the doc-block above says so

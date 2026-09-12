@@ -66,6 +66,11 @@
 						"maximum": 4,
 						"default": 1,
 						"description": "Lens dredge depth; 1 = artifact only."
+					},
+					"full": {
+						"type": "boolean",
+						"default": false,
+						"description": "Return the verbatim artifact, `body` included — required to EDIT via kcd_save. Omit to read."
 					}
 				},
 				"required": [
@@ -78,7 +83,7 @@
 			"example": {
 				"path": "lenses/parser/parser.html"
 			},
-			"doc": "Load one artifact by vault-relative `path`, parse it, and return its serialized shape (frontmatter + sections + body + resolved links). For a lens, `depth` controls dredge: 1 (default) returns the lens alone; 2+ pulls its always-policy children that many levels deep, so the returned object carries the composed Know set. Non-lens types ignore `depth`. The path is PathGuard-jailed to the vault; an out-of-vault path returns a structured error. Use kcd_links instead when you only need the link graph, not the full body. Read-only."
+			"doc": "Load one artifact by vault-relative `path`, parse it, and return its serialized shape (frontmatter + sections + resolved links). For a lens, `depth` controls dredge: 1 (default) returns the lens alone; 2+ pulls its always-policy children that many levels deep, so the returned object carries the composed Know set. Non-lens types ignore `depth`. TWO SHAPES. By DEFAULT the read is LEAN: each section keeps its `h3`, its list tags and any `pre`, and loses every other tag and all formatting whitespace — and `body` is absent, because a stripped body fed back to kcd_save would save the document with its structure gone. Nothing is lost that the shape does not already hold: `sections` is the body's keyed decomposition, the `<h1>` is `frontmatter.name`, and every href is in `links`. Pass `full: true` for the verbatim SerializedArtifact — structured HTML and all — which is what kcd_save's `body` edit path (kcd_get → mutate → kcd_save) requires; reach for it when you intend to EDIT, and leave it off when you intend to READ. The path is PathGuard-jailed to the vault; an out-of-vault path returns a structured error. Use kcd_links instead when you only need the link graph, not the sections. Read-only."
 		},
 		{
 			"name": "kcd_links",
@@ -101,7 +106,7 @@
 			"example": {
 				"path": "lenses/parser/parser.html"
 			},
-			"doc": "Resolve the link graph around one artifact. Returns `{ outbound, inbound }`: outbound = the links the artifact itself declares (resolved to their targets); inbound = every other file in the vault whose links resolve TO this one (backlinks), found by scanning + resolving the whole vault. The graph primitive behind the editor's reference fan and the backlink panel. Cheaper than kcd_get when you only need edges, not the body. Read-only."
+			"doc": "Resolve the link graph around one artifact. Returns `{ outbound, inbound }`: outbound = the links the artifact itself declares (resolved to their targets); inbound = every other file in the vault whose links resolve TO this one (backlinks), found by scanning + resolving the whole vault. The graph primitive behind the editor's reference fan and the backlink panel. Cheaper than kcd_get when you only need edges, not the sections. Read-only."
 		},
 		{
 			"name": "kcd_health",
@@ -196,7 +201,7 @@
 							},
 							"body": {
 								"type": "string",
-								"description": "EDIT path — body HTML, no frontmatter block. Content, structure and attributes are preserved; whitespace is reformatted to house style, so the stored file will not be byte-identical to what you send. Use for an edit (kcd_get → mutate → kcd_save). Mutually exclusive with `content`."
+								"description": "EDIT path — body HTML, no frontmatter block. Content, structure and attributes are preserved; whitespace is reformatted to house style, so the stored file will not be byte-identical to what you send. Use for an edit — and source it from kcd_get with `full: true`, since the default lean read carries no `body` at all. Mutually exclusive with `content`."
 							},
 							"content": {
 								"type": "object",
@@ -295,7 +300,7 @@
 					"body": "<h1>My Note</h1>\n<p>The body content.</p>"
 				}
 			},
-			"doc": "Persist one artifact by vault-relative `path` from its `artifact` ( a SerializedArtifact — the shape kcd_get returns ). Emits HTML with KcdEmit: frontmatter is rebuilt from `artifact.frontmatter`, the `body` is re-parsed and re-emitted — an existing body has its frontmatter block replaced ( the edit path: kcd_get → mutate → kcd_save ), a body with none gets one prepended ( the create path ). The head is regenerated wholesale every write, so a document self-corrects its stylesheet on any save. The result is validated with KcdValidate BEFORE any write: a structural failure returns a structured error and writes NOTHING ( the write-time gate — can't save a malformed artifact ). On success it writes and returns `{ saved, warnings }`. PathGuard jails the path and checks the target directory ACCEPTS the declared type — a refusal names the accepted set, so the fix is in the error. TWO WAYS IN, exactly one per call. Pass `artifact.content` to AUTHOR: give sections as prose ( plus rows for the record-bearing ones ) and the structure — section order, nesting, heading levels, faux-tables, the whole data-kcd grammar — is DERIVED from that type's declared shape, so you supply content and never markup. Pass `artifact.body` instead to EDIT, where existing structured HTML is kept ( kcd_get → mutate → kcd_save ) — content, structure and attributes survive, while indentation and line breaks are NORMALIZED to house format, so expect the file you get back to be formatted rather than byte-identical to what you sent. Supplying both is refused rather than resolved by precedence. Content mode also returns advisories naming any required or expected section left out, and — on a closed type — any section the compiler will not read. NOTE: agent-authored body HTML is not yet sanitized here ( the render layer sanitizes on display; a save-time sanitize pass is a named deferral )."
+			"doc": "Persist one artifact by vault-relative `path` from its `artifact` ( a SerializedArtifact — the shape kcd_get returns under `full: true` ). Emits HTML with KcdEmit: frontmatter is rebuilt from `artifact.frontmatter`, the `body` is re-parsed and re-emitted — an existing body has its frontmatter block replaced ( the edit path: kcd_get with `full: true` → mutate → kcd_save ), a body with none gets one prepended ( the create path ). The head is regenerated wholesale every write, so a document self-corrects its stylesheet on any save. The result is validated with KcdValidate BEFORE any write: a structural failure returns a structured error and writes NOTHING ( the write-time gate — can't save a malformed artifact ). On success it writes and returns `{ saved, warnings }`. PathGuard jails the path and checks the target directory ACCEPTS the declared type — a refusal names the accepted set, so the fix is in the error. TWO WAYS IN, exactly one per call. Pass `artifact.content` to AUTHOR: give sections as prose ( plus rows for the record-bearing ones ) and the structure — section order, nesting, heading levels, faux-tables, the whole data-kcd grammar — is DERIVED from that type's declared shape, so you supply content and never markup. Pass `artifact.body` instead to EDIT, where existing structured HTML is kept — content, structure and attributes survive, while indentation and line breaks are NORMALIZED to house format, so expect the file you get back to be formatted rather than byte-identical to what you sent. Supplying both is refused rather than resolved by precedence. Content mode also returns advisories naming any required or expected section left out, and — on a closed type — any section the compiler will not read. NOTE: agent-authored body HTML is not yet sanitized here ( the render layer sanitizes on display; a save-time sanitize pass is a named deferral )."
 		},
 		{
 			"name": "kcd_move",
