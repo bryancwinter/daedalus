@@ -144,8 +144,29 @@ export class McpServer {
 
 	private tools = new Map<string, ToolDefinition>();
 	private observer: CallObserver | null = null;
+	private clientTag = '';
 
 	constructor( private info: ServerInfo ) {}
+
+	/**
+	 * The client on the other end of this connection, as `name/version` — blank until the handshake
+	 * has happened, which is the honest answer for an in-process `invoke()` that never had one.
+	 */
+	get client(): string {
+		return this.clientTag;
+	}
+
+	/** `clientInfo` off the handshake → a flat label, or blank if the client sent nothing usable. */
+	private static clientTag( info: unknown ): string {
+		if ( !info || typeof info !== 'object' ) return '';
+
+		const record  = info as Record<string, unknown>;
+		const name    = typeof record[ 'name' ] === 'string' ? record[ 'name' ].trim() : '';
+		const version = typeof record[ 'version' ] === 'string' ? record[ 'version' ].trim() : '';
+
+		if ( !name ) return '';
+		return version ? `${ name }/${ version }` : name;
+	}
 
 	/** Register a tool. Last registration of a name wins. */
 	registerTool( def: ToolDefinition ): void {
@@ -236,6 +257,12 @@ export class McpServer {
 		const requested = typeof params?.[ 'protocolVersion' ] === 'string'
 			? params[ 'protocolVersion' ] as string
 			: PROTOCOL_VERSION;
+
+		// WHO IS ON THE OTHER END, taken from the handshake the client already sends. Kept because
+		// several hosts legitimately drive their own child against the same vault, and a record of what
+		// was asked for is far less useful when it cannot say which of them asked. Self-reported and
+		// therefore not an identity to trust for anything — it is a label for grouping, nothing more.
+		this.clientTag = McpServer.clientTag( params?.[ 'clientInfo' ] );
 
 		return {
 			protocolVersion: requested,

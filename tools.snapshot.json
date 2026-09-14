@@ -22,6 +22,7 @@
 							"generator",
 							"analyzer",
 							"audit",
+							"bug-report",
 							"template",
 							"framework",
 							"nav-index"

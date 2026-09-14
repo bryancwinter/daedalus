@@ -100,7 +100,7 @@
 			<thead><tr><th>Layer</th><th>Purpose</th></tr></thead>
 			<tbody>
 				<tr><td><strong>Habits</strong></td><td>Atomic single-step behaviors. Source lives in <code>_Claude/habits/{class}/</code>; the Where column in a deployed lens links to the deployed copy at <code>_Claude/habits/{class}/</code> — the class subfolder (the habit's slot) is preserved on deploy, never flattened. <code>_lens-base</code> supplies the universal ones (write-files, work-routing, session/completed logging, spawn-subagent-never); a lens lists only what it adds. <code>_lens-base</code> is no exception: its links are ordinary <code>_Claude/</code> links like every other lens's.</td></tr>
-				<tr><td><strong>Contracts</strong></td><td>Behavioral agreements this lens follows. Source lives in <code>_Claude/contracts/</code>; the Where column in a deployed lens links to the deployed copy at <code>_Claude/contracts/</code>.</td></tr>
+				<tr><td><strong>Contracts</strong></td><td>Invocable procedures this lens follows. Source lives in <code>_Claude/contracts/</code>; the Where column in a deployed lens links to the deployed copy at <code>_Claude/contracts/</code>.</td></tr>
 				<tr><td><strong>Working Space</strong></td><td>Where this lens drops output. Inherited from the <code>work-routing</code> habit in <code>_lens-base</code>. All work goes to <code>_Claude/work/{name}/</code> (<code>AI/</code>, <code>human/</code>, <code>plans/</code>). Never promoted without the user's explicit direction.</td></tr>
 			</tbody>
 		</table>
@@ -223,7 +223,7 @@
 
   &lt;section data-kcd-section="contracts"&gt;
     &lt;h3&gt;Contracts&lt;/h3&gt;
-    &lt;p&gt;&lt;em&gt;Behavioral agreements this lens follows.&lt;/em&gt;&lt;/p&gt;
+    &lt;p&gt;&lt;em&gt;Invocable procedures this lens follows.&lt;/em&gt;&lt;/p&gt;
     &lt;div data-kcd-table&gt;
       &lt;div data-kcd-head&gt;&lt;span&gt;What&lt;/span&gt;&lt;span&gt;Where&lt;/span&gt;&lt;span&gt;Why&lt;/span&gt;&lt;/div&gt;
       &lt;div data-kcd-slot="contract" data-kcd-mode="on"&gt;

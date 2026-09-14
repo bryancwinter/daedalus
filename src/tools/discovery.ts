@@ -35,7 +35,7 @@ export function discoveryTools( chain: GuardChain ): ( ToolDefinition & { spec?:
 					glob:    { type: 'string', description: 'Vault-relative path glob; * within a segment, ** across segments.' },
 					type:    {
 						type:        'string',
-						enum:        [ 'lens', 'plan', 'habit', 'reference', 'contract', 'generator', 'analyzer', 'audit', 'template', 'framework', 'nav-index' ],
+						enum:        [ 'lens', 'plan', 'habit', 'reference', 'contract', 'generator', 'analyzer', 'audit', 'bug-report', 'template', 'framework', 'nav-index' ],
 						description: 'Artifact-type filter.',
 					},
 					text:    { type: 'string', description: 'Case-insensitive substring across body + serialized frontmatter.' },

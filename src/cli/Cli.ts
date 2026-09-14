@@ -1045,6 +1045,33 @@ export class Cli {
 		for ( const [ fault, count ] of [ ...byFault.entries() ].sort( ( a, b ) => b[ 1 ] - a[ 1 ] ) )
 			process.stdout.write( `${ String( count ).padStart( 5 ) }  ${ fault }\n` );
 
+		// ── Per client ────────────────────────────────────────────────────────
+		// Only when more than one host has actually driven this vault. With a single client the census
+		// says the same thing as the header and would be noise on every run; with several it answers
+		// the question the field exists for — whether one host is tripping where the others are not.
+		const byClient = new Map<string, { calls: number; failed: number }>();
+		for ( const e of entries ) {
+			const key = e.client ?? 'unidentified';
+			const row = byClient.get( key ) ?? { calls: 0, failed: 0 };
+			row.calls++;
+			if ( !e.ok ) row.failed++;
+			byClient.set( key, row );
+		}
+
+		if ( byClient.size > 1 ) {
+			const cWidth = Math.max( 6, ...[ ...byClient.keys() ].map( c => c.length ) );
+			process.stdout.write( `\n${ this.tint( this.C.dim, 'client'.padEnd( cWidth ) + '   calls   failed     rate' ) }\n` );
+			for ( const [ client, row ] of [ ...byClient.entries() ].sort( ( a, b ) => b[ 1 ].failed - a[ 1 ].failed ) ) {
+				const pct = `${ ( row.failed / row.calls * 100 ).toFixed( 1 ) }%`;
+				process.stdout.write(
+					client.padEnd( cWidth ) +
+					String( row.calls ).padStart( 8 ) +
+					String( row.failed ).padStart( 8 ) +
+					pct.padStart( 9 ) + '\n'
+				);
+			}
+		}
+
 		// ── The failures themselves ───────────────────────────────────────────
 		// Three lines each, because all three are load-bearing for the job this file exists to do:
 		// what the agent SENT is the evidence the description under-specified something, and what it
@@ -1057,7 +1084,8 @@ export class Cli {
 		process.stdout.write( `\n${ this.tint( this.C.dim, label ) }\n` );
 		for ( const f of show ) {
 			process.stdout.write(
-				`  ${ f.at }  ${ this.tint( this.C.bold, f.tool ) }  ${ this.tint( this.C.red, f.fault ?? 'failed' ) }\n` +
+				`  ${ f.at }  ${ this.tint( this.C.bold, f.tool ) }  ${ this.tint( this.C.red, f.fault ?? 'failed' ) }` +
+				( f.client ? `  ${ this.tint( this.C.dim, f.client ) }` : '' ) + '\n' +
 				`      ${ this.tint( this.C.cyan, JSON.stringify( f.args ?? {} ) ) }\n` +
 				`      ${ this.tint( this.C.dim, f.error ?? '' ) }\n`
 			);

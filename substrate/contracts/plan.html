@@ -34,13 +34,18 @@
 
 	<section data-kcd-section="when">
 		<h2 data-kcd-heading>When</h2>
-		<p>This contract activates whenever a session:</p>
+		<p>Invoked explicitly as <code>#plan</code>, or by description — "let's make a plan" is the same
+		invocation. The phase is named in plain language; there is no per-phase token. This contract
+		activates whenever a session:</p>
 		<ul>
-			<li>Creates a new plan (<code>#write-plan</code>, "draft a plan", "let's plan this")</li>
-			<li>Promotes a plan from draft to canonical (<code>#promote-plan</code>)</li>
-			<li>Closes out a completed plan (<code>#retire-plan</code>)</li>
+			<li>Creates a new plan ("draft a plan", "let's plan this")</li>
+			<li>Promotes a plan from draft to canonical</li>
+			<li>Closes out a completed plan</li>
+			<li>Rationalizes a plan, at any status</li>
 			<li>References or invokes an existing plan in any state</li>
 		</ul>
+		<p>A plan can take a week or more to resolve. Invoking this contract enters its procedure; it
+		does not promise to finish it in one session.</p>
 		<p>If a session is about to start non-trivial implementation work without an active plan,
 		surface that and consult Phase 1 below.</p>
 	</section>
@@ -119,11 +124,9 @@ updated: YYYY-MM-DD
 		<section data-kcd-section="phase-3">
 			<h3 data-kcd-heading>Phase 3 — Retire</h3>
 			<p><strong>Trigger:</strong> A plan in <code>plans/</code> has been delivered.</p>
-			<p><strong>Together:</strong> The session audits the plan against reality — unchecked tasks,
-			stale forward-looking language, divergences between plan and outcome, debug artifacts in
-			touched files. Each is a hard gate (see Standards). Once cleared: set
-			<code>status: complete</code>, rewrite Current State as a completion record, sync logging
-			hygiene (lens todos, completed log, session log), move the plan's row from
+			<p><strong>Together:</strong> The session runs the rationalization pass, then checks for debug
+			artifacts in touched files (see Standards). Once cleared: set
+			<code>status: complete</code>, rewrite Current State as a completion record, move the plan's row from
 			<code>## Active</code> to <code>## Completed</code> in <code>plans/nav-index.html</code> (and
 			update the lens), move the file to <code>plans/plans_complete/{filename}</code>.</p>
 			<p><strong>Capture the durable artifact (judgment call, done with the user).</strong>
@@ -155,6 +158,20 @@ updated: YYYY-MM-DD
 			Active deferrals (items carried forward) name their landing spot — lens todo, future plan,
 			deferred decision.</p>
 		</section>
+	</section>
+
+	<section data-kcd-section="rationalization">
+		<h2 data-kcd-heading>Rationalization Pass</h2>
+		<p>Invoked on request ("rationalize this plan"), and owed before re-promotion and before
+		retirement. It is one turn: a high-level pass over a plan in any status, and it changes no status.
+		Read the plan cold. Remove old history so every passage reads as current fact. Fold satellite
+		documents into the plan, or link them as companions. Check what the plan claims (end states, named
+		files and components, what it says is not yet built) against what's on disk, and rewrite whatever
+		has gone false. Re-read Open Questions and Current State for anything since settled.</p>
+		<p>Every unchecked box needs a ruling: done, deferred, or out of scope. Those rulings belong to the
+		human, so list them and stop. The code check stays narrow: it tests what the plan claims and never
+		audits the codebase. Anything that needs real digging leaves the pass as a todo or a plan of its
+		own. End with a short report: what changed, what was false, and which rulings are needed.</p>
 	</section>
 
 	<section data-kcd-section="index">
@@ -209,8 +226,10 @@ updated: YYYY-MM-DD
 		<ol>
 			<li><strong>Unchecked checkboxes</strong> — <em>hard, blocks archive.</em> Confirm per item: resolved, deferred, or out of scope.</li>
 			<li><strong>Debug artifacts in files touched this session</strong> — <em>advisory; surface and narrate, do not block on quantity.</em> Grep the session's diff (not the full "Files Affected" list — that history may span many sessions) for: <code>dd(</code>, <code>dump(</code>, <code>var_dump(</code>, <code>print_r(</code>, bare <code>die(</code>/<code>exit(</code>, <code>console.log(</code>, <code>console.error(</code>, <code>console.warn(</code>, <code>debugger</code>, commented-out blocks of &gt;2 lines, <code>TODO</code>/<code>FIXME</code>/<code>HACK</code> inline comments. Use judgment: <strong>operational logging</strong> (boot banners, structured <code>console.warn</code>/<code>error</code> in handlers, labeled error reporting) is not a debug artifact. Only genuine leftovers get surfaced in the retirement narrative.</li>
-			<li><strong>Stale lens todos</strong> — <em>hard, blocks archive.</em> Tasks completed during the plan but never checked off — sweep into Completed before archive.</li>
 		</ol>
+		<p>Logging is not this contract's business. Todos, the completed log and the session breadcrumb
+		belong to their habits and are swept by <a href="_Claude/contracts/close.html">close</a> — a
+		plan names none of them, so the two procedures never carry the same instruction.</p>
 	</section>
 
 	<section data-kcd-section="edge-cases">

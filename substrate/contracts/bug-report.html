@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>bug-report</title>
+	<style>
+		/* KCD baseline — legibility only, never design. Overridden by kcd.css below. */
+		body { background:#0d0d1c; color:#e6e6f2; font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif;
+		       max-width:72rem; margin:2.5rem auto; padding:0 1.25rem; }
+		a    { color:#8b7ff0; }
+		code { background:#17172e; border-radius:4px; padding:.05rem .3rem; }
+	</style>
+	<link rel="stylesheet" href="../kcd.css">
+</head>
+<body>
+
+<article data-kcd="contract">
+<dl data-kcd-frontmatter>
+	<dt>name</dt>
+	<dd data-kcd-field="name" data-kcd-type="slug">bug-report</dd>
+	<dt>description</dt>
+	<dd data-kcd-field="description" data-kcd-type="text">The paperwork for a filed bug — file it, claim it, open the trace door, reproduce, repair, prove, close the door, and sign it — so any agent can see what moved and confirm it was fixed.</dd>
+	<dt>type</dt>
+	<dd data-kcd-field="type" data-kcd-type="enum">contract</dd>
+	<dt>status</dt>
+	<dd data-kcd-field="status" data-kcd-type="enum">active</dd>
+	<dt>scope</dt>
+	<dd data-kcd-field="scope" data-kcd-type="enum">universal</dd>
+	<dt>updated</dt>
+	<dd data-kcd-field="updated" data-kcd-type="date">2026-09-13</dd>
+</dl>
+<h1>Bug Report — Contract</h1>
+<blockquote>
+	<p>Open the door, do the work, close the door behind you — and leave a record that proves it.</p>
+</blockquote>
+<section data-kcd-section="when">
+	<h2 data-kcd-heading>When</h2>
+	<p>Invoked explicitly as <code>#bug-report</code>, or by description — "file a bug for this", "pick up bug 14". A report is for a real bug that needs repair and is complex enough to need investigation. A bug that can be fixed inline is fixed inline, and a bug already known to be fixed is not reported at all.</p>
+	<p>A report is what a known defect becomes instead of a todo. It is useful but ephemeral — not a ticket history. The code keeps moving, so a report is a claim about how the code was when it was filed, and it is checked against the code as it is now before anyone acts on it.</p>
+	<p>It is multi-stage by design. Filing is a complete use of the contract on its own: a report can sit open for weeks before anyone claims it, and the agent that repairs it need not be the one that found it — or even run in the same host.</p>
+	<p>The record serves two readers. The agent doing the work uses it to orient itself. Every other agent uses it to learn that something moved under them.</p>
+</section>
+<section data-kcd-section="artifact-format">
+	<h2 data-kcd-heading>Artifact Format</h2>
+	<p>One file per bug, of type <code>bug-report</code>, at <code>_Claude/bug-reports/bug-report-{n}.html</code>. The ID is a plain increment: one past the highest number on disk.</p>
+	<p><strong>Status</strong> — the task board's own words: <code>queued</code> → <code>working</code> → <code>verified</code>, or <code>rejected</code> when it is not a bug or no longer reproduces. <code>needs-human</code> is the one addition: an agent could not settle it. A report the human sends back returns to <code>queued</code>.</p>
+	<p><strong>Fields map onto the board by name.</strong> Every value a board task carries is an annotated field — <code>&lt;span data-kcd-field="assignee" data-kcd-type="text"&gt;main&lt;/span&gt;</code> — and the field name is the <code>Task</code> property, spelled exactly. Write them inline in the prose of the section that owns them; nothing else about the prose is constrained.</p>
+	<div data-kcd-table>
+		<div data-kcd-head><span>Where</span><span>Fields</span></div>
+		<div data-kcd-slot="table-data"><span data-kcd-field="what" data-kcd-type="text">frontmatter</span><span data-kcd-field="why" data-kcd-type="text"><code>name</code> · <code>description</code> ( the bug in one line, the task's title ) · <code>status</code> · <code>created</code> · <code>updated</code></span></div>
+		<div data-kcd-slot="table-data"><span data-kcd-field="what" data-kcd-type="text">Report</span><span data-kcd-field="why" data-kcd-type="text"><code>raisedBy</code> ( text — who filed it ) · <code>priority</code> ( enum — low, medium, high, critical ) · <code>exitCondition</code> ( text — what is true once fixed )</span></div>
+		<div data-kcd-slot="table-data"><span data-kcd-field="what" data-kcd-type="text">Repair</span><span data-kcd-field="why" data-kcd-type="text"><code>assignee</code> ( text — the claimant ) · <code>startedAt</code> ( date )</span></div>
+		<div data-kcd-slot="table-data"><span data-kcd-field="what" data-kcd-type="text">Verification</span><span data-kcd-field="why" data-kcd-type="text"><code>verifiedBy</code> ( text — the signer ) · <code>approval</code> ( enum — <code>self</code> when the repairer signs its own work; omitted otherwise ) · <code>endedAt</code> ( date )</span></div>
+	</div>
+	<p><strong>Sections:</strong></p>
+	<ul>
+		<li><strong>Report</strong> — the symptom, how to reproduce it, where it lives, and any recorded evidence of the failure, quoted rather than paraphrased.</li>
+		<li><strong>Door</strong> — the trace areas this agent armed, and a closing line once it disarmed them. <code>none</code> when no trace was used.</li>
+		<li><strong>Repair</strong> — what moved: the files, the behaviour, and why.</li>
+		<li><strong>Proof</strong> — the evidence before and after, or a plain statement that the fix could not be confirmed and why.</li>
+		<li><strong>Verification</strong> — who signed it, or the question the human is being asked.</li>
+		<li><strong>Notes</strong> — anything else a later reader needs.</li>
+	</ul>
+	<p><strong>Names:</strong> an agent signs with the name its host gives it — a constellation seat, a board agent, or a plain session's lens.</p>
+	<p><strong>Pointing at a report:</strong> <code>bug-reports/</code> is ephemeral space, so a document that names a report does so with an address — <code>&lt;code data-kcd-address&gt;_Claude/bug-reports/bug-report-14.html&lt;/code&gt;</code> — never an <code>&lt;a href&gt;</code>, which the validator refuses.</p>
+	<p><strong>Not yet on the board</strong>, kept for the rationalizing pass: <code>verifiedBy</code> has no <code>Task</code> twin, a verifier other than the repairer has no <code>approval</code> word, and <code>needs-human</code> is expressed on the board as an ask raised against the task rather than as a state.</p>
+</section>
+<section data-kcd-section="lifecycle">
+	<h2 data-kcd-heading>Lifecycle</h2>
+	<p>Eight phases. Phase 1 stands alone; Phases 2–8 run together once a report is claimed.</p>
+	<section data-kcd-section="phase-1">
+		<h3 data-kcd-heading>Phase 1 — File</h3>
+		<p><strong>Trigger:</strong> the human asks for a bug to be filed, or an agent finds a real defect that needs investigation and is not fixing it now.</p>
+		<p><strong>Together:</strong> The agent takes the next ID, writes the Report with its <code>raisedBy</code>, <code>priority</code> and <code>exitCondition</code>, and sets <code>status</code> to <code>queued</code>. A defect goes here, not onto the todo list.</p>
+		<p><strong>Standard:</strong> An agent with none of this session's context can find the bug from the Report alone.</p>
+	</section>
+	<section data-kcd-section="phase-2">
+		<h3 data-kcd-heading>Phase 2 — Claim</h3>
+		<p><strong>Trigger:</strong> an agent takes up a <code>queued</code> report.</p>
+		<p><strong>Together:</strong> It sets <code>status</code> to <code>working</code> and writes <code>assignee</code> and <code>startedAt</code> into Repair before touching anything.</p>
+		<p><strong>Standard:</strong> One claimant at a time. A report claimed by another agent is not taken over. The claimant reads the Report as a claim and checks it against the code as it is now — it may have drifted, or already be fixed.</p>
+	</section>
+	<section data-kcd-section="phase-3">
+		<h3 data-kcd-heading>Phase 3 — Open the door</h3>
+		<p><strong>Trigger:</strong> the project has a trace instrument that reaches the bug.</p>
+		<p><strong>Together:</strong> Per the <a href="_Claude/habits/unslotted/trace-door.html">trace-door</a> habit — read what is already recorded, see what is already armed, arm only what this bug needs, and write that list into Door before reproducing.</p>
+		<p><strong>Standard:</strong> Door is written before the first reproduction. With no instrument, Door reads <code>none</code> and the contract carries on — the trace is a guide, never a gate.</p>
+	</section>
+	<section data-kcd-section="phase-4">
+		<h3 data-kcd-heading>Phase 4 — Reproduce</h3>
+		<p><strong>Trigger:</strong> always, once claimed.</p>
+		<p><strong>Together:</strong> The agent reproduces the failure and puts the before evidence into Proof.</p>
+		<p><strong>Standard:</strong> The before evidence shows the failure. If it will not reproduce, Proof says so and the agent decides whether to carry on or set <code>needs-human</code>.</p>
+	</section>
+	<section data-kcd-section="phase-5">
+		<h3 data-kcd-heading>Phase 5 — Repair</h3>
+		<p><strong>Trigger:</strong> always, once reproduced or knowingly not.</p>
+		<p><strong>Together:</strong> The agent fixes the bug and writes Repair. This contract adds no stop of its own; a human-driven session still drafts and explains before code, per the entry document's hard rules.</p>
+		<p><strong>Standard:</strong> An agent working elsewhere learns from Repair alone what changed under it.</p>
+	</section>
+	<section data-kcd-section="phase-6">
+		<h3 data-kcd-heading>Phase 6 — Prove</h3>
+		<p><strong>Trigger:</strong> always, once repaired.</p>
+		<p><strong>Together:</strong> The same door and the same reproduction again; the after evidence goes into Proof beside the before. Changed behaviour is also covered by a test, per the project's own testing habit where it has one. Where there is no way to confirm the fix, Proof says so plainly and <code>status</code> becomes <code>needs-human</code>.</p>
+		<p><strong>Standard:</strong> Before and after, read side by side, settle it. The after evidence shows the fixed path running — an absence of failure lines proves nothing, because code that never ran leaves none either.</p>
+	</section>
+	<section data-kcd-section="phase-7">
+		<h3 data-kcd-heading>Phase 7 — Close the door</h3>
+		<p><strong>Trigger:</strong> Door lists anything.</p>
+		<p><strong>Together:</strong> Per trace-door, the agent disarms exactly what Door lists and writes the closing line.</p>
+		<p><strong>Standard:</strong> Nothing this agent armed is left armed; nothing it did not arm is touched.</p>
+	</section>
+	<section data-kcd-section="phase-8">
+		<h3 data-kcd-heading>Phase 8 — Verify</h3>
+		<p><strong>Trigger:</strong> Proof settles it.</p>
+		<p><strong>Together:</strong> The verifier writes <code>verifiedBy</code>, <code>approval</code> as <code>self</code> when it is the repairer, and <code>endedAt</code>, then sets <code>status</code> to <code>verified</code>. A verifier that cannot make a reasonable judgment sets <code>needs-human</code> instead and writes its question into Verification.</p>
+		<p><strong>Standard:</strong> Verification is a signature on the proof, not a grade. It is light on purpose.</p>
+	</section>
+</section>
+<section data-kcd-section="standards">
+	<h2 data-kcd-heading>Standards</h2>
+	<ul>
+		<li><strong>Proof, not ceremony.</strong> The record exists so the fix can be confirmed quickly. A field that does not help an agent orient or a reader confirm does not belong in it.</li>
+		<li><strong>Humans never sign.</strong> <code>verifiedBy</code> is always an agent. The human spot-checks verified reports and returns any that are wrong to <code>queued</code>.</li>
+		<li><strong>The escape path is always open.</strong> Any phase may end in <code>needs-human</code> with the question written down. That is a finished use of the contract, not a failure of it.</li>
+		<li><strong>A <code>needs-human</code> report does not move until the human rules in writing to an agent.</strong> The human never edits the record. The agent it told writes the ruling into Verification as a note, attributed and dated, and moves <code>status</code> as the ruling says.</li>
+		<li><strong>Reports are ephemeral.</strong> Verified and rejected reports sit until the monthly sweep, where the human approves their deletion. No agent deletes one on its own, and nothing depends on a report outliving that sweep.</li>
+		<li><strong>Route, never restate.</strong> How to arm and disarm lives in trace-door and the project's trace reference; how to cover a change lives in the project's testing habit. This contract carries only order and the record.</li>
+	</ul>
+</section>
+<section data-kcd-section="edge-cases">
+	<h2 data-kcd-heading>Edge Cases</h2>
+	<ul>
+		<li><strong>Proof fails.</strong> Back to Phase 5 with the door still open. The door closes once, at the end.</li>
+		<li><strong>The agent dies mid-repair.</strong> Door names what is still armed, so whoever picks the report up next closes that door before opening its own.</li>
+		<li><strong>Sent back to <code>queued</code>.</strong> The Report stays. The next claimant writes Door, Repair, Proof and Verification afresh rather than appending to the last attempt's, and says in Notes what the previous attempt got wrong.</li>
+		<li><strong>The bug is already gone, or was never one.</strong> Proof records why, and <code>status</code> becomes <code>rejected</code> — never deleted unrecorded.</li>
+	</ul>
+</section>
+<section data-kcd-section="scope-values">
+	<h2 data-kcd-heading>Scope Values</h2>
+	<p><code>universal</code> — referenced from <a href="_Claude/lenses/_lens-base.html">_lens-base</a>, so any session can file or pick up a bug.</p>
+</section>
+</article>
+
+</body>
+</html>

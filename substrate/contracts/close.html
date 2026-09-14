@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>close</title>
+	<style>
+		/* KCD baseline — legibility only, never design. Overridden by kcd.css below. */
+		body { background:#0d0d1c; color:#e6e6f2; font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif;
+		       max-width:72rem; margin:2.5rem auto; padding:0 1.25rem; }
+		a    { color:#8b7ff0; }
+		code { background:#17172e; border-radius:4px; padding:.05rem .3rem; }
+	</style>
+	<link rel="stylesheet" href="../kcd.css">
+</head>
+<body>
+
+<article data-kcd="contract">
+<dl data-kcd-frontmatter>
+	<dt>name</dt>
+	<dd data-kcd-field="name" data-kcd-type="slug">close</dd>
+	<dt>description</dt>
+	<dd data-kcd-field="description" data-kcd-type="text">The sweep that closes a task or group of tasks — invoked on the work being closed, it logs the truth about what happened, task by task, and catches every logging and hygiene duty the ambient habits were supposed to fire and may have missed.</dd>
+	<dt>type</dt>
+	<dd data-kcd-field="type" data-kcd-type="enum">contract</dd>
+	<dt>status</dt>
+	<dd data-kcd-field="status" data-kcd-type="enum">active</dd>
+	<dt>scope</dt>
+	<dd data-kcd-field="scope" data-kcd-type="enum">universal</dd>
+	<dt>updated</dt>
+	<dd data-kcd-field="updated" data-kcd-type="date">2026-09-13</dd>
+</dl>
+<h1>Close — Contract</h1>
+<blockquote>
+	<p>Work finishes whether or not its habits ever fired. Close is the sweep that makes sure they did, for the tasks being closed.</p>
+</blockquote>
+<section data-kcd-section="when">
+	<h2 data-kcd-heading>When</h2>
+	<p>Invoked explicitly as <code>#close</code>, or by description — "let's wrap up", "close this out", "we're done with that". It closes a TASK or a group of tasks: everything done since the previous close, or the tasks the human names. It is often the last command of a session, and it does not end one. Run it while the context that knows what happened is still loaded.</p>
+	<p>Habits fire on triggers, and work that never hit a trigger still finishes. Close is the sweep over the duties those habits own. It routes to each habit rather than restating it, so when a habit changes, close does not.</p>
+	<p>The friction is the point. Agentic work moves faster than it can be checked, and close is one of the deliberate stops where output is validated and the human is brought back into the loop before the context that produced it is gone.</p>
+</section>
+<section data-kcd-section="lifecycle">
+	<h2 data-kcd-heading>Lifecycle</h2>
+	<p>Six phases, in order. Each ends with a one-line report to the human, including when there was nothing to do — a phase that skips silently cannot be told apart from a phase that was forgotten.</p>
+	<section data-kcd-section="phase-1">
+		<h3 data-kcd-heading>Phase 1 — Todos</h3>
+		<p><strong>Trigger:</strong> always.</p>
+		<p><strong>Together:</strong> The session files every deferred item, open decision or pending dependency the closed tasks surfaced and did not record, per the active lens's track-todo habit. It clears from the todo list every item the closed tasks actually finished — the completed log, not the todo list, is where done work is recorded. The human rules on any item whose status is a judgment rather than a fact.</p>
+		<p><strong>Standard:</strong> Nothing the closed tasks surfaced exists only in the transcript. An item is cleared because the work landed, not because it was discussed.</p>
+	</section>
+	<section data-kcd-section="phase-2">
+		<h3 data-kcd-heading>Phase 2 — Completed log</h3>
+		<p><strong>Trigger:</strong> a closed task substantially advanced a lens's work.</p>
+		<p><strong>Together:</strong> The record is by task, not by session: one entry per task or coherent group of tasks, filed under the lens it advanced, per the <a href="_Claude/habits/log-completed/log-completed-liberal.html">log-completed</a> habit.</p>
+		<p><strong>Standard:</strong> The entry says what was done, why, and what it unlocks. A trivial or exploratory task writes none and says so.</p>
+	</section>
+	<section data-kcd-section="phase-3">
+		<h3 data-kcd-heading>Phase 3 — Session breadcrumb</h3>
+		<p><strong>Trigger:</strong> the closed tasks changed anything under <code>_Claude/</code>.</p>
+		<p><strong>Together:</strong> One line, per the <a href="_Claude/habits/log-session/log-session-liberal.html">log-session</a> habit.</p>
+		<p><strong>Standard:</strong> Exactly one breadcrumb per close, however much it covers — only what came after the previous close.</p>
+	</section>
+	<section data-kcd-section="phase-4">
+		<h3 data-kcd-heading>Phase 4 — Vault health</h3>
+		<p><strong>Trigger:</strong> the closed tasks wrote, moved or deleted any KCD artifact.</p>
+		<p><strong>Together:</strong> The session runs <code>kcd_health</code> on each artifact it wrote, and on the whole vault if anything was moved or deleted. A failure the closed tasks introduced is fixed now. A failure that predates them is surfaced to the human and left alone.</p>
+		<p><strong>Standard:</strong> <code>kcd_health</code> is believed over the session's own reading. The session leaves behind no failure of its own making.</p>
+	</section>
+	<section data-kcd-section="phase-5">
+		<h3 data-kcd-heading>Phase 5 — Scratch</h3>
+		<p><strong>Trigger:</strong> the closed tasks wrote any byproduct — scratch, AI notes, dumps, one-off scripts — under its lens's work area or anywhere else it put one.</p>
+		<p><strong>Together:</strong> The session lists each byproduct with one line on what it is, then deletes it. Scratch is not kept: a byproduct left behind outlives the context that explains it and confuses whoever finds it next. Nothing is deleted before it has been described, and only the session's own — another lane's scratch is not this session's to delete. A byproduct survives only when the human has asked to keep it. Close only names a promotion candidate, before its source is deleted — moving an artifact into canonical documentation is owned by the <a href="_Claude/contracts/plan.html">plan</a> contract's retirement.</p>
+		<p><strong>Standard:</strong> The session leaves no byproduct of its own behind. Every one is described, then gone, unless the human kept it by name.</p>
+	</section>
+	<section data-kcd-section="phase-6">
+		<h3 data-kcd-heading>Phase 6 — Handoff</h3>
+		<p><strong>Trigger:</strong> always.</p>
+		<p><strong>Together:</strong> The session writes the human a short prose handoff: what landed, what is half-done and where it stands, which plan it advanced if any, and what the next session must be told that nothing on disk records. The handoff is the last step — nothing waits on a further confirmation.</p>
+		<p><strong>Standard:</strong> The handoff is prose to the human, not a file. Anything in it that must outlive the conversation belongs in a todo or a plan — send it back through Phase 1.</p>
+	</section>
+</section>
+<section data-kcd-section="standards">
+	<h2 data-kcd-heading>Standards</h2>
+	<ul>
+		<li><strong>Route, never restate.</strong> Each phase names the habit or contract that owns its format. The format lives there; close carries only order and trigger.</li>
+		<li><strong>The session's own habit poles govern.</strong> Where a lens brings in a different pole — log-session-never, say — that phase reports it is off and moves on. Close never overrides a slot.</li>
+		<li><strong>Invoking close is the confirmation.</strong> <code>#close</code> authorizes the whole sweep; the session does not ask whether the work, or the session, is closed. It stops only for a genuine ruling inside a phase — whether an item is really done, whether to keep a byproduct — and where the human is not there to rule, that item is filed as a todo rather than asked about. Silence is not consent, and neither is an approval given earlier for something else.</li>
+		<li><strong>Plans are not close's.</strong> A plan's state, checkboxes and retirement belong to the plan contract. Close names the plan in the handoff; invoking the plan contract is a separate decision.</li>
+		<li><strong>Git is not close's.</strong> Close never stages, commits or reports on version control. That is the human's safe copy, and it stays in the human's hands.</li>
+	</ul>
+</section>
+<section data-kcd-section="edge-cases">
+	<h2 data-kcd-heading>Edge Cases</h2>
+	<ul>
+		<li><strong>Invoked mid-session.</strong> The ordinary case. Run it in full on the tasks being closed; the session carries on afterwards. Close closes work, not sessions.</li>
+		<li><strong>Several lanes open at once.</strong> Each session closes only its own work. A todo, log line or scratch file another lane wrote is not this session's to rule on.</li>
+		<li><strong>Context already compacted.</strong> What the session can no longer see, it says it can no longer see. It never reconstructs a record from a summary and files it as fact.</li>
+	</ul>
+</section>
+<section data-kcd-section="scope-values">
+	<h2 data-kcd-heading>Scope Values</h2>
+	<p><code>universal</code> — referenced from <a href="_Claude/lenses/_lens-base.html">_lens-base</a>, so work under any lens can be closed.</p>
+</section>
+</article>
+
+</body>
+</html>

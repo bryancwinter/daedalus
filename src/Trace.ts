@@ -50,6 +50,10 @@ export interface TraceEntry {
 	at:    string;
 	tool:  string;
 	ok:    boolean;
+	/** The host that made the call, `name/version` off its handshake — the field this file partitions
+	 *  by, so it rides successes as well. Absent when no handshake happened ( an in-process call ) or
+	 *  the client sent no `clientInfo`. */
+	client?: string;
 	/** Failures only. */
 	fault?: Fault;
 	/** Failures only — what the agent actually sent, long string values clipped. */
@@ -98,10 +102,11 @@ export class Trace {
 	}
 
 	/** Record one call. Never throws, never blocks meaningfully — one appendFileSync per call. */
-	static record( tool: string, ok: boolean, detail?: { args?: Record<string, unknown>; error?: string; fault?: Fault } ): void {
+	static record( tool: string, ok: boolean, detail?: { args?: Record<string, unknown>; error?: string; fault?: Fault; client?: string } ): void {
 		if ( this.off || !this.enabled() ) return;
 
 		const entry: TraceEntry = { at: new Date().toISOString(), tool, ok };
+		if ( detail?.client ) entry.client = detail.client;
 		if ( !ok ) {
 			entry.fault = detail?.fault ?? Trace.classify( detail?.error ?? '' );
 			entry.args  = Trace.clip( detail?.args ?? {} );

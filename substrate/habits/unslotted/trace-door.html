@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>trace-door</title>
+	<style>
+		/* KCD baseline — legibility only, never design. Overridden by kcd.css below. */
+		body { background:#0d0d1c; color:#e6e6f2; font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif;
+		       max-width:72rem; margin:2.5rem auto; padding:0 1.25rem; }
+		a    { color:#8b7ff0; }
+		code { background:#17172e; border-radius:4px; padding:.05rem .3rem; }
+	</style>
+	<link rel="stylesheet" href="../../kcd.css">
+</head>
+<body>
+
+<article data-kcd="habit">
+<dl data-kcd-frontmatter>
+	<dt>name</dt>
+	<dd data-kcd-field="name" data-kcd-type="slug">trace-door</dd>
+	<dt>description</dt>
+	<dd data-kcd-field="description" data-kcd-type="text">How to use a shared trace instrument — read what is already recorded, arm only what you need and note it, reproduce, then disarm exactly what you armed. Open the door, do the work, close it behind you. Fires before arming any trace area or reproducing a runtime defect where a trace exists.</dd>
+	<dt>type</dt>
+	<dd data-kcd-field="type" data-kcd-type="enum">habit</dd>
+	<dt>status</dt>
+	<dd data-kcd-field="status" data-kcd-type="enum">active</dd>
+	<dt>schema-version</dt>
+	<dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
+	<dt>author</dt>
+	<dd data-kcd-field="author" data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
+	<dt>updated</dt>
+	<dd data-kcd-field="updated" data-kcd-type="date">2026-09-13</dd>
+</dl>
+<h1>trace-door</h1>
+<blockquote>
+	<p>Open the door, do the work, close the door behind you.</p>
+</blockquote>
+<section data-kcd-section="why">
+	<h2 data-kcd-heading>Why</h2>
+	<p>about to arm a trace area, or about to reproduce, investigate or confirm a runtime defect in a project whose trace instrument has areas that are switched on and off — whether or not a bug report is open for it</p>
+</section>
+<section data-kcd-section="action">
+	<h2 data-kcd-heading>Action</h2>
+	<p>read what the trace has already recorded before arming anything; read which areas are already armed; add only the areas this work needs, and write down the ones you added — into the Door section of the bug report being worked, or into the reply when there is none; reproduce only once the arming has taken effect; read the output; then remove exactly the areas you added and say so. How this project's instrument does each step lives in its trace reference — find it with <code>kcd_query</code> when the active lens does not carry it</p>
+</section>
+<section data-kcd-section="explanation">
+	<h2 data-kcd-heading>Explanation</h2>
+	<p>A trace instrument is shared state. Several agents can be working against the same running app at once, each with areas armed for its own problem, so every change to the armed set lands on all of them. That is why arming is additive and disarming is exact: an agent that replaces the whole set, or clears a channel to get a clean read, has switched off another agent's evidence or destroyed it, and that agent gets no signal that anything happened.</p>
+	<p>The record comes before the theory. Most instruments log failures whether or not anything is armed, so the reason for a defect is often already written down before any area is switched on. Reading it first is cheaper than arming, and it keeps an agent from building an explanation that the record already contradicts.</p>
+	<p>A line is written only when its area is armed at the moment the code runs. Arming after reproducing, or before the arming has propagated, produces an empty read — and an empty read looks exactly like a clean one. Silence is not evidence: code that never ran leaves no failure lines either, so a confirming read has to show the path running, not merely the absence of errors.</p>
+	<p>Writing down what you armed is what lets the door be closed by someone else. An agent can be interrupted, compacted or killed mid-work; the note tells whoever comes next what is still armed and whose it was.</p>
+	<p>The trace is a guide, not a gate. It exists to make a fix checkable, and an agent that cannot use one — because none exists, or it does not reach the failure — carries on with whatever other evidence it has and states plainly how far that evidence goes.</p>
+</section>
+<section data-kcd-section="rules">
+	<h2 data-kcd-heading>Rules</h2>
+	<ul>
+		<li>never replace the whole armed set — add and remove single areas only; a replace silently switches off every other agent's areas</li>
+		<li>never clear or truncate a trace channel — narrow the read with a search instead; a cleared channel may hold another agent's only evidence</li>
+		<li>never remove an area you did not add, even one that looks abandoned — name it in the reply and leave it</li>
+		<li>an area someone else already armed can be read freely, but it is not yours to note or to remove</li>
+		<li>a reply that does not confirm an area as armed means it is not armed — correct the name and arm again before reproducing</li>
+		<li>never report a fix as confirmed from an empty read — find a line, receipt or record showing the fixed path actually ran</li>
+		<li>close the door before reporting the work done; when a disarm fails or the instrument is unreachable, say exactly what is still armed</li>
+		<li>when there is no trace, or it does not reach the failure, say so and continue with other evidence — and when nothing can confirm the fix, say it is unconfirmed and ask for human review rather than calling it fixed</li>
+	</ul>
+</section>
+<section data-kcd-section="references" data-kcd-merge="union">
+	<h2 data-kcd-heading>References</h2>
+	<div data-kcd-table>
+		<div data-kcd-head><span>What</span><span>Where</span><span>Why</span></div>
+		<div data-kcd-slot="reference"> <span data-kcd-field="what" data-kcd-type="text">bug-report</span> <a data-kcd-field="where" data-kcd-type="path" href="_Claude/contracts/bug-report.html">bug-report</a> <span data-kcd-field="why" data-kcd-type="text">The contract whose Door section this habit writes into when a filed bug is being worked — and whose Proof the confirming read feeds.</span> </div>
+		<div data-kcd-slot="reference"> <span data-kcd-field="what" data-kcd-type="text">habit-authoring</span> <a data-kcd-field="where" data-kcd-type="path" href="_Claude/references/kcd_sdk/habit-authoring.html">habit-authoring</a> <span data-kcd-field="why" data-kcd-type="text">The doctrine this habit was written against — the exit rule behind the no-trace and failed-disarm cases, and the feedback-loop layer the empty-read rule guards.</span> </div>
+	</div>
+</section>
+</article>
+
+</body>
+</html>

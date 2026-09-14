@@ -11,7 +11,7 @@
 
 	<dl data-kcd-frontmatter>
 		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">log-session-liberal</dd>
-		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">Prepend a terse session breadcrumb when the user asks to "log" and at session close when work touched _Claude/. The default pole of the log-session mutual-exclusion class.</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">Append a terse session breadcrumb when the user asks to "log" and at session close when work touched _Claude/. The default pole of the log-session mutual-exclusion class.</dd>
 		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">habit</dd>
 		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">active</dd>
 		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
@@ -29,18 +29,28 @@
 
 	<section data-kcd-section="action">
 		<h3>Action</h3>
-		<p>prepend one dated breadcrumb line (format <code>YYYY-MM-DD : {lens} : note.</code>) to
-		<code data-kcd-address>_Claude/logs/session.md</code>, newest on top</p>
+		<p><strong>APPEND</strong> one dated breadcrumb line (format
+		<code>YYYY-MM-DD : {lens} : note.</code>) to the FOOT of
+		<code data-kcd-address>_Claude/logs/session.md</code> — never prepend, never rewrite the file</p>
 	</section>
 
 	<section data-kcd-section="explanation">
 		<h3>Explanation</h3>
-		<p>The session log is read in full to orient every new session, so it must stay a terse,
-		scannable trail of pointers — a breadcrumb, not a changelog. It is append-only and accumulates;
-		because each entry is a single terse line the file stays cheap to load for a long time, and
-		compacting it is a future, eventually-automated concern, not a standing cap. A task agent asked to
-		log prepends exactly one line for its own work — no completed entry, no pruning; the detailed
-		record is the completed log's job, not this one's.</p>
+		<p>The session log is a terse, scannable trail of pointers — a breadcrumb, not a changelog.
+		A task agent asked to log appends exactly one line for its own work — no completed entry, no
+		pruning; the detailed record is the completed log's job, not this one's. Compacting is a future,
+		eventually-automated concern, not a standing cap.</p>
+		<p><strong>APPEND, NOT PREPEND — because agents clobber each other and nothing detects it</strong>
+		( Bryan's ruling, 2026-09-12 ). Newest-on-top means every writer rewrites the WHOLE file, and
+		several lanes run at once by design: an entry written at midday on 2026-09-12 was gone by 13:29,
+		taken out by another lane's whole-file write, and it was noticed only because the session that
+		wrote it happened to come back hours later and grep for its own words. <strong>The failure is
+		silent and unbounded</strong> — nothing compares before and after, and a lane that logs once and
+		exits never learns. An append touches only the end of the file, so two lanes writing in the same
+		minute cost at most an interleaving rather than a deletion. The read path is
+		<code>tail</code>, which is why the newest entry belongs at the foot.</p>
+		<p>This is the INTERIM fix. The durable one is a program rather than a file handle — a tool that
+		takes one entry and never the file — raised on the vault lens's todo.</p>
 	</section>
 
 	<section data-kcd-section="rules">

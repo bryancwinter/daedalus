@@ -102,14 +102,18 @@ export class DaedalusServer {
 		// process that Trace has no other way to learn.
 		Trace.stamp( build );
 		this.server.observe( ( name, args, result, refusal ) => {
+			// The client rides on SUCCESSES too, unlike the rest of the failure detail: it is the key the
+			// file is partitioned by, and a rate per host needs its denominator per host as well.
+			const client = this.server.client;
+
 			if ( !result.isError ) {
-				Trace.record( name, true );
+				Trace.record( name, true, { client } );
 				return;
 			}
 			// `refusal` is the wire's own certainty about the two failures it raises itself; null means
 			// the handler produced this, and Trace falls back to reading the message.
 			const error = result.content.map( c => c.text ).join( ' ' );
-			Trace.record( name, false, { args, error, fault: refusal ?? undefined } );
+			Trace.record( name, false, { args, error, client, fault: refusal ?? undefined } );
 		} );
 	}
 

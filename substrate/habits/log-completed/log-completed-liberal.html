@@ -11,7 +11,7 @@
 
 	<dl data-kcd-frontmatter>
 		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">log-completed-liberal</dd>
-		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">Prepend a detailed completed entry for substantial lens work. The "on" pole of the log-completed mutual-exclusion class — the default, aggressive posture.</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">Append a detailed completed entry for substantial lens work. The "on" pole of the log-completed mutual-exclusion class — the default, aggressive posture.</dd>
 		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">habit</dd>
 		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">active</dd>
 		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
@@ -29,7 +29,7 @@
 
 	<section data-kcd-section="action">
 		<h3>Action</h3>
-		<p>prepend one entry to the active lens's completed log at its <code>completed</code> path
+		<p><strong>APPEND</strong> one entry to the FOOT of the active lens's completed log at its <code>completed</code> path
 		(<code>_Claude/logs/{lensname}/completed/</code>), format
 		<code>- [YYYY-MM-DD] {what, why, what it unlocks}</code>, for each lens the session advanced</p>
 	</section>
@@ -40,7 +40,9 @@
 		<a href="_Claude/habits/log-session/log-session-liberal.html">log-session-liberal</a>'s
 		breadcrumb: the breadcrumb always fires on request, but the completed entry only earns its place
 		when the work is substantial enough to be worth the detail — what was done, why, and what it
-		unlocks, as much as is worth keeping. Thin (avoid): <code>- [2026-05-09] Updated frontend
+		unlocks, as much as is worth keeping. <strong>Appended, never prepended</strong>, for the reason
+		spelled out on log-session-liberal: newest-on-top makes every writer rewrite the whole file, and
+		a lane that logs once and exits never finds out it destroyed someone else's entry. Thin (avoid): <code>- [2026-05-09] Updated frontend
 		lens.</code> Rich (target): <code>- [2026-05-09] Frontend: encoded accordion rebuilt over the old
 		expansion panels — unblocks the detail left-panel work.</code></p>
 	</section>

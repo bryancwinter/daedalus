@@ -71,6 +71,7 @@
 				<tr><td><code>analyzer</code></td><td><code>AnalyzerObject</code></td><td>frontmatter <code>type: analyzer</code> + <code>analyzers/</code> directory</td></tr>
 				<tr><td><code>habit</code></td><td><code>HabitObject</code></td><td>frontmatter <code>type: habit</code> + <code>habits/</code> directory</td></tr>
 				<tr><td><code>contract</code></td><td><code>ContractObject</code></td><td>frontmatter <code>type: contract</code> + <code>contracts/</code> directory</td></tr>
+				<tr><td><code>bug-report</code></td><td><code>BugReportObject</code></td><td>frontmatter <code>type: bug-report</code> + <code>bug-reports/</code> directory — a filed defect and the proof of its repair. Carries its own status set ( the task board's <code>AgentState</code> plus <code>needs-human</code> ), and <code>taskFields()</code> maps it onto a board task by field name</td></tr>
 				<tr><td><code>template</code></td><td><code>TemplateObject</code></td><td>directory convention (the package's <code>templates/</code>); frontmatter check skipped</td></tr>
 				<tr><td><code>framework</code></td><td><code>FrameworkObject</code></td><td>vault root, not a templates directory; frontmatter check skipped</td></tr>
 				<tr><td><code>unknown</code></td><td><code>KCDPrimitive</code> (base)</td><td>fallback; nav-index files (<code>nav-index.html</code>) and unclassified paths</td></tr>
@@ -269,7 +270,9 @@
 		<h3 data-kcd-heading>ContractObject</h3>
 
 		<p><code>kcd_sdk/src/primitives/procedure/ContractObject.ts</code></p>
-		<p>Behavioral agreement between a lens and an agent. Must declare the trigger condition.</p>
+		<p>A procedure the session follows — a first-tier primitive like a lens, and always invocable,
+		explicitly as <code>#name</code> or by a request matching its When. Must declare the trigger
+		condition. Human steps stop and wait for the human.</p>
 		<p><strong>Frontmatter required:</strong> <code>type: contract</code></p>
 		<p><strong>Sections required:</strong> <code>## When</code></p>
 		<p><strong>Role:</strong> <code>'do'</code></p>
