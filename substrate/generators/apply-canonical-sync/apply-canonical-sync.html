@@ -63,7 +63,10 @@
 		<p>The manifest is a markdown file with one table. The generator reads it verbatim — it makes no
 		judgments about which rows to apply or skip. Every row must be complete and unambiguous before it
 		reaches the generator; the session or analyzer that authored the manifest owns completeness.</p>
-		<pre><code># Canonical Sync Manifest — {YYYY-MM-DD}
+		<pre><code>---
+date: {YYYY-MM-DD}
+---
+# Canonical Sync Manifest
 
 **Rows**: N
 
@@ -148,7 +151,10 @@
 		<section data-kcd-section="phase-3">
 			<h4>Phase 3 — Run Log</h4>
 			<p>Write (flush-and-fill) <code>_Claude/audits/apply-canonical-sync.md</code>:</p>
-			<pre><code># apply-canonical-sync — Run Log — {YYYY-MM-DD}
+			<pre><code>---
+date: {YYYY-MM-DD}
+---
+# apply-canonical-sync — Run Log
 
 **Manifest**: {sync-manifest}
 **Rows in manifest**: N   ·   **Applied**: N   ·   **Skipped**: N   ·   **Failed**: N

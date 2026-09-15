@@ -208,7 +208,10 @@
 		<section data-kcd-section="phase-3">
 			<h3 data-kcd-heading>Phase 3 — Write Run Log (flush-and-fill)</h3>
 			<p>Destroy and recreate <code>_Claude/audits/apply-repairs.md</code>:</p>
-			<pre><code># Apply-Repairs Run — {YYYY-MM-DD}
+			<pre><code>---
+date: {YYYY-MM-DD}
+---
+# Apply-Repairs Run
 
 **Manifest**: _Claude/reports/audit-structure-manifest.md
 **Rows**: N total   ·   **Applied**: N   ·   **Skipped (no-op)**: N   ·   **Not applied**: N   ·   **Rejected**: N

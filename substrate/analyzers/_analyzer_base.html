@@ -95,6 +95,11 @@
 				<tr><td>Test-mode output</td><td><code>_Claude/audits/{name}.html</code></td></tr>
 			</tbody>
 		</table>
+		<p><strong>An audit's name is fixed and never dated.</strong> A report is flush-and-fill — each run
+		destroys the last and writes current state under the same name — so a date in the filename or the
+		title only mints the clean-up the convention exists to avoid. The run date is frontmatter
+		( <code>updated</code> ) and nowhere else. Audit status is never read off an old run: it is a fresh
+		one.</p>
 	</section>
 
 	<section data-kcd-section="parameters">

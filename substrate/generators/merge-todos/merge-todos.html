@@ -11,7 +11,7 @@
 
 	<dl data-kcd-frontmatter>
 		<dt>name</dt>        <dd data-kcd-field="name"        data-kcd-type="slug">merge-todos</dd>
-		<dt>description</dt> <dd data-kcd-field="description" data-kcd-type="text">Mechanical aggregation of unchecked todos across all active lenses — extracts, counts, and emits a dated digest. No interpretation.</dd>
+		<dt>description</dt> <dd data-kcd-field="description" data-kcd-type="text">Mechanical aggregation of unchecked todos across all active lenses — extracts, counts, and emits one digest under a fixed name, flush-and-fill. No interpretation.</dd>
 		<dt>type</dt>        <dd data-kcd-field="type"        data-kcd-type="enum">generator</dd>
 		<dt>status</dt>      <dd data-kcd-field="status"      data-kcd-type="enum">active</dd>
 		<dt>base</dt>        <dd data-kcd-field="base"        data-kcd-type="slug">_generator-base</dd>
@@ -117,7 +117,10 @@
 		<section data-kcd-section="phase-3">
 			<h3 data-kcd-heading>Phase 3 — Write Digest (flush-and-fill)</h3>
 			<p>Destroy and recreate <code>_Claude/audits/merge-todos.md</code>:</p>
-			<pre><code># Todos Digest — {YYYY-MM-DD}
+			<pre><code>---
+date: {YYYY-MM-DD}
+---
+# Todos Digest
 
 ## Summary
 
