@@ -406,7 +406,7 @@
 					}
 				]
 			},
-			"doc": "Execute `calls` — `[{ tool, args? }]` — IN ORDER through the server's internal dispatch, as a single tool call, so an agent that stacks a few operations gets one round-trip. Stops at the FIRST failure ( a step whose result is an error ). Returns `{ completed, failed, remaining }`: `completed` is `[{ tool, output }]` for every step that succeeded ( output is that tool's own result text ); `failed` is `{ index, tool, error }` or null; `remaining` is the tool names never reached. A nested `kcd_batch` is rejected. This tool is only as destructive as the tools it invokes — bundle heals ( move/delete ) and reads freely — but the sequence is NOT atomic: a mid-sequence failure leaves the earlier steps applied."
+			"doc": "Execute `calls` — `[{ tool, args? }]` — IN ORDER through the server's internal dispatch, as a single tool call, so an agent that stacks a few operations gets one round-trip. Stops at the FIRST failure ( a step whose result is an error ). Returns `{ completed, failed, remaining }`: `completed` is `[{ tool, output }]` for every step that succeeded ( output is that tool's own result text ); `failed` is `{ index, tool, error }` or null; `remaining` is the tool names never reached. A nested kcd_batch is rejected. This tool is only as destructive as the tools it invokes — bundle heals ( move/delete ) and reads freely — but the sequence is NOT atomic: a mid-sequence failure leaves the earlier steps applied."
 		}
 	]
 }

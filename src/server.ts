@@ -2,18 +2,16 @@ import { statSync } from 'fs';
 import { basename } from 'path';
 import { McpServer, runVerify } from './mcp';
 import type { ServerManifest, ToolDefinition, ToolResult, Registration, TestSpec, VerifyReport } from './mcp';
-import { GuardChain, PathGuard } from './guards';
 import { Trace } from './Trace';
-import { discoveryTools } from './tools/discovery';
-import { readTools } from './tools/read';
-import { writeTools } from './tools/write';
-import { batchTools } from './tools/batch';
+import { kcdTools } from './tools';
 
 /**
  * DaedalusServer — the Daedalus MCP server. ONE class, no base.
  *
- * A thin I/O gate exposing the KCD artifact tools over stdio. Judgment lives in the
- * model above and kcd_sdk beneath; these handlers only gate I/O.
+ * The stdio face of the KCD tools. What a tool DOES lives in kcd_sdk's `VaultTools` — one engine,
+ * shared with Starmind's in-process `sm_documentation` keystones — and this server is the wiring:
+ * where the vault is ( `Config` ), what the tools are called on this wire ( `tools.ts` ), and the
+ * transport. Judgment lives in the model above and the SDK beneath.
  *
  * WHY THERE IS NO BASE CLASS ( 2026-07-22, Daedalus extraction ). This used to be
  * `KcdServer extends StarmindServer`, sharing a base with `starmind_file` and
@@ -87,7 +85,6 @@ export class DaedalusServer {
 	private server:        McpServer;
 	private registrations: Registration[] = [];
 	private built          = false;
-	private chain          = new GuardChain( new PathGuard() );
 
 	constructor() {
 		const m     = DaedalusServer.manifest;
@@ -237,17 +234,10 @@ export class DaedalusServer {
 
 	// ── Tool surface ──────────────────────────────────────────────────────────────
 
-	/** Register every tool through one shared guard chain. Runs once, via ensureBuilt(). */
+	/** Register every tool. Runs once, via ensureBuilt(). The batch is handed the in-process invoke seam
+	 *  so a dispatched call obeys the exact same contract as a wire call. */
 	private build(): void {
-		const tools = [
-			...discoveryTools( this.chain ),
-			...readTools( this.chain ),
-			...writeTools( this.chain ),
-			// batch dispatches the others through the in-process invoke seam ( no guard chain of
-			// its own — each dispatched call runs its own handler + PathGuard ).
-			...batchTools( ( name, args ) => this.invoke( name, args ) ),
-		];
-		for ( const tool of tools ) this.registerTool( tool );
+		for ( const tool of kcdTools( ( name, args ) => this.invoke( name, args ) ) ) this.registerTool( tool );
 	}
 
 	/**

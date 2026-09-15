@@ -1,7 +1,9 @@
 # Daedalus
 
-A context compiler for KCD — the Know / Care / Do framework. One engine, two faces: an MCP
-server and a CLI.
+A context compiler for KCD — the Know / Care / Do framework. Two faces over one engine: an
+MCP server and a CLI, both over `kcd_sdk`, where the ten KCD tools themselves live
+(`VaultTools`). Starmind runs the same engine in-process; this package is the door for
+every host outside it.
 
 Point it at a repository and it gives your coding agent a **vault**: a small library of
 structured documents describing what the project is, how its author wants it worked on, and
@@ -142,8 +144,8 @@ makes them worse than a stop.
 **`--lane` is the caller's flag and never the agent's.** It is on this CLI, which a harness drives,
 and deliberately *not* on the `kcd_compile` MCP tool, which agents drive: an agent that can name
 its own floor can name the lenient one. The two faces are otherwise held identical, so that
-omission reads as drift — there is a comment in `src/tools/read.ts` saying it is not. Do not add it
-to that tool's `inputSchema` to make them agree.
+omission reads as drift — the engine's `compile` op in `kcd_sdk/src/node/VaultTools.ts` says it
+is not. Do not add it to that tool's `inputSchema` to make them agree.
 
 ## License
 
