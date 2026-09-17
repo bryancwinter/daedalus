@@ -227,7 +227,7 @@ updated: YYYY-MM-DD
 			<li><strong>Unchecked checkboxes</strong> — <em>hard, blocks archive.</em> Confirm per item: resolved, deferred, or out of scope.</li>
 			<li><strong>Debug artifacts in files touched this session</strong> — <em>advisory; surface and narrate, do not block on quantity.</em> Grep the session's diff (not the full "Files Affected" list — that history may span many sessions) for: <code>dd(</code>, <code>dump(</code>, <code>var_dump(</code>, <code>print_r(</code>, bare <code>die(</code>/<code>exit(</code>, <code>console.log(</code>, <code>console.error(</code>, <code>console.warn(</code>, <code>debugger</code>, commented-out blocks of &gt;2 lines, <code>TODO</code>/<code>FIXME</code>/<code>HACK</code> inline comments. Use judgment: <strong>operational logging</strong> (boot banners, structured <code>console.warn</code>/<code>error</code> in handlers, labeled error reporting) is not a debug artifact. Only genuine leftovers get surfaced in the retirement narrative.</li>
 		</ol>
-		<p>Logging is not this contract's business. Todos, the completed log and the session breadcrumb
+		<p>Logging is not this contract's business. Todos, the completed log and the action-log entry
 		belong to their habits and are swept by <a href="_Claude/contracts/close.html">close</a> — a
 		plan names none of them, so the two procedures never carry the same instruction.</p>
 	</section>

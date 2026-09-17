@@ -256,7 +256,7 @@
 															},
 															"mode": {
 																"type": "string",
-																"description": "off | on | suggested."
+																"description": "off | on | load."
 															}
 														},
 														"required": [

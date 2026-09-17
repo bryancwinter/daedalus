@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>log-action — Habit</title>
+	<style>
+		/* KCD baseline — legibility only, never design. Overridden by kcd.css below. */
+		body { background:#0d0d1c; color:#e6e6f2; font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif;
+		       max-width:72rem; margin:2.5rem auto; padding:0 1.25rem; }
+		a    { color:#8b7ff0; }
+		code { background:#17172e; border-radius:4px; padding:.05rem .3rem; }
+	</style>
+	<link rel="stylesheet" href="../../kcd.css">
+</head>
+<body>
+
+<article data-kcd="habit">
+<dl data-kcd-frontmatter>
+	<dt>name</dt>
+	<dd data-kcd-field="name" data-kcd-type="slug">log-action</dd>
+	<dt>description</dt>
+	<dd data-kcd-field="description" data-kcd-type="text">Record that something happened by calling log_action — one entry, appended to the project's action log, which nothing can edit afterwards. The ON pole of the two-state log-action class; log-action-never is the other.</dd>
+	<dt>type</dt>
+	<dd data-kcd-field="type" data-kcd-type="enum">habit</dd>
+	<dt>status</dt>
+	<dd data-kcd-field="status" data-kcd-type="enum">active</dd>
+	<dt>schema-version</dt>
+	<dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
+	<dt>author</dt>
+	<dd data-kcd-field="author" data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
+	<dt>habit-class</dt>
+	<dd data-kcd-field="habit-class" data-kcd-type="slug">log-action</dd>
+</dl>
+<h1>log-action — Habit</h1>
+<section data-kcd-section="why">
+	<h2 data-kcd-heading>Why</h2>
+	<p>the user asks to "log" / "do the logging", or a session closes after work changed &lt;code&gt;_Claude/&lt;/code&gt; or the codebase</p>
+</section>
+<section data-kcd-section="action">
+	<h2 data-kcd-heading>Action</h2>
+	<p>Call &lt;code&gt;sm_log__log_action&lt;/code&gt; with the active &lt;strong&gt;lens&lt;/strong&gt;, a one-line &lt;strong&gt;note&lt;/strong&gt; saying what happened, and a &lt;strong&gt;detail&lt;/strong&gt; when there is more than the line can hold. Never open a file to do this.</p>
+</section>
+<section data-kcd-section="explanation">
+	<h2 data-kcd-heading>Explanation</h2>
+	<p><strong>A LOG ENTRY IS A CALL, NOT A FILE HANDLE, and that is the whole of this habit.</strong> The
+			record is a table behind a program that serializes writers, so a row is inserted or it is not.
+			What it replaced was a shared Markdown file several lanes wrote at once: an entry written at
+			midday on 2026-09-12 was gone by 13:29, taken out by another lane's whole-file write, and it was
+			noticed only because the session that wrote it came back hours later and grepped for its own
+			words. An append-only convention lowered the odds of that and <strong>closed nothing, because
+			nothing detects a lost entry</strong>.</p>
+	<p><strong>IT IS AN ACTION LOG, NOT A SESSION LOG.</strong> The entry says that something happened.
+			It names the lens and, if you have one, your own name — and it carries no session, deliberately.
+			A session is a thing that gets destroyed; what was done outlives it.</p>
+	<p><strong>WRITE THE FINDING, NOT THE ACTIVITY.</strong> "Audited the colour tokens" tells a future
+			reader nothing they can act on. "The severity system had never once repointed anywhere in the
+			app" is the same session's work and is worth the line. The note is what a search returns and
+			what somebody skimming a month will read; the detail is where the reasoning, the ruling and the
+			rejected alternative go.</p>
+	<p><strong>NOTHING CAN EDIT OR DELETE AN ENTRY AFTERWARDS</strong>, and no tool exists that will —
+			an editable log is a record that can be made to agree with whoever read it last. Say it right the
+			first time. If you got it wrong, log a second entry saying so; that is a truer record than a
+			corrected one.</p>
+	<p>Read the log back with <code>sm_log__find_actions</code> — by keyword, by lens, by date window.
+			The search errs towards too many results on purpose, so skim rather than typing more precisely.
+			A person reaches the same two tools through the Action Log studio plug-in.</p>
+</section>
+<section data-kcd-section="rules">
+	<h2 data-kcd-heading>Rules</h2>
+	<ul>
+		<li>one entry per session, checkpoint, or task-agent's work — never per edit</li>
+		<li>the note is ONE line, roughly 40 words; anything longer belongs in the detail</li>
+		<li>the lens is the active lens name; use a descriptive tag for cross-cutting work</li>
+		<li>never hand-write to a log file; if the tool is unreachable, say so rather than routing around it</li>
+	</ul>
+</section>
+</article>
+
+</body>
+</html>

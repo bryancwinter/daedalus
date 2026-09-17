@@ -174,7 +174,7 @@ export class Cli {
 
 	/**
 	 * `daedalus show <lens>` — the compiled-context chart for one lens: its identity plus every dredge slot,
-	 * colour-coded by state ( grey off / blue on / green suggested / cyan fixed, dim empty ), with a SOURCE
+	 * colour-coded by state ( grey off / blue on / green load / cyan fixed, dim empty ), with a SOURCE
 	 * column and per-component and total token counts. `--json` emits the `LensView` object.
 	 *
 	 * Reports what a SESSION WEARING THIS LENS receives, not what the lens contributes in isolation: the
@@ -1846,11 +1846,11 @@ export class Cli {
 		return process.stdout.isTTY ? code + s + this.C.reset : s;
 	}
 
-	/** The colour a slot state renders in: grey off, blue on, green suggested, cyan fixed, dim empty.
+	/** The colour a slot state renders in: grey off, blue on, green load, cyan fixed, dim empty.
 	 *  `fixed` is not a mode the lens chose — inherited or synthesized content that rides regardless — so it
 	 *  reads in its own colour rather than borrowing one that implies an authoring decision. */
 	private static stateColor( state: string ): string {
-		if ( state === 'suggested' ) return this.C.green;
+		if ( state === 'load' ) return this.C.green;
 		if ( state === 'on' )        return this.C.blue;
 		if ( state === 'off' )       return this.C.grey;
 		if ( state === 'fixed' )     return this.C.cyan;
@@ -1868,7 +1868,7 @@ export class Cli {
 		const rows  = view.slots;
 
 		// Column widths from the data ( headers included ), so the table fits its content exactly.
-		const modeW = Math.max( 9, ...rows.map( r => r.state.length ) );         // 'suggested' = 9
+		const modeW = Math.max( 'MODE'.length, ...rows.map( r => r.state.length ) );
 		const compW = Math.max( 'COMPONENT'.length, ...rows.map( r => r.what.length ) );
 		const srcW  = Math.max( 'SOURCE'.length, ...rows.map( r => r.source.length ) );
 		const kindW = Math.max( 'KIND'.length, ...rows.map( r => r.kind.length ) );
@@ -1908,7 +1908,7 @@ export class Cli {
 
 		// Tally by state ( coloured counts ), then the grand total.
 		const count = ( s: string ): number => rows.filter( r => r.state === s ).length;
-		const tally = ( [ 'suggested', 'on', 'off', 'empty', 'fixed' ] as const )
+		const tally = ( [ 'load', 'on', 'off', 'empty', 'fixed' ] as const )
 			.filter( s => count( s ) > 0 )
 			.map( s => this.tint( this.stateColor( s ), `${ s } ${ count( s ) }` ) )
 			.join( '   ' );

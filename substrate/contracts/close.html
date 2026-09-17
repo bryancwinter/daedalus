@@ -55,9 +55,11 @@
 		<p><strong>Standard:</strong> The entry says what was done, why, and what it unlocks. A trivial or exploratory task writes none and says so.</p>
 	</section>
 	<section data-kcd-section="phase-3">
-		<h3 data-kcd-heading>Phase 3 — Session breadcrumb</h3>
+		<h3 data-kcd-heading>Phase 3 — Action log entry</h3>
 		<p><strong>Trigger:</strong> the closed tasks changed anything under <code>_Claude/</code>.</p>
-		<p><strong>Together:</strong> One line, per the <a href="_Claude/habits/log-session/log-session-liberal.html">log-session</a> habit.</p>
+		<p><strong>Together:</strong> One entry, per whichever pole of the <code>log-action</code> class this session is
+		wearing. <strong>The slot is named, never an occupant</strong> — a contract that hard-linked one pole would
+		be wrong for every session carrying a different one.</p>
 		<p><strong>Standard:</strong> Exactly one breadcrumb per close, however much it covers — only what came after the previous close.</p>
 	</section>
 	<section data-kcd-section="phase-4">
@@ -83,7 +85,7 @@
 	<h2 data-kcd-heading>Standards</h2>
 	<ul>
 		<li><strong>Route, never restate.</strong> Each phase names the habit or contract that owns its format. The format lives there; close carries only order and trigger.</li>
-		<li><strong>The session's own habit poles govern.</strong> Where a lens brings in a different pole — log-session-never, say — that phase reports it is off and moves on. Close never overrides a slot.</li>
+		<li><strong>The session's own habit poles govern.</strong> Where a lens brings in a different pole — <code>log-action-never</code>, say — that phase reports it is off and moves on. Close never overrides a slot.</li>
 		<li><strong>Invoking close is the confirmation.</strong> <code>#close</code> authorizes the whole sweep; the session does not ask whether the work, or the session, is closed. It stops only for a genuine ruling inside a phase — whether an item is really done, whether to keep a byproduct — and where the human is not there to rule, that item is filed as a todo rather than asked about. Silence is not consent, and neither is an approval given earlier for something else.</li>
 		<li><strong>Plans are not close's.</strong> A plan's state, checkboxes and retirement belong to the plan contract. Close names the plan in the handoff; invoking the plan contract is a separate decision.</li>
 		<li><strong>Git is not close's.</strong> Close never stages, commits or reports on version control. That is the human's safe copy, and it stays in the human's hands.</li>

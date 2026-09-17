@@ -278,7 +278,7 @@
 		<p>KCD maps onto the Anthropic Agent Skills standard rather than redefining shared terms:</p>
 		<ul>
 			<li><code>name</code> + <code>description</code> adopt the <code>SKILL.md</code> field names and constraints (§4).</li>
-			<li><strong>Dredge = progressive disclosure.</strong> <code>data-kcd-mode="suggested"</code> ⇒ full text always-loaded (Skill Level 1–2); <code>on</code> (the default, no attribute needed) ⇒ available-on-request, a routing row only (Level 3 / bundled resource); <code>off</code> ⇒ excluded entirely, not even a routing row.</li>
+			<li><strong>Dredge = progressive disclosure.</strong> <code>data-kcd-mode="load"</code> ⇒ full text always-loaded (Skill Level 1–2); <code>on</code> (the default, no attribute needed) ⇒ available-on-request, a routing row only (Level 3 / bundled resource); <code>off</code> ⇒ excluded entirely, not even a routing row.</li>
 			<li><strong>No invocation command</strong> — KCD artifacts, like Skills, are description-triggered. This retires the whole command family: the lens <code>!{name}</code> command, the generator/analyzer <code>#{name}</code> task tag, and the session-log <code>!{lens}</code> token. <code>CLAUDE.md</code> may keep <code>!lens</code> / log shorthands as a Claude-level hook, but they are <strong>not KCD canonical</strong> and appear in no authored artifact.</li>
 			<li><strong>Folder + bundled resources</strong> ↔ a lens folder + <code>context/</code> + its slots.</li>
 		</ul>
@@ -332,11 +332,13 @@
 		is HTML, at every stage" rule for the concrete case).</p>
 		<p><strong>What is exempt</strong> — not KCD documents, so this protocol does not govern them:</p>
 		<ul>
-			<li><strong>Session, todo, and completed logs</strong> — <code>_Claude/logs/session.md</code>,
-			<code>_Claude/logs/{lens}/todo/todo.md</code>, <code>_Claude/logs/{lens}/completed/completed.md</code>.
-			Append-only breadcrumb lines, not dual-audience artifacts — see the
-			<a href="_Claude/habits/log-session/log-session-liberal.html">log-session-liberal</a> habit (one of two poles of the
-			log-session mutual-exclusion slot — see §6).</li>
+			<li><strong>Todo and completed logs</strong> — <code>_Claude/logs/{lens}/todo/todo.md</code> and
+			<code>_Claude/logs/{lens}/completed/completed.md</code>. Append-only breadcrumb lines, not
+			dual-audience artifacts — see the
+			<a href="_Claude/habits/log-completed/log-completed-liberal.html">log-completed-liberal</a> habit.
+			What was ONCE listed here beside them, a shared <code>session.md</code>, is no longer a file at all:
+			it is a table behind the <code>log-action</code> habit class (§6), which is what a record several
+			writers share has to be.</li>
 			<li><strong>Chat transcripts</strong> — <code>_Claude/logs/chats/*.md</code>. Raw session
 			capture, not an authored document.</li>
 			<li><strong>Raw generator/analyzer output</strong> — <code>_Claude/audits/**</code>,

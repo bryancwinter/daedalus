@@ -26,7 +26,7 @@
 	--kcd-muted:      #9a9ac4;
 	--kcd-faint:      #61617e;
 	--kcd-accent:     #8b7ff0;   /* the KCD violet */
-	--kcd-suggested:  #e0c24a;   /* the suggested / progressive-disclosure marker */
+	--kcd-load:       #e0c24a;   /* the load / progressive-disclosure marker */
 	--kcd-off:        #4a4a63;   /* the off / disabled-slot marker */
 	--kcd-rule:       #2a2a46;
 	--kcd-panel:      #17172e;
@@ -105,8 +105,8 @@ body {
 [data-kcd-table] [data-kcd-field="where"]:hover { text-decoration: underline; }
 [data-kcd-table] [data-kcd-field="why"], [data-kcd-table] [data-kcd-field="description"] { color: var(--kcd-muted); font-size: .9rem; }
 /* progressive-disclosure + cardinality markers ride the row's own attributes.
-   data-kcd-mode = off | on ( default, routing-row only ) | suggested ( full text rides ). */
-[data-kcd-slot][data-kcd-mode="suggested"] [data-kcd-field="where"]::after { content: " ★"; color: var(--kcd-suggested); }
+   data-kcd-mode = off | on ( default, routing-row only ) | load ( full text rides ). */
+[data-kcd-slot][data-kcd-mode="load"] [data-kcd-field="where"]::after { content: " ★"; color: var(--kcd-load); }
 [data-kcd-slot][data-kcd-mode="off"] { opacity: .5; text-decoration: line-through; }
 [data-kcd-slot][data-kcd-param] [data-kcd-field="where"]::before { content: "◇1 "; color: var(--kcd-faint); font-weight: 400; font-size: .85em; }
 /* an empty params area announces itself so an author sees the slot exists */
