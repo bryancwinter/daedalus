@@ -94,7 +94,7 @@ validates writes, and heals links.
 | `kcd_save` | write an artifact — validated first; a malformed one is refused and nothing lands |
 | `kcd_move` | move or rename, healing every inbound link across the vault |
 | `kcd_delete` | delete, cascading the removal through every referrer |
-| `kcd_batch` | run an ordered sequence of the above, stopping at the first failure |
+| `kcd_batch` | run several of the above in order, one result per call — every call runs, so it is not a transaction |
 
 Validation is file-level and all-or-nothing: a document that fails is discarded whole,
 never partially parsed. A refused `kcd_save` is the system working, not an obstacle to
@@ -164,7 +164,7 @@ validates writes, and heals links.
 | `kcd_save` | write an artifact — validated first; a malformed one is refused and nothing lands |
 | `kcd_move` | move or rename, healing every inbound link across the vault |
 | `kcd_delete` | delete, cascading the removal through every referrer |
-| `kcd_batch` | run an ordered sequence of the above, stopping at the first failure |
+| `kcd_batch` | run several of the above in order, one result per call — every call runs, so it is not a transaction |
 
 Validation is file-level and all-or-nothing: a document that fails is discarded whole,
 never partially parsed. A refused `kcd_save` is the system working, not an obstacle to
@@ -234,7 +234,7 @@ validates writes, and heals links.
 | `kcd_save` | write an artifact — validated first; a malformed one is refused and nothing lands |
 | `kcd_move` | move or rename, healing every inbound link across the vault |
 | `kcd_delete` | delete, cascading the removal through every referrer |
-| `kcd_batch` | run an ordered sequence of the above, stopping at the first failure |
+| `kcd_batch` | run several of the above in order, one result per call — every call runs, so it is not a transaction |
 
 Validation is file-level and all-or-nothing: a document that fails is discarded whole,
 never partially parsed. A refused `kcd_save` is the system working, not an obstacle to

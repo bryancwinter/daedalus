@@ -357,13 +357,13 @@
 		},
 		{
 			"name": "kcd_batch",
-			"description": "Run an ordered sequence of tool calls, stopping at the first failure.",
+			"description": "Run several tool calls in order, one result per call — not a transaction.",
 			"inputSchema": {
 				"type": "object",
 				"properties": {
 					"calls": {
 						"type": "array",
-						"description": "Ordered tool calls; the batch stops at the first that fails.",
+						"description": "Ordered tool calls; each runs whatever happened to the one before it.",
 						"items": {
 							"type": "object",
 							"properties": {
@@ -406,7 +406,7 @@
 					}
 				]
 			},
-			"doc": "Execute `calls` — `[{ tool, args? }]` — IN ORDER through the server's internal dispatch, as a single tool call, so an agent that stacks a few operations gets one round-trip. Stops at the FIRST failure ( a step whose result is an error ). Returns `{ completed, failed, remaining }`: `completed` is `[{ tool, output }]` for every step that succeeded ( output is that tool's own result text ); `failed` is `{ index, tool, error }` or null; `remaining` is the tool names never reached. A nested kcd_batch is rejected. This tool is only as destructive as the tools it invokes — bundle heals ( move/delete ) and reads freely — but the sequence is NOT atomic: a mid-sequence failure leaves the earlier steps applied."
+			"doc": "Execute `calls` — `[{ tool, args? }]` — IN ORDER through the server's internal dispatch, as a single tool call, so an agent that stacks a few operations gets one round-trip. EVERY call runs: a step that fails or is refused does not stop the steps after it, and nothing already applied is undone — a batch is NOT a transaction. Returns `{ results }`, one `{ tool, ok, output }` per call in the order given: `ok` says whether that step did its work, and `output` is that tool's own reply, verbatim — a refusal included, so a step you are not permitted to run says which tool it was. A later step runs even when one it depended on failed, so a call that needs an earlier one's outcome belongs in a separate batch, sent after you have read the first. Each step is judged exactly as the same call made directly would be. A nested kcd_batch is reported as a failed step. This tool is only as destructive as the tools it invokes."
 		}
 	]
 }
