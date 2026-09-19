@@ -95,7 +95,7 @@ validate writes, and heal links.
 | `sm_documentation__save_doc` | write an artifact — validated first; a malformed one is refused and nothing lands |
 | `sm_documentation__move_doc` | move or rename, healing every inbound link across the vault |
 | `sm_documentation__delete_doc` | delete, cascading the removal through every referrer |
-| `sm_documentation__batch` | run an ordered sequence of the above, stopping at the first failure |
+| `sm_documentation__batch` | run several of the above in order, one result per call — every call runs, so it is not a transaction |
 
 Validation is file-level and all-or-nothing: a document that fails is discarded whole,
 never partially parsed. A refused `save_doc` is the system working, not an obstacle to
@@ -165,7 +165,7 @@ validate writes, and heal links.
 | `sm_documentation__save_doc` | write an artifact — validated first; a malformed one is refused and nothing lands |
 | `sm_documentation__move_doc` | move or rename, healing every inbound link across the vault |
 | `sm_documentation__delete_doc` | delete, cascading the removal through every referrer |
-| `sm_documentation__batch` | run an ordered sequence of the above, stopping at the first failure |
+| `sm_documentation__batch` | run several of the above in order, one result per call — every call runs, so it is not a transaction |
 
 Validation is file-level and all-or-nothing: a document that fails is discarded whole,
 never partially parsed. A refused `save_doc` is the system working, not an obstacle to
@@ -234,7 +234,7 @@ validate writes, and heal links.
 | `sm_documentation__save_doc` | write an artifact — validated first; a malformed one is refused and nothing lands |
 | `sm_documentation__move_doc` | move or rename, healing every inbound link across the vault |
 | `sm_documentation__delete_doc` | delete, cascading the removal through every referrer |
-| `sm_documentation__batch` | run an ordered sequence of the above, stopping at the first failure |
+| `sm_documentation__batch` | run several of the above in order, one result per call — every call runs, so it is not a transaction |
 
 Validation is file-level and all-or-nothing: a document that fails is discarded whole,
 never partially parsed. A refused `save_doc` is the system working, not an obstacle to
