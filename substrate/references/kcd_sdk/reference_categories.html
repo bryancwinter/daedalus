@@ -36,8 +36,8 @@
 		across lenses. Material that travels only with one lens lives in that lens's own
 		<code>context/</code> (<code>lenses/{name}/context/</code>), not in the shared store — keep the
 		library shared and findable, keep one-lens material local.</p>
-		<p>The <strong>substrate</strong> — the framework library inside the installed Daedalus package,
-		which a deploy copies from — is the single source for everything that is <em>not</em> a
+		<p>The <strong>substrate</strong> — the framework library a deploy copies from — is the single
+		source for everything that is <em>not</em> a
 		reference: framework meta-docs, habits, generators, analyzers. If a document explains how the
 		document system works, it belongs in the substrate and is edited in the framework's own
 		repository. If it states a fact about <em>this</em> project, it belongs in a

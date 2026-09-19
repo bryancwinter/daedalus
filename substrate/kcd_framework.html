@@ -87,8 +87,7 @@
 		<h4>2. Canonical + tool layer — the immutable substrate</h4>
 		<ul>
 			<li><strong>The canonical framework library is not in the vault at all.</strong> It lives in
-			the installed Daedalus package, under its <code>substrate/</code> directory, and a deploy
-			COPIES from there into a fresh vault. So there is no copy here to protect and nothing to keep
+			the KCD substrate, and a deploy COPIES from there into a fresh vault. So there is no copy here to protect and nothing to keep
 			in step by hand: everything under the doc root is the project's own to edit, which is the
 			point of it. Edits to the framework library itself belong in the framework's own repository.
 			All artifacts are in <code>.html</code> format per the
@@ -274,16 +273,16 @@
 
 	<section data-kcd-section="portability-boundary">
 		<h3>Portability boundary</h3>
-		<p>The <strong>substrate</strong> — the framework library shipped inside the Daedalus package —
-		is the portable, project-agnostic layer: framework meta-docs, bases, habits, and the
+		<p>The <strong>substrate</strong> — the framework library every new vault is filled from — is
+		the portable, project-agnostic layer: framework meta-docs, bases, habits, and the
 		generator/analyzer definitions that apply to any KCD-equipped project without modification.</p>
 		<p><strong>Rule:</strong> if writing or editing a substrate file requires knowing anything about
 		a specific project — its paths, domain vocabulary, toolchain, or conventions — that artifact
 		does not belong in the substrate. Project-specific agents belong in the project's own vault.</p>
 		<p><strong>Lenses are a two-tier exception.</strong> Most lenses are drafted in place and are
 		project-specific by design. A small minority are <em>bundled</em> (e.g.
-		<code>_lens-base</code>, <code>lens-crafter</code>) — they ship inside the Daedalus package and
-		<code>daedalus init</code> writes them into <code>lenses/</code> on a fresh install. They carry no
+		<code>_lens-base</code>, <code>lens-crafter</code>) — they ship in the substrate, and creating a
+		project in Starmind writes them into <code>lenses/</code>. They carry no
 		project vocabulary, because they land in vaults nobody has seen. Same schema; the portability
 		constraint is what gates entry to the substrate.</p>
 	</section>

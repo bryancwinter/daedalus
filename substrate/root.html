@@ -15,7 +15,7 @@
 		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">framework</dd>
 		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">active</dd>
 		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
-		<dt>updated</dt>       <dd data-kcd-field="updated"        data-kcd-type="date">2026-07-26</dd>
+		<dt>updated</dt>       <dd data-kcd-field="updated"        data-kcd-type="date">2026-09-18</dd>
 	</dl>
 
 	<h1>Entry Document</h1>
@@ -39,8 +39,9 @@
 		<p>The vault is <a href="_Claude/">_Claude/</a>. Everything governed lives there, authored as
 		standards-valid HTML that opens in any browser and is read mechanically by the tools. The
 		<code>CLAUDE.md</code> / <code>AGENTS.md</code> / <code>GEMINI.md</code> file at the project root
-		is a <strong>pointer to this document and nothing more</strong>. It is generated from
-		<a href="_Claude/root-context.html">root-context</a>, so edit that rather than the emitted file.</p>
+		is a <strong>pointer to this document</strong>. Its managed block is generated from
+		<a href="_Claude/root-context.html">root-context</a>, so edit that rather than the emitted file;
+		anything below the block belongs to the project.</p>
 		<p><a href="_Claude/lenses/_lens-base.html">_lens-base</a> is the auto-loaded floor. It carries the
 		project-wide stance and the universal habits every other lens extends. No lens replaces it.</p>
 	</section>
@@ -50,12 +51,12 @@
 		<p>A freshly installed vault has the framework's floor and <em>nothing about this project</em>. It
 		is structurally valid and not yet worth much. Three things turn that around, in order:</p>
 		<ol>
-			<li><strong>Run <code>daedalus get-started</code></strong> if you have not. It surveys the
-			project and hands you a prompt to verify the tools actually work against your own code.</li>
-			<li><strong>Author the first lens.</strong> Compile <code>!lens-crafter</code>, then use the
-			<code>kcd-configure</code> skill installed alongside this vault. It is an interview, not a
-			generator: it agrees the boundaries with whoever owns the project and writes the lenses from
-			their answers. Write one lens rather than five — a lens honestly about one component beats a
+			<li><strong>Survey the project</strong> with <code>sm_documentation__survey_project</code> if
+			you have not. It is a census of what is actually on disk, so the first lens is written against
+			the real project rather than a guess at it.</li>
+			<li><strong>Author the first lens.</strong> Compile <code>!lens-crafter</code> and treat it as an
+			interview, not a generator: agree the boundaries with whoever owns the project and write the
+			lens from their answers. Write one lens rather than five — a lens honestly about one component beats a
 			survey of everything.</li>
 			<li><strong>Edit this document.</strong> The hard rules below are the installer's defaults and
 			are almost certainly wrong for you in at least one place. Replacing them is the point — this
@@ -87,7 +88,7 @@
 			A plausible invention is worse than a gap, because a gap is visible.</li>
 
 			<li><strong>An artifact is done when it validates, not when it is written.</strong> Run
-			<code>kcd_health</code> against what you just saved and fix every error before moving on.
+			<code>sm_documentation__validate_docs</code> against what you just saved and fix every error before moving on.
 			Warnings are advisory; errors are not.</li>
 		</ol>
 	</section>
@@ -95,13 +96,15 @@
 	<section data-kcd-section="lenses">
 		<h2 data-kcd-heading>Lenses</h2>
 		<p>Compile the lens matching the work before starting it — call
-		<code>kcd_compile { lenses: ["name"] }</code> and read the composed Know/Care back, rather than
-		opening the lens file directly. Lenses are description-triggered: match the task against the
-		<em>Why</em> column and pick the name. Under Claude Code the <code>!name</code> shorthand resolves
-		to that same call, not a separate mechanism.</p>
-		<p>This table is generated. After adding or removing a lens, run
-		<code>daedalus lens-index confirm</code> rather than editing the rows by hand — each row's text is
-		read from the lens's own frontmatter, so a hand-edited copy silently drifts from the real thing.</p>
+		<code>sm_documentation__compile_lenses { lenses: ["name"] }</code> and read the composed Know/Care
+		back, rather than opening the lens file directly. Lenses are description-triggered: match the task
+		against the <em>Why</em> column and pick the name. Under Claude Code the <code>!name</code>
+		shorthand resolves to that same call, not a separate mechanism. The compile step is the Starmind
+		built-in for every host; a host that does not hold it directly reaches it through the door its
+		entry file names.</p>
+		<p>This table mirrors each lens's own frontmatter. No built-in regenerates it today, so after
+		adding or removing a lens, copy the row's text from the lens's frontmatter rather than
+		paraphrasing it — a row written from memory silently drifts from the real thing.</p>
 		<div data-kcd-table>
 			<div data-kcd-head><span>What</span><span>Where</span><span>Why</span></div>
 			<div data-kcd-slot="reference" data-kcd-mode="on">
@@ -117,7 +120,7 @@
 		<p>Multiple lenses can apply at once. <strong>Precedence is declaration order</strong> — the first
 		is <strong>primary</strong> and overrules on conflict; the rest contribute their Know and Care to
 		the composite. This is not a convention layered over compilation, it is
-		<code>kcd_compile</code>'s own rule: pass every active lens as one ordered <code>lenses</code>
+		<code>sm_documentation__compile_lenses</code>'s own rule: pass every active lens as one ordered <code>lenses</code>
 		array, index 0 wins ties.</p>
 		<p>Stacking is for human-driven sessions, because the human is the conflict resolver in real time.
 		Lenses are deliberately <em>inclusive</em> — overlapping domains are a feature, not a modelling
@@ -132,7 +135,7 @@
 		<code>#name</code> ( <code>#plan</code>, <code>#close</code> ), or by description — "let's make
 		a plan" invokes plan exactly as <code>#plan</code> does. Match the request against a contract's
 		<em>When</em>. One token per contract; the phase is named in plain language.</p>
-		<p>Either way, fetch it with <code>kcd_get { path: "contracts/{name}.html" }</code> and read it
+		<p>Either way, fetch it with <code>sm_documentation__get_doc { path: "contracts/{name}.html" }</code> and read it
 		whole — a contract is fetched, not compiled, and one that is summarised on the way in has lost
 		its steps. Invoking a contract enters its procedure; it does not promise to finish it now. Close
 		resolves in one sitting, a plan can take a week.</p>

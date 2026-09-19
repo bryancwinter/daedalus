@@ -44,14 +44,14 @@
 	<p><strong>Lens locations.</strong> Most lenses are <strong>drafted in place</strong> at
 	<code>_Claude/lenses/{name}/{name}.html</code> — <code>status: active</code>, project-specific,
 	never round-tripped through the substrate. A small set are <strong>deployable</strong>: they
-	live at the same path, but originate in the Daedalus bundle and are written into the vault by
-	<code>daedalus init</code> — <code>_lens-base</code> and <code>lens-crafter</code> are the two that
+	live at the same path, but originate in the substrate and are written into the vault when a
+	project is created — <code>_lens-base</code> and <code>lens-crafter</code> are the two that
 	ship today. A bundled lens must stay <strong>project-agnostic</strong>: no hardcoded paths and no
 	vocabulary specific to one project, because it lands in vaults nobody has seen.
 	There is one location either way — a lens is never staged somewhere else first and copied in. Once
 	installed, a bundled lens is <em>yours</em>, and editing it is expected; the bundle keeps its own
-	copy and the two diverge by design. <code>daedalus reset &lt;path&gt;</code> puts the shipped version
-	back, overwriting what you have rather than repairing it — it overwrites rather than repairs, so reach for it deliberately.</p>
+	copy and the two diverge by design. Putting the shipped version back overwrites what you have rather
+	than repairing it, and no built-in does it for a single artifact today — so reach for it deliberately.</p>
 
 	<section data-kcd-section="know">
 		<h3>Know</h3>

@@ -65,8 +65,8 @@
 	<section data-kcd-section="phase-4">
 		<h3 data-kcd-heading>Phase 4 — Vault health</h3>
 		<p><strong>Trigger:</strong> the closed tasks wrote, moved or deleted any KCD artifact.</p>
-		<p><strong>Together:</strong> The session runs <code>kcd_health</code> on each artifact it wrote, and on the whole vault if anything was moved or deleted. A failure the closed tasks introduced is fixed now. A failure that predates them is surfaced to the human and left alone.</p>
-		<p><strong>Standard:</strong> <code>kcd_health</code> is believed over the session's own reading. The session leaves behind no failure of its own making.</p>
+		<p><strong>Together:</strong> The session runs <code>sm_documentation__validate_docs</code> on each artifact it wrote, and on the whole vault if anything was moved or deleted. A failure the closed tasks introduced is fixed now. A failure that predates them is surfaced to the human and left alone.</p>
+		<p><strong>Standard:</strong> <code>sm_documentation__validate_docs</code> is believed over the session's own reading. The session leaves behind no failure of its own making.</p>
 	</section>
 	<section data-kcd-section="phase-5">
 		<h3 data-kcd-heading>Phase 5 — Scratch</h3>

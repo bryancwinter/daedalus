@@ -11,12 +11,12 @@
 
 	<dl data-kcd-frontmatter>
 		<dt>name</dt>          <dd data-kcd-field="name"           data-kcd-type="slug">root-context</dd>
-		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">The seed source for a project's agent entry file — one payload block per agent host (CLAUDE.md, AGENTS.md, GEMINI.md), each carrying the bare minimum: how to reach the KCD Model Context Protocol server and where the entry document lives. This artifact is never copied; a deploy extracts the block matching the host and writes it into a managed region at the top of that file. Read or edit when changing what a cold agent is told before it has read anything else.</dd>
+		<dt>description</dt>   <dd data-kcd-field="description"    data-kcd-type="text">The seed source for a project's agent entry file — one payload block per agent host (CLAUDE.md, AGENTS.md, GEMINI.md), each carrying the bare minimum: how to reach the documentation tools and where the entry document lives. This artifact is never copied; a deploy extracts the block matching the host and writes it into a managed region at the top of that file. Read or edit when changing what a cold agent is told before it has read anything else.</dd>
 		<dt>type</dt>          <dd data-kcd-field="type"           data-kcd-type="enum">framework</dd>
 		<dt>status</dt>        <dd data-kcd-field="status"         data-kcd-type="enum">active</dd>
 		<dt>schema-version</dt><dd data-kcd-field="schema-version" data-kcd-type="text">0.1</dd>
 		<dt>author</dt>        <dd data-kcd-field="author"         data-kcd-type="text">Bryan C. Winter &lt;bryancwinter@gmail.com&gt;</dd>
-		<dt>updated</dt>       <dd data-kcd-field="updated"        data-kcd-type="date">2026-07-25</dd>
+		<dt>updated</dt>       <dd data-kcd-field="updated"        data-kcd-type="date">2026-09-18</dd>
 	</dl>
 
 	<h1>Root Context — Seed Source</h1>
@@ -72,49 +72,49 @@ A KCD-equipped project. **This file is not your context** — it is the pointer 
 The entry document carries the hard rules, the lens roster, and the map of everything
 else. Load it before doing anything else:
 
-    kcd_get { path: "root.html" }
+    sm_documentation__get_doc { path: "root.html" }
 
-KCD tool paths are **vault-relative** — they resolve against `_Claude/`, not the project
-root. If the KCD Model Context Protocol server is unavailable, read `_Claude/root.html` directly instead.
+Document paths are **vault-relative** — they resolve against `_Claude/`, not the project
+root. If you do not hold the documentation tools, read `_Claude/root.html` directly instead.
 
-## The KCD Model Context Protocol server
+## The documentation tools
 
-Every governed document in this project is reachable through the `daedalus` server.
-Prefer it over raw file reads anywhere under `_Claude/`: it returns parsed artifacts,
-validates writes, and heals links.
+Every governed document in this project is reachable through the `sm_documentation`
+tools — Starmind built-ins, held directly by any agent running inside Starmind. Prefer
+them over raw file reads anywhere under `_Claude/`: they return parsed artifacts,
+validate writes, and heal links.
 
 | Tool | Use it to |
 |---|---|
-| `kcd_query` | find artifacts by path glob, type, and body text — start here when you don't know the path |
-| `kcd_get` | load one artifact; for a lens, `depth` pulls in the context it always brings with it |
-| `kcd_links` | see an artifact's outbound links, and everything pointing back at it |
-| `kcd_health` | validate one artifact, or the whole vault, for dangling links and broken refs |
-| `kcd_compile` | compile one or more lenses into one composed context string — pass lens names, first is primary; this is what `!name` calls |
-| `kcd_survey` | reconnoitre the project beside the vault — a filename-level census of components, languages, and entry points; orient without exploring |
-| `kcd_save` | write an artifact — validated first; a malformed one is refused and nothing lands |
-| `kcd_move` | move or rename, healing every inbound link across the vault |
-| `kcd_delete` | delete, cascading the removal through every referrer |
-| `kcd_batch` | run an ordered sequence of the above, stopping at the first failure |
+| `sm_documentation__query_docs` | find artifacts by path glob, type, and body text — start here when you don't know the path |
+| `sm_documentation__get_doc` | load one artifact; for a lens, `depth` pulls in the context it always brings with it |
+| `sm_documentation__doc_links` | see an artifact's outbound links, and everything pointing back at it |
+| `sm_documentation__validate_docs` | validate one artifact, or the whole vault, for dangling links and broken refs |
+| `sm_documentation__compile_lenses` | compile one or more lenses into one composed context string — pass lens names, first is primary; this is what `!name` calls |
+| `sm_documentation__survey_project` | reconnoitre the project beside the vault — a filename-level census of components, languages, and entry points; orient without exploring |
+| `sm_documentation__save_doc` | write an artifact — validated first; a malformed one is refused and nothing lands |
+| `sm_documentation__move_doc` | move or rename, healing every inbound link across the vault |
+| `sm_documentation__delete_doc` | delete, cascading the removal through every referrer |
+| `sm_documentation__batch` | run an ordered sequence of the above, stopping at the first failure |
 
 Validation is file-level and all-or-nothing: a document that fails is discarded whole,
-never partially parsed. A refused `kcd_save` is the system working, not an obstacle to
+never partially parsed. A refused `save_doc` is the system working, not an obstacle to
 route around.
 
-**If the KCD Model Context Protocol server is unavailable for any reason, say so to the user before continuing.**
-Name the tool as missing rather than quietly routing around it, and warn that editing or
-modifying KCD artifacts will be considerably harder without it.
-
-You are still **permitted to edit artifacts directly** with ordinary file tools. But a
-direct edit is not acceptable until it has been **validated against the KCD Document
-Protocol** — the same all-or-nothing rules apply whether or not a tool enforced them, and
-an unvalidated hand-edit is exactly how a malformed document enters the system. Prefer
-the Model Context Protocol server heavily: editing by hand is the fallback, not an equivalent path.
+**Outside Starmind there is no built-in door** unless this file names one further down.
+Without one, read and edit `_Claude/` with ordinary file tools. You are still **permitted
+to edit artifacts directly**, but a direct edit is not acceptable until it has been
+**validated against the KCD Document Protocol** — the same all-or-nothing rules apply
+whether or not a tool enforced them, and an unvalidated hand-edit is exactly how a
+malformed document enters the system. Prefer the tools whenever you hold them: editing by
+hand is the fallback, not an equivalent path.
 
 ## Lenses
 
 `!name` at the start of a session compiles that lens's context — `!lens-crafter` compiles
 the authoring lens, which is the one lens a freshly installed vault has — via
-`kcd_compile { lenses: ["name"] }`, rather than opening the lens file directly. Stack them
+`sm_documentation__compile_lenses { lenses: ["name"] }`, rather than opening the lens file
+directly. Stack them
 by naming more than one, `!lens-crafter !some-other`: every active lens goes in one ordered
 array, first is primary and overrules on conflict — that ordering rule belongs to the tool
 itself, not a convention layered on top of it. The roster is in the entry document, and it
@@ -125,7 +125,7 @@ is the authority on what names actually resolve here.
 Contracts are independent of lenses. A lens is a personality — what a session knows and
 cares about; a contract is behavior and expectations — a procedure the session follows
 whichever lens it wears. `#name` invokes one — `#plan`, `#close` — and so does describing
-it ("let's make a plan"). Fetch it whole with `kcd_get { path: "contracts/{name}.html" }`
+it ("let's make a plan"). Fetch it whole with `sm_documentation__get_doc { path: "contracts/{name}.html" }`
 and follow it; each contract documents itself. The roster is in the entry document.
 </script>
 	</section>
@@ -142,50 +142,49 @@ A KCD-equipped project. **This file is not your context** — it is the pointer 
 The entry document carries the hard rules, the lens roster, and the map of everything
 else. Load it before doing anything else:
 
-    kcd_get { path: "root.html" }
+    sm_documentation__get_doc { path: "root.html" }
 
-KCD tool paths are **vault-relative** — they resolve against `_Claude/`, not the project
-root. If the KCD Model Context Protocol server is unavailable, read `_Claude/root.html` directly instead.
+Document paths are **vault-relative** — they resolve against `_Claude/`, not the project
+root. If you do not hold the documentation tools, read `_Claude/root.html` directly instead.
 
-## The KCD Model Context Protocol server
+## The documentation tools
 
-Every governed document in this project is reachable through the `daedalus` server.
-Prefer it over raw file reads anywhere under `_Claude/`: it returns parsed artifacts,
-validates writes, and heals links.
+Every governed document in this project is reachable through the `sm_documentation`
+tools — Starmind built-ins, held directly by any agent running inside Starmind. Prefer
+them over raw file reads anywhere under `_Claude/`: they return parsed artifacts,
+validate writes, and heal links.
 
 | Tool | Use it to |
 |---|---|
-| `kcd_query` | find artifacts by path glob, type, and body text — start here when you don't know the path |
-| `kcd_get` | load one artifact; for a lens, `depth` pulls in the context it always brings with it |
-| `kcd_links` | see an artifact's outbound links, and everything pointing back at it |
-| `kcd_health` | validate one artifact, or the whole vault, for dangling links and broken refs |
-| `kcd_compile` | compile one or more lenses into one composed context string — pass lens names, first is primary |
-| `kcd_survey` | reconnoitre the project beside the vault — a filename-level census of components, languages, and entry points; orient without exploring |
-| `kcd_save` | write an artifact — validated first; a malformed one is refused and nothing lands |
-| `kcd_move` | move or rename, healing every inbound link across the vault |
-| `kcd_delete` | delete, cascading the removal through every referrer |
-| `kcd_batch` | run an ordered sequence of the above, stopping at the first failure |
+| `sm_documentation__query_docs` | find artifacts by path glob, type, and body text — start here when you don't know the path |
+| `sm_documentation__get_doc` | load one artifact; for a lens, `depth` pulls in the context it always brings with it |
+| `sm_documentation__doc_links` | see an artifact's outbound links, and everything pointing back at it |
+| `sm_documentation__validate_docs` | validate one artifact, or the whole vault, for dangling links and broken refs |
+| `sm_documentation__compile_lenses` | compile one or more lenses into one composed context string — pass lens names, first is primary |
+| `sm_documentation__survey_project` | reconnoitre the project beside the vault — a filename-level census of components, languages, and entry points; orient without exploring |
+| `sm_documentation__save_doc` | write an artifact — validated first; a malformed one is refused and nothing lands |
+| `sm_documentation__move_doc` | move or rename, healing every inbound link across the vault |
+| `sm_documentation__delete_doc` | delete, cascading the removal through every referrer |
+| `sm_documentation__batch` | run an ordered sequence of the above, stopping at the first failure |
 
 Validation is file-level and all-or-nothing: a document that fails is discarded whole,
-never partially parsed. A refused `kcd_save` is the system working, not an obstacle to
+never partially parsed. A refused `save_doc` is the system working, not an obstacle to
 route around.
 
-**If the KCD Model Context Protocol server is unavailable for any reason, say so to the user before continuing.**
-Name the tool as missing rather than quietly routing around it, and warn that editing or
-modifying KCD artifacts will be considerably harder without it.
-
-You are still **permitted to edit artifacts directly** with ordinary file tools. But a
-direct edit is not acceptable until it has been **validated against the KCD Document
-Protocol** — the same all-or-nothing rules apply whether or not a tool enforced them, and
-an unvalidated hand-edit is exactly how a malformed document enters the system. Prefer
-the Model Context Protocol server heavily: editing by hand is the fallback, not an equivalent path.
+**Outside Starmind there is no built-in door** unless this file names one further down.
+Without one, read and edit `_Claude/` with ordinary file tools. You are still **permitted
+to edit artifacts directly**, but a direct edit is not acceptable until it has been
+**validated against the KCD Document Protocol** — the same all-or-nothing rules apply
+whether or not a tool enforced them, and an unvalidated hand-edit is exactly how a
+malformed document enters the system. Prefer the tools whenever you hold them: editing by
+hand is the fallback, not an equivalent path.
 
 ## Lenses
 
 The entry document lists the project's lenses — Know/Care personalities you adopt for a
 task. Compile the one matching the work before starting it:
 
-    kcd_compile { lenses: ["name"] }
+    sm_documentation__compile_lenses { lenses: ["name"] }
 
 Pass more than one to stack — the first in the array is primary and overrules on
 conflict.
@@ -195,7 +194,7 @@ conflict.
 Contracts are independent of lenses. A lens is a personality — what a session knows and
 cares about; a contract is behavior and expectations — a procedure the session follows
 whichever lens it wears. `#name` invokes one — `#plan`, `#close` — and so does describing
-it ("let's make a plan"). Fetch it whole with `kcd_get { path: "contracts/{name}.html" }`
+it ("let's make a plan"). Fetch it whole with `sm_documentation__get_doc { path: "contracts/{name}.html" }`
 and follow it; each contract documents itself. The roster is in the entry document.
 </script>
 	</section>
@@ -212,50 +211,49 @@ A KCD-equipped project. **This file is not your context** — it is the pointer 
 The entry document carries the hard rules, the lens roster, and the map of everything
 else. Load it before doing anything else:
 
-    kcd_get { path: "root.html" }
+    sm_documentation__get_doc { path: "root.html" }
 
-KCD tool paths are **vault-relative** — they resolve against `_Claude/`, not the project
-root. If the KCD Model Context Protocol server is unavailable, read `_Claude/root.html` directly instead.
+Document paths are **vault-relative** — they resolve against `_Claude/`, not the project
+root. If you do not hold the documentation tools, read `_Claude/root.html` directly instead.
 
-## The KCD Model Context Protocol server
+## The documentation tools
 
-Every governed document in this project is reachable through the `daedalus` server.
-Prefer it over raw file reads anywhere under `_Claude/`: it returns parsed artifacts,
-validates writes, and heals links.
+Every governed document in this project is reachable through the `sm_documentation`
+tools — Starmind built-ins, held directly by any agent running inside Starmind. Prefer
+them over raw file reads anywhere under `_Claude/`: they return parsed artifacts,
+validate writes, and heal links.
 
 | Tool | Use it to |
 |---|---|
-| `kcd_query` | find artifacts by path glob, type, and body text — start here when you don't know the path |
-| `kcd_get` | load one artifact; for a lens, `depth` pulls in the context it always brings with it |
-| `kcd_links` | see an artifact's outbound links, and everything pointing back at it |
-| `kcd_health` | validate one artifact, or the whole vault, for dangling links and broken refs |
-| `kcd_compile` | compile one or more lenses into one composed context string — pass lens names, first is primary |
-| `kcd_survey` | reconnoitre the project beside the vault — a filename-level census of components, languages, and entry points; orient without exploring |
-| `kcd_save` | write an artifact — validated first; a malformed one is refused and nothing lands |
-| `kcd_move` | move or rename, healing every inbound link across the vault |
-| `kcd_delete` | delete, cascading the removal through every referrer |
-| `kcd_batch` | run an ordered sequence of the above, stopping at the first failure |
+| `sm_documentation__query_docs` | find artifacts by path glob, type, and body text — start here when you don't know the path |
+| `sm_documentation__get_doc` | load one artifact; for a lens, `depth` pulls in the context it always brings with it |
+| `sm_documentation__doc_links` | see an artifact's outbound links, and everything pointing back at it |
+| `sm_documentation__validate_docs` | validate one artifact, or the whole vault, for dangling links and broken refs |
+| `sm_documentation__compile_lenses` | compile one or more lenses into one composed context string — pass lens names, first is primary |
+| `sm_documentation__survey_project` | reconnoitre the project beside the vault — a filename-level census of components, languages, and entry points; orient without exploring |
+| `sm_documentation__save_doc` | write an artifact — validated first; a malformed one is refused and nothing lands |
+| `sm_documentation__move_doc` | move or rename, healing every inbound link across the vault |
+| `sm_documentation__delete_doc` | delete, cascading the removal through every referrer |
+| `sm_documentation__batch` | run an ordered sequence of the above, stopping at the first failure |
 
 Validation is file-level and all-or-nothing: a document that fails is discarded whole,
-never partially parsed. A refused `kcd_save` is the system working, not an obstacle to
+never partially parsed. A refused `save_doc` is the system working, not an obstacle to
 route around.
 
-**If the KCD Model Context Protocol server is unavailable for any reason, say so to the user before continuing.**
-Name the tool as missing rather than quietly routing around it, and warn that editing or
-modifying KCD artifacts will be considerably harder without it.
-
-You are still **permitted to edit artifacts directly** with ordinary file tools. But a
-direct edit is not acceptable until it has been **validated against the KCD Document
-Protocol** — the same all-or-nothing rules apply whether or not a tool enforced them, and
-an unvalidated hand-edit is exactly how a malformed document enters the system. Prefer
-the Model Context Protocol server heavily: editing by hand is the fallback, not an equivalent path.
+**Outside Starmind there is no built-in door** unless this file names one further down.
+Without one, read and edit `_Claude/` with ordinary file tools. You are still **permitted
+to edit artifacts directly**, but a direct edit is not acceptable until it has been
+**validated against the KCD Document Protocol** — the same all-or-nothing rules apply
+whether or not a tool enforced them, and an unvalidated hand-edit is exactly how a
+malformed document enters the system. Prefer the tools whenever you hold them: editing by
+hand is the fallback, not an equivalent path.
 
 ## Lenses
 
 The entry document lists the project's lenses — Know/Care personalities you adopt for a
 task. Compile the one matching the work before starting it:
 
-    kcd_compile { lenses: ["name"] }
+    sm_documentation__compile_lenses { lenses: ["name"] }
 
 Pass more than one to stack — the first in the array is primary and overrules on
 conflict.
@@ -265,7 +263,7 @@ conflict.
 Contracts are independent of lenses. A lens is a personality — what a session knows and
 cares about; a contract is behavior and expectations — a procedure the session follows
 whichever lens it wears. `#name` invokes one — `#plan`, `#close` — and so does describing
-it ("let's make a plan"). Fetch it whole with `kcd_get { path: "contracts/{name}.html" }`
+it ("let's make a plan"). Fetch it whole with `sm_documentation__get_doc { path: "contracts/{name}.html" }`
 and follow it; each contract documents itself. The roster is in the entry document.
 </script>
 	</section>

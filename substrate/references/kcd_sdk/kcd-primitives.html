@@ -207,7 +207,7 @@
 		</table>
 
 		<p>
-			<code>readFile()</code> is an overridable seam — the Model Context Protocol server can swap it out for a custom
+			<code>readFile()</code> is an overridable seam — a host can swap it out for a custom
 			reader without subclassing. The default reads via <code>fs.readFileSync</code>.
 		</p>
 
@@ -311,7 +311,7 @@
 				<tr><td><code>LinkType</code></td><td><code>'internal' | 'external' | 'anchor'</code></td></tr>
 				<tr><td><code>PolicyEntry</code></td><td>Dredge-policy row from Know table: <code>{ what, href, why, always, type, section? }</code></td></tr>
 				<tr><td><code>SerializedArtifact</code></td><td>Wire format: <code>{ path, type, frontmatter, sections, body, links }</code></td></tr>
-				<tr><td><code>WriteMap</code></td><td><code>Record&lt;path, SerializedArtifact&gt;</code> — batch write unit for <code>kcd_save</code></td></tr>
+				<tr><td><code>WriteMap</code></td><td><code>Record&lt;path, SerializedArtifact&gt;</code> — batch write unit for <code>sm_documentation__save_doc</code></td></tr>
 				<tr><td><code>TypeCheckIssue</code></td><td>Non-throwing validation issue: <code>{ severity, message, field?, section? }</code></td></tr>
 				<tr><td><code>ReaderFn</code></td><td><code>(absPath: string) =&gt; string</code> — the <code>readFile</code> seam type; server-side only</td></tr>
 				<tr><td><code>ArtifactRef</code></td><td>Lightweight pointer: <code>{ path, type, name }</code> — name from frontmatter or filename stem</td></tr>
